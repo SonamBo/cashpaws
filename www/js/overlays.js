@@ -8,12 +8,6 @@ import { money } from './render.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const CHARACTER = {
-  familiar: 'Values already on your board.',
-  wide: 'Anything from this level.',
-  junk: 'Junk 5s in the mix now.',
-};
-
 let host = null;
 export function mountOverlays(root) {
   host = document.createElement('div');
@@ -34,26 +28,6 @@ async function dismiss(card) {
   card.classList.remove('in');
   await wait(220);
   card.remove();
-}
-
-/** Orange. The flow landing. Auto-dismisses. */
-export async function inflowCard(e) {
-  const card = show(`
-    <div class="ovl-body">
-      <p class="ovl-kicker">Flow drop ${e.drop}</p>
-      <p class="ovl-huge">+${e.count}</p>
-      <p class="ovl-line">${CHARACTER[e.character]}</p>
-      <p class="ovl-foot">Next drop every ${e.interval} turns</p>
-    </div>`, 'flow');
-
-  // A fixed hold is wrong for everyone: too quick the first time, too slow the
-  // fiftieth. Hold for a beat, then let a tap skip the rest.
-  await new Promise((resolve) => {
-    const done = () => { clearTimeout(timer); card.removeEventListener('click', done); resolve(); };
-    const timer = setTimeout(done, 1000);
-    setTimeout(() => card.addEventListener('click', done), 220);
-  });
-  await dismiss(card);
 }
 
 /** Sage. A new level. Waits for the button. */

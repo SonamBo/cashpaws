@@ -194,6 +194,42 @@ export class Game {
     return col.length ? col[col.length - 1] : null;
   }
 
+  /** How many identical chips sit on top of a column. */
+  topRun(i) {
+    const col = this.columns[i];
+    if (!col.length) return 0;
+    const v = col[col.length - 1];
+    let n = 1;
+    for (let k = col.length - 2; k >= 0 && col[k] === v; k--) n++;
+    return n;
+  }
+
+  /** Chips that would actually travel: the whole run, capped by space. */
+  movableCount(from, to) {
+    if (!this.canMove(from, to)) return 0;
+    return Math.min(this.topRun(from), this.cfg.capacity - this.columns[to].length);
+  }
+
+  /**
+   * A move is meaningful if it can change the board's prospects: it grows a
+   * matching stack, or it uncovers something different underneath. Sliding a
+   * uniform column into an empty one is legal but pointless.
+   */
+  isMeaningful(from, to) {
+    if (this.movableCount(from, to) === 0) return false;
+    if (this.columns[to].length > 0) return true;      // tops match, so it consolidates
+    return this.columns[from].length > this.topRun(from);
+  }
+
+  hasMeaningfulMove() {
+    for (let f = 0; f < this.columnCount; f++) {
+      for (let t = 0; t < this.columnCount; t++) {
+        if (f !== t && this.isMeaningful(f, t)) return true;
+      }
+    }
+    return false;
+  }
+
   canMove(from, to) {
     if (from === to) return false;
     const src = this.columns[from];
@@ -243,16 +279,18 @@ export class Game {
     return { ok: false, reason: 'illegal' };
   }
 
+  /** Moves the whole run of matching top chips, and counts as one turn. */
   move(from, to) {
-    if (!this.canMove(from, to)) return { ok: false, reason: 'illegal' };
+    const count = this.movableCount(from, to);
+    if (count === 0) return { ok: false, reason: 'illegal' };
     this.undoSnapshot = this.snapshot();
-    this.columns[to].push(this.columns[from].pop());
+    for (let k = 0; k < count; k++) this.columns[to].push(this.columns[from].pop());
     this.selected = null;
     this.turn++;
     this.turnsUntilDrop--;
-    this.emit({ type: 'move', from, to });
+    this.emit({ type: 'move', from, to, count });
     this.resolve();
-    return { ok: true, action: 'move' };
+    return { ok: true, action: 'move', count };
   }
 
   /* ---------------- resolution pipeline ---------------- *
@@ -264,6 +302,14 @@ export class Game {
     this.checkLevelUp();
 
     if (this.turnsUntilDrop <= 0) {
+      this.inflow();
+      this.bankAll();
+      this.checkLevelUp();
+    }
+
+    // Nothing useful left to do. Bring the flow forward rather than making the
+    // player burn turns on moves that cannot change anything.
+    if (!this.isDeadlocked() && !this.hasMeaningfulMove()) {
       this.inflow();
       this.bankAll();
       this.checkLevelUp();

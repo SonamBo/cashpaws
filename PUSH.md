@@ -2,6 +2,15 @@
 
 You need a GitHub account. Nothing else — no Android Studio, no SDK, no Java.
 
+## 0. Check before you push
+
+```bash
+node test/preflight.js
+```
+
+It verifies every file the build needs is actually present. Two seconds, and it
+catches the class of mistake that broke the first attempt.
+
 ## 1. Create an empty repo
 
 github.com > New repository. Private is fine. Do not add a README or a

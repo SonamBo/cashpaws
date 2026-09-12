@@ -30,10 +30,38 @@ deadlock meaningless — any stuck player just resets. Reset now re-seeds the
 board and drops net worth to the current level's floor. You keep your level and
 your columns; you lose the run's progress. Not exploitable, not devastating.
 
+## Three rules changed after play on device
+
+**A whole run moves at once.** Tapping a source lifts every identical chip on
+top of it, and as many travel as the destination has room for. It still costs
+one turn. This roughly doubled banks per game — 43 to 101 — and pushed the
+reachable ceiling from level 2.8 to level 4.4 in a 400-turn session.
+
+**The flow comes early when nothing useful is left.** If no legal move can
+change the board's prospects — no stack to grow, nothing to uncover, only
+uniform columns sliding between empty ones — the drop fires immediately rather
+than making the player spend turns on moves that do nothing. Deadlock still
+takes priority: a board with no legal move at all locks as before.
+
+**The flow no longer takes the screen.** It fires often enough that a
+full-bleed card was an interruption. The columns flash orange and a count rises
+off the FLOW label instead.
+
+Together these made the game both faster and more dangerous: locks rose from
+2.06 to 3.03 a session and level losses from 27% to 38% of runs, because the
+early drops fill the board sooner. The level thresholds were left alone —
+faster progress against a sharper threat is a better curve, not a broken one.
+
+Coin surplus was the one thing that needed correcting: banks doubling took
+leftover coins from about 94 a session to about 535. Cat and skin prices were
+roughly doubled to match, so the collection still takes half a session to four
+and a half sessions rather than becoming free.
+
 ## Rules as implemented
 
-Values 5 / 10 / 20 / 50 / 100. Four to a column. Four identical banks
-automatically and pays value × 4.
+Values 1 / 5 / 10 / 20 / 50, printed on the chip artwork. Four to a column.
+Four identical banks automatically and pays value × 4. A move carries the whole
+run of matching top chips, capped by the space available.
 
 Level `n` needs `500 + 400 × (n−1)` more net worth than the level before, so the
 floors run 0, 500, 1,400, 2,700, 4,400, 6,500. Net worth is lifetime and never

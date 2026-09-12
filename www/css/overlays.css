@@ -617,3 +617,29 @@ img.art { user-select: none; -webkit-user-drag: none; }
 
 #app.short .lobby-hero { width: min(200px, 54vw); margin: var(--s2) 0 var(--s4); }
 #app.short .play { min-height: 54px; }
+
+/* ---------------------------------------------------------------- *
+ * Flow, on the board instead of over it
+ * ---------------------------------------------------------------- */
+
+.board.flowing { background: #f7e4cf; }
+.board.flowing .tube { border-color: var(--orange); }
+
+.flow-badge {
+  margin-left: var(--s2);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--orange);
+  color: var(--on-dark);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  animation: flow-badge 1000ms var(--ease) both;
+}
+
+@keyframes flow-badge {
+  0%   { opacity: 0; transform: translateY(6px) scale(.85); }
+  15%  { opacity: 1; transform: none; }
+  70%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}

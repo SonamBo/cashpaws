@@ -11,7 +11,7 @@
 import { Game, DEFAULTS } from './engine.js';
 import { BoardView, vmOf, money } from './render.js';
 import {
-  mountOverlays, inflowCard, milestoneCard, lockedCard, levelLostCard,
+  mountOverlays, milestoneCard, lockedCard, levelLostCard,
   confirmCard, menuCard, wait,
 } from './overlays.js';
 import { Panels, CATS, SKINS } from './tabs.js';
@@ -197,7 +197,7 @@ async function drain() {
     switch (e.type) {
       case 'move':
         view.update(vm);
-        view.finishMove(e.to);
+        view.finishMove(e.to, e.count || 1);
         await wait(180);
         break;
 
@@ -216,9 +216,10 @@ async function drain() {
         break;
 
       case 'inflow':
-        await inflowCard(e);
         view.update(vm);
-        await wait(340);
+        view.flowPulse(e.count);
+        buzz(18);
+        await wait(420);
         break;
 
       case 'shuffle':

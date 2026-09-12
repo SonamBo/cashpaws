@@ -344,3 +344,41 @@ one-line change.
 **Artwork is roughly 1x.** Every asset is displayed at or below native size, so
 nothing is stretched, but it will look soft on a 3x screen. Re-export at 3x to
 the same filenames and nothing else changes.
+
+
+---
+
+## After device testing
+
+Three changes, all requested after playing the first APK.
+
+**Multi-chip moves.** `movableCount()` moves the whole run of matching top
+chips, capped by destination space, for one turn. Chips fly with the bottom one
+leaving first so the stack reads as a stack.
+
+**The flow comes early when nothing useful is left.** `hasMeaningfulMove()`
+asks whether any legal move can change the board's prospects: growing a
+matching stack, or uncovering something different underneath. Sliding a uniform
+column into an empty one is legal but pointless, so it does not count. When
+nothing meaningful remains, `resolve()` fires the drop immediately instead of
+making the player burn turns. Deadlock still takes priority.
+
+**The flow stopped taking the screen.** `inflowCard` is gone. The columns flash
+orange and a count rises off the FLOW label.
+
+### What it did to balance
+
+Banks per game doubled, 43 to 101. Peak level in a 400-turn session went from
+2.8 to 4.4, and level 5 from 1% of sessions to 38%. The threat rose with it —
+locks 2.06 to 3.03, runs losing a level 27% to 38% — because the early drops
+fill the board sooner. Thresholds unchanged.
+
+Coin surplus needed correcting: leftovers went from ~94 a session to ~535, so
+cat and skin prices were roughly doubled.
+
+### Verified
+
+Pre-flight clean, 41/41 rule tests, no invariant violations over 2,000 games,
+every device size still fits, back routing and both deadlock escapes intact, no
+console errors. The balance probe was updated to use multi-move, since a
+single-chip bot would have measured a game nobody plays.

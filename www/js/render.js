@@ -283,24 +283,51 @@ export class BoardView {
     this.flightFrom = chip ? chip.getBoundingClientRect() : null;
   }
 
-  /** Slide the arrived chip from where it was lifted. */
-  finishMove(to) {
-    const chip = this.topChip(to);
+  /** Slide the arrived chips from where they were lifted, top one last. */
+  finishMove(to, count = 1) {
     const from = this.flightFrom;
     this.flightFrom = null;
-    if (!chip || !from) return;
-    const now = chip.getBoundingClientRect();
-    const dx = from.left - now.left;
-    const dy = from.top - now.top;
-    if (!dx && !dy) return;
-    chip.style.animation = 'none';
-    chip.style.transition = 'none';
-    chip.style.transform = `translate(${dx}px, ${dy}px)`;
-    requestAnimationFrame(() => {
-      chip.style.transition = 'transform var(--t-base) var(--ease)';
-      chip.style.transform = '';
-      setTimeout(() => { chip.style.transition = ''; chip.style.animation = ''; }, 260);
+    const tube = this.tubes[to];
+    if (!from || !tube) return;
+
+    const chips = [];
+    for (const cell of tube.children) {
+      if (cell.firstElementChild) chips.push(cell.firstElementChild);
+      if (chips.length === count) break;
+    }
+
+    chips.forEach((chip, i) => {
+      const now = chip.getBoundingClientRect();
+      const dx = from.left - now.left;
+      const dy = from.top - now.top;
+      if (!dx && !dy) return;
+      const delay = (chips.length - 1 - i) * 45;   // bottom chip leaves first
+      chip.style.animation = 'none';
+      chip.style.transition = 'none';
+      chip.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        chip.style.transition = `transform var(--t-base) var(--ease) ${delay}ms`;
+        chip.style.transform = '';
+        setTimeout(() => { chip.style.transition = ''; chip.style.animation = ''; }, 300 + delay);
+      });
     });
+  }
+
+  /**
+   * The flow used to take over the whole screen. It fires often enough that a
+   * full-bleed card became an interruption, so it now reads on the board
+   * itself: the columns flash and a count rises off the FLOW label.
+   */
+  flowPulse(count) {
+    this.el.board.classList.add('flowing');
+    setTimeout(() => this.el.board.classList.remove('flowing'), 560);
+    if (count > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'flow-badge';
+      badge.textContent = '+' + count;
+      this.el.flow.appendChild(badge);
+      setTimeout(() => badge.remove(), 1000);
+    }
   }
 
   /** Green pulse and a rising figure when a column banks. */

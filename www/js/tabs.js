@@ -9,16 +9,16 @@ import { money } from './render.js';
 
 export const CATS = [
   { id: 'patch',  name: 'Patch',   price: 0,   note: 'The one who got you started.' },
-  { id: 'mittens',name: 'Mittens', price: 150, note: 'Banks in silence. Never gloats.' },
-  { id: 'soot',   name: 'Soot',    price: 300, note: 'Turns up whenever the flow does.' },
-  { id: 'marmalade', name: 'Marmalade', price: 500, note: 'Sleeps through most drops.' },
-  { id: 'pepper', name: 'Pepper',  price: 800, note: 'Counts your columns for you.' },
-  { id: 'biscuit',name: 'Biscuit', price: 1200, note: 'Has opinions about 5s.' },
+  { id: 'mittens',name: 'Mittens', price: 300, note: 'Banks in silence. Never gloats.' },
+  { id: 'soot',   name: 'Soot',    price: 600, note: 'Turns up whenever the flow does.' },
+  { id: 'marmalade', name: 'Marmalade', price: 1000, note: 'Sleeps through most drops.' },
+  { id: 'pepper', name: 'Pepper',  price: 1600, note: 'Counts your columns for you.' },
+  { id: 'biscuit',name: 'Biscuit', price: 2400, note: 'Has opinions about 5s.' },
 ];
 
 export const SKINS = [
   { id: 'classic', name: 'Mint set',  price: 0,   note: 'Blue, silver, copper, green, purple.' },
-  { id: 'notes',   name: 'Paper set', price: 400, note: 'More bills, fewer coins. Same values.' },
+  { id: 'notes',   name: 'Paper set', price: 800, note: 'More bills, fewer coins. Same values.' },
 ];
 
 const lockRow = (owned, price) =>
