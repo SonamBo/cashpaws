@@ -1,0 +1,6 @@
+// Pinned to a combination known to resolve cleanly. If Android Studio offers an
+// upgrade, taking it is safe — these are the only two versions that matter.
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+    id 'org.jetbrains.kotlin.android' version '2.0.21' apply false
+}
