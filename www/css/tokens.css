@@ -1,0 +1,83 @@
+/* Cash Paws — design tokens.
+   Colours sampled directly from the source mockup, not invented. */
+
+:root {
+  /* ground and surfaces */
+  --ground:        #fcf5e6;
+  --surface:       #fdf7ea;
+  --surface-sunk:  #f4ecd8;
+  --rule:          #e4dbc8;
+  --rule-soft:     #efe7d4;
+
+  /* ink */
+  --ink:           #373f45;
+  --ink-soft:      #6b7480;
+  --ink-faint:     #a2a8ae;
+  --on-dark:       #fdf9f0;
+
+  /* brand */
+  --green:         #497b51;
+  --green-deep:    #3c6844;
+  --green-soft:    #dde7db;
+  --orange:        #eb7a29;
+  --orange-soft:   #fbe3ce;
+
+  /* overlay grounds, used from Stage 3 */
+  --sage:          #cfd6b2;
+  --taupe:         #a89688;
+
+  /* chips — hue climbs with value, shape marks the tier
+     coins: 5 / 10 / 20   bills: 50 / 100 */
+  --chip-5:        #eeb420;  --chip-5-ink:   #4a3205;
+  --chip-10:       #cbc9c6;  --chip-10-ink:  #3d3d3b;
+  --chip-20:       #dd6a33;  --chip-20-ink:  #fff6ee;
+  --chip-50:       #76a26d;  --chip-50-ink:  #ffffff;
+  --chip-100:      #8a6fd4;  --chip-100-ink: #ffffff;
+
+  /* type — one family, personality carried by weight and tracking.
+     No webfont: the build has no network, so this is the system rounded
+     stack. Stage 6 swaps in a bundled face (see PROGRESS.md). */
+  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system,
+          "Segoe UI Variable Display", Roboto, "Helvetica Neue", sans-serif;
+  --num: 800 var(--fs-money)/0.95 var(--font);
+
+  --fs-money:  40px;
+  --fs-lg:     22px;
+  --fs-md:     16px;
+  --fs-chip:   15px;
+  --fs-sm:     13px;
+  --fs-xs:     11px;
+
+  --track-tight: -0.025em;
+  --track-label: 0.08em;
+
+  /* space — 4px base */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 40px;
+
+  /* form */
+  --r-sm:   8px;
+  --r-md:  14px;
+  --r-lg:  22px;
+  --r-pill: 999px;
+
+  --shadow-soft: 0 1px 0 rgba(55, 63, 69, .05), 0 10px 24px -16px rgba(55, 63, 69, .45);
+  --shadow-chip: 0 1px 2px rgba(55, 63, 69, .18);
+  --shadow-lift: 0 6px 14px -6px rgba(55, 63, 69, .5);
+
+  /* board metrics */
+  --tube-w:  66px;
+  --cell-h:  58px;
+  --chip-d:  50px;
+  --tube-pad: 6px;
+
+  /* motion — reserved for Stage 3, declared here so it stays consistent */
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --t-fast: 140ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 1ms; --t-base: 1ms; --t-slow: 1ms; }
+}

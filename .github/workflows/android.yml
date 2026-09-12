@@ -1,0 +1,83 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # The engine is plain Node with no dependencies, so this runs in seconds and
+  # fails fast before anything touches the Android toolchain.
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Rule tests and invariant audit
+        run: node test/sim.js 3000
+      - name: Pacing probe
+        run: node test/pace.js 300
+
+  apk:
+    runs-on: ubuntu-latest
+    needs: engine
+    env:
+      # '' when the secret is unset, so a fork or fresh clone still builds debug.
+      SIGNED: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      # Pinned so `gradle` is guaranteed on PATH for the wrapper step below,
+      # rather than relying on whatever the runner image happens to ship.
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      # There is no gradlew in the repo: a wrapper needs a binary jar, which
+      # could not be generated offline. Gradle writes one here instead.
+      - name: Generate the Gradle wrapper
+        working-directory: android
+        run: gradle wrapper --gradle-version 8.9
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Decode the release keystore
+        if: env.SIGNED == 'true'
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build release APK
+        if: env.SIGNED == 'true'
+        working-directory: android
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: cashpaws-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload release APK
+        if: env.SIGNED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cashpaws-release
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

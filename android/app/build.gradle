@@ -1,0 +1,79 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+/**
+ * Release signing is read from the environment so no key ever enters the repo.
+ * With nothing set, the release build is simply unsigned and the debug build
+ * still works, so a fresh clone builds without any setup.
+ */
+def keystorePath = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'com.cashpaws.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.cashpaws.game"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "0.4.0"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig keystorePath ? signingConfigs.release : null
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions { jvmTarget = '17' }
+
+    packaging {
+        resources { excludes += ['META-INF/*.kotlin_module'] }
+    }
+}
+
+dependencies {
+    // webkit gives WebViewAssetLoader, which serves the game from a real https
+    // origin. On file:// the WebView refuses ES modules and sandboxes storage.
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.activity:activity-ktx:1.9.3'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+}
+
+/**
+ * The game lives in ../../www and is copied into assets at build time, so there
+ * is exactly one copy of the source. Never edit app/src/main/assets/www by hand.
+ * The dev harness inside index.html only appears with ?dev=1, so it ships inert.
+ */
+tasks.register('copyWebApp', Copy) {
+    from rootProject.file('../www')
+    into layout.projectDirectory.dir('src/main/assets/www')
+}
+
+tasks.named('preBuild') { dependsOn('copyWebApp') }

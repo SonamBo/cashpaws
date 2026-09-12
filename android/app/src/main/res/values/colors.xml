@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sampled from the source artwork; kept in step with www/css/tokens.css. -->
+    <color name="ground">#fcf5e6</color>
+    <color name="ink">#373f45</color>
+    <color name="green">#497b51</color>
+    <color name="orange">#eb7a29</color>
+</resources>

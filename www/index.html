@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#fcf5e6">
+<title>Cash Paws</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/board.css">
+<link rel="stylesheet" href="css/overlays.css">
+<style>
+/* Shell. On a phone the app fills the viewport; on a desktop it sits in a
+   device frame so the 402x874 target stays honest. */
+body {
+  background: #ece7dc;
+  display: flex;
+  gap: 44px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
+  min-height: 100vh;
+}
+.device {
+  width: 402px;
+  border-radius: 46px;
+  padding: 12px;
+  background: #1c1b1a;
+  box-shadow: 0 40px 80px -40px rgba(28, 27, 26, .6);
+  flex: 0 0 auto;
+}
+.device > #app { border-radius: 34px; }
+#app { position: relative; }
+body.busy #app { cursor: progress; }
+
+.panel { display: none; width: 320px; font-family: var(--font); color: var(--ink); font-size: 13px; line-height: 1.5; }
+body.dev .panel { display: block; }
+.panel h1 { font-size: 20px; margin: 0 0 2px; letter-spacing: -.02em; }
+.panel p.sub { margin: 0 0 20px; color: var(--ink-soft); }
+.panel h4 { font-size: 11px; letter-spacing: .08em; margin: 20px 0 8px; color: var(--ink-faint); font-weight: 800; }
+.panel .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.panel button {
+  font-family: inherit; font-size: 12px; font-weight: 700; padding: 8px 12px;
+  border-radius: 10px; border: 2px solid var(--rule); background: var(--surface);
+  color: var(--ink); cursor: pointer;
+}
+.panel button:hover { border-color: var(--ink-faint); }
+#readout dl { display: grid; grid-template-columns: 96px 1fr; gap: 2px 10px; margin: 0; }
+#readout dt { color: var(--ink-faint); font-weight: 700; }
+#readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+#readout ul { margin: 0; padding-left: 16px; color: var(--ink-soft); }
+#readout b { color: var(--ink); }
+
+/* Phone and the Capacitor shell: no frame, fill everything. */
+@media (max-width: 760px) {
+  body { display: block; padding: 0; background: var(--ground); }
+  .device { width: auto; border-radius: 0; padding: 0; background: none; box-shadow: none; }
+  .device > #app { border-radius: 0; }
+  #app {
+    width: 100%;
+    height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .panel { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="device"><div id="app"></div></div>
+
+<aside class="panel">
+  <h1>Cash Paws</h1>
+  <p class="sub">Stage 3 &mdash; playable</p>
+  <h4>BOT</h4>
+  <div class="grid">
+    <button id="step">Step</button>
+    <button id="step10">Step &times;10</button>
+    <button id="telegraph">To telegraph</button>
+    <button id="inflow">Force inflow</button>
+    <button id="levelup">Force level up</button>
+    <button id="wipe">Wipe save</button>
+  </div>
+  <h4>STATE</h4>
+  <div id="readout"></div>
+</aside>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

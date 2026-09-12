@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+*.log
+# Never commit a signing key.
+*.jks
+*.keystore

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The cat, redrawn as VectorDrawable paths. Adaptive icons crop to a 66dp
+  circle inside the 108dp canvas, so everything here stays within roughly
+  r=33 of centre (54,54). Ellipses become arc pairs because VectorDrawable
+  only understands <path>.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+
+    <!-- left ear, dark patch -->
+    <path
+        android:fillColor="#54504d"
+        android:pathData="M36,44 L33,26 L52,37 Z" />
+
+    <!-- right ear, white with stroke -->
+    <path
+        android:fillColor="#fdfaf4"
+        android:strokeColor="#3f3a37"
+        android:strokeWidth="2.6"
+        android:strokeLineJoin="round"
+        android:pathData="M72,44 L75,26 L56,37 Z" />
+
+    <!-- right inner ear -->
+    <path
+        android:fillColor="#eba39a"
+        android:pathData="M70,40 L71.5,30 L60.5,36.5 Z" />
+
+    <!-- head -->
+    <path
+        android:fillColor="#fdfaf4"
+        android:strokeColor="#3f3a37"
+        android:strokeWidth="2.6"
+        android:pathData="M28,60 a26,23 0 1,0 52,0 a26,23 0 1,0 -52,0 Z" />
+
+    <!-- grey patch over the left of the face -->
+    <path
+        android:fillColor="#6f6a66"
+        android:pathData="M28.6,55 a26,23 0 0,1 14.2,-17.4 l7,6.2 a19,19 0 0,0 -13.5,14.4 Z" />
+
+    <!-- closed, happy eyes -->
+    <path
+        android:strokeColor="#3f3a37"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M42,58 q4,-4.6 8,0" />
+    <path
+        android:strokeColor="#3f3a37"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M58,58 q4,-4.6 8,0" />
+
+    <!-- blush -->
+    <path
+        android:fillColor="#f7bfb4"
+        android:pathData="M33,67 a5,3.2 0 1,0 10,0 a5,3.2 0 1,0 -10,0 Z" />
+    <path
+        android:fillColor="#f7bfb4"
+        android:pathData="M65,67 a5,3.2 0 1,0 10,0 a5,3.2 0 1,0 -10,0 Z" />
+
+    <!-- nose -->
+    <path
+        android:fillColor="#eba39a"
+        android:pathData="M51.2,66 h5.6 l-2.8,3 Z" />
+
+</vector>
