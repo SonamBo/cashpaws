@@ -60,7 +60,10 @@ need('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'the
         fails.push(`CONTENT  MainActivity declares package "${pkg}" but the namespace is "${ns}"`);
       }
     }
+      const vc = gradle.match(/versionCode\s+(\d+)/)?.[1];
+    const vn = gradle.match(/versionName\s+"([^"]+)"/)?.[1];
     notes.push(`package ${ns}, published as ${appId}`);
+    notes.push(`versionCode ${vc}, versionName ${vn} — Play rejects a repeated versionCode`);
   }
 }
 need('android/app/proguard-rules.pro', 'referenced by the release build type');
