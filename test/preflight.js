@@ -41,7 +41,28 @@ needContains('android/app/build.gradle', 'copyWebApp', 'the web app must be sync
 
 /* --- the Android app itself --- */
 need('android/app/src/main/AndroidManifest.xml', 'no manifest, no app');
-need('android/app/src/main/java/com/cashpaws/game/MainActivity.kt', 'the only Activity');
+need('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'the only Activity');
+
+/* --- namespace, applicationId and the Kotlin package must agree --- */
+{
+  const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
+  const ns = gradle.match(/namespace\s+'([\w.]+)'/)?.[1];
+  const appId = gradle.match(/applicationId\s+"([\w.]+)"/)?.[1];
+  const ktPath = `android/app/src/main/java/${(ns || '').replace(/\./g, '/')}/MainActivity.kt`;
+  if (!ns || !appId) {
+    fails.push('CONTENT  build.gradle is missing a namespace or applicationId');
+  } else {
+    if (!existsSync(join(ROOT, ktPath))) {
+      fails.push(`MISSING  ${ktPath}  — the Activity must sit in the namespace's folder`);
+    } else {
+      const pkg = readFileSync(join(ROOT, ktPath), 'utf8').match(/^package\s+([\w.]+)/m)?.[1];
+      if (pkg !== ns) {
+        fails.push(`CONTENT  MainActivity declares package "${pkg}" but the namespace is "${ns}"`);
+      }
+    }
+    notes.push(`package ${ns}, published as ${appId}`);
+  }
+}
 need('android/app/proguard-rules.pro', 'referenced by the release build type');
 for (const f of [
   'values/strings.xml', 'values/colors.xml', 'values/themes.xml',

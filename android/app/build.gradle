@@ -11,15 +11,17 @@ plugins {
 def keystorePath = System.getenv('KEYSTORE_FILE')
 
 android {
-    namespace 'com.cashpaws.game'
+    namespace 'com.pixelartgames.cashpaw'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.cashpaws.game"
+        applicationId "com.pixelartgames.cashpaw"
         minSdk 24
         targetSdk 35
+        // Play rejects an upload whose versionCode it has seen before. Bump
+        // this every single time you publish, even for a one-line fix.
         versionCode 1
-        versionName "0.4.0"
+        versionName "1.0.0"
     }
 
     signingConfigs {
@@ -31,6 +33,14 @@ android {
                 keyPassword System.getenv('KEY_PASSWORD')
             }
         }
+    }
+
+    // Play serves per-device slices from the bundle; this is what makes an AAB
+    // smaller than the equivalent APK.
+    bundle {
+        language { enableSplit true }
+        density { enableSplit true }
+        abi { enableSplit true }
     }
 
     buildTypes {
