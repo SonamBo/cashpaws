@@ -65,6 +65,24 @@ for (const [name, w, h, inset] of DEVICES) {
       chip: chip ? Math.round(chip.getBoundingClientRect().width) : 0,
       tapTarget: Math.round(document.querySelector('.act').getBoundingClientRect().height),
       underStatus: document.querySelector('.hdr .coins').getBoundingClientRect().top < 34,
+      catOverTubes: (() => {
+        const cat = document.querySelector('.corner-cat');
+        if (!cat || getComputedStyle(cat).display === 'none') return false;
+        const c = cat.getBoundingClientRect();
+        return [...document.querySelectorAll('.tube')].some(t => {
+          const b = t.getBoundingClientRect();
+          return c.left < b.right && c.right > b.left && c.top < b.bottom && c.bottom > b.top;
+        });
+      })(),
+      catOverButtons: (() => {
+        const cat = document.querySelector('.corner-cat');
+        if (!cat || getComputedStyle(cat).display === 'none') return false;
+        const c = cat.getBoundingClientRect();
+        return [...document.querySelectorAll('.act')].some(a => {
+          const b = a.getBoundingClientRect();
+          return c.left < b.right && c.right > b.left && c.top < b.bottom && c.bottom > b.top;
+        });
+      })(),
       overGesture: document.querySelector('.foot').getBoundingClientRect().bottom
                    > document.getElementById('app').getBoundingClientRect().bottom - 20,
     };
@@ -82,6 +100,8 @@ for (const [name, w, h, inset] of DEVICES) {
   if (board.tapTarget < 44) issues.push(`tap target ${board.tapTarget}px`);
   if (board.underStatus) issues.push('board under status bar');
   if (board.overGesture) issues.push('buttons under gesture bar');
+  if (board.catOverTubes) issues.push('cat over tubes');
+  if (board.catOverButtons) issues.push('cat over buttons');
 
   console.log(`${name.padEnd(24)} ${String(w).padStart(3)}x${String(h - inset).padEnd(4)}  ${String(board.chip).padStart(2)}px   ${issues.length ? issues.join(', ') : 'none'}`);
   if (w === 320 || w === 430) await p.locator('#app').screenshot({ path: `/home/claude/shots/audit-${w}.png` });

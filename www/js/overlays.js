@@ -40,7 +40,7 @@ export function milestoneCard(e) {
 
     const card = show(`
       <div class="ovl-stack">
-        ${catCheer()}
+        ${catCheer(210)}
         <div class="ovl-card">
           <p class="ovl-kicker">Level up</p>
           <h2 class="ovl-h">Level ${String(e.level).padStart(2, '0')} unlocked</h2>

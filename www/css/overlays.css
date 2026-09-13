@@ -455,7 +455,6 @@ img.art { user-select: none; -webkit-user-drag: none; }
 .board.rows-2 {
   --cell-h: 46px;
   --chip-d: 40px;
-  padding-bottom: 76px;
   gap: var(--s3);
 }
 
@@ -464,10 +463,14 @@ img.art { user-select: none; -webkit-user-drag: none; }
 
 
 /* Short screens: give the board every pixel and drop the mascot. */
-.board.tight { padding-bottom: var(--s2); }
 .board.tight .mascot { display: none; }
 
 #app.short .hdr { padding-top: calc(var(--s3) + var(--safe-top)); padding-bottom: var(--s2); }
+/* The sub-line only repeats the figure's right-hand number, so it is the first
+   thing to go when height is short. */
+#app.short .level-title { font-size: 22px; margin-bottom: var(--s2); }
+#app.short .bar { margin-bottom: var(--s2); }
+#app.short .bar-sub { display: none; }
 #app.short .hdr-top { margin-bottom: var(--s2); }
 #app.short .net { font-size: 32px; margin-bottom: var(--s2); }
 #app.short .rail { margin-bottom: var(--s2); }
@@ -485,8 +488,10 @@ img.art { user-select: none; -webkit-user-drag: none; }
 .cat-avatar { width: 36px; height: 36px; object-fit: contain; }
 
 
-/* The tab sheet now covers the whole screen: there is no nav below it. */
+/* The board has no nav, so a sheet can cover everything there. On the lobby it
+   must stop above the nav, or you cannot move between tabs without closing. */
 .panel-sheet { inset: 0; }
+#app.on-lobby .panel-sheet { bottom: calc(70px + var(--safe-bottom)); }
 
 .panel-head {
   position: sticky;
@@ -654,7 +659,6 @@ img.art { user-select: none; -webkit-user-drag: none; }
 #app.xshort .hdr { padding-top: calc(var(--s2) + var(--safe-top)); padding-bottom: 2px; }
 #app.xshort .hdr-top { margin-bottom: var(--s2); }
 
-#app.xshort .corner-cat { width: 96px; }
 #app.xshort .corner-heart { display: none; }
 #app.xshort .act { min-height: 46px; font-size: var(--fs-sm); }
 
@@ -670,7 +674,6 @@ img.art { user-select: none; -webkit-user-drag: none; }
 #app.xshort .lobby-hero { width: min(148px, 42vw); margin: var(--s1) 0 var(--s2); }
 #app.xshort .play { min-height: 48px; font-size: 17px; }
 
-#app.xshort .corner-cat { width: 82px; }
 
 
 /* 4-inch screens: eight tubes plus a status bar plus a gesture bar leaves very
@@ -679,7 +682,69 @@ img.art { user-select: none; -webkit-user-drag: none; }
 #app.xshort .bar { height: 12px; margin: 0 var(--s5) 4px; }
 #app.xshort .bar-figure { font-size: 15px; }
 #app.xshort .flow { height: 18px; }
-#app.xshort .board { padding-top: var(--s2); padding-bottom: 26px; }
-#app.xshort .corner-cat { width: 68px; }
+#app.xshort .board { padding-top: var(--s2); }
 #app.xshort .act { min-height: 44px; }
 #app.xshort .ledge { padding-bottom: calc(var(--s2) + var(--safe-bottom)); }
+
+
+/* One number drives both the space the board keeps clear and the cat that
+   sits in it. Ordered so the tightest rule wins. */
+#app            { --cat-reserve: 118px; }
+#app.short      { --cat-reserve: 92px; }
+#app.tight      { --cat-reserve: 54px; }
+#app.xshort     { --cat-reserve: 18px; }
+
+#app.tight .corner-heart { display: none; }
+#app.xshort .corner-cat { display: none; }
+
+/* ---------------------------------------------------------------- *
+ * Cats list
+ * ---------------------------------------------------------------- */
+
+.card.locked {
+  opacity: .72;
+  cursor: default;
+  background: var(--surface-sunk);
+}
+
+.card.locked .card-art { filter: grayscale(1) opacity(.45); }
+.card.locked .card-main b { color: var(--ink-faint); }
+
+.cat-perk {
+  font-size: var(--fs-sm);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.cat-lock {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.cat-bar {
+  display: block;
+  height: 5px;
+  margin-top: 5px;
+  border-radius: var(--r-pill);
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.cat-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ink-faint);
+  border-radius: var(--r-pill);
+}
+
+/* The cheering cat is transparent now, so the milestone card composes it
+   over the sage ground instead of shipping the ground inside the image. */
+.ovl-cheer {
+  display: block;
+  margin: 0 auto -6px;
+  width: 200px;
+  height: auto;
+  position: relative;
+  z-index: 1;
+}

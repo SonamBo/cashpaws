@@ -14,7 +14,9 @@ import {
   mountOverlays, milestoneCard, lockedCard, levelLostCard,
   confirmCard, menuCard, wait,
 } from './overlays.js';
-import { Panels, CATS, SKINS } from './tabs.js';
+import { Panels, SKINS } from './tabs.js';
+import { CATS, perkFor, unlockProgress, catById } from './cats.js';
+import { setWornCat } from './art.js';
 import { LobbyView } from './lobby.js';
 
 const SAVE_KEY = 'cashpaws.save.v1';
@@ -71,7 +73,7 @@ function loadSaved() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    const g = Game.deserialize(data.game);
+    const g = Game.deserialize(data.game, undefined, perkFor(data.wallet?.activeCat));
     if (data.wallet) wallet = { ...wallet, ...data.wallet };
     if (data.stats) stats = { ...stats, ...data.stats };
     return g;
@@ -133,9 +135,16 @@ function boot() {
   installBridge();
   applySkin();
   view.chipSet = wallet.activeSkin === 'notes' ? 'b' : 'a';
+  setWornCat(wallet.activeCat);
+  game.setPerk(perkFor(wallet.activeCat));
   frames = [];
+  view.rebuild();
   view.update();
-  if (DEV) wireDev();
+  if (DEV) {
+    wireDev();
+    window.stats = stats;      // handles for the browser tests
+    window.wallet = wallet;
+  }
 
   if (game.status === 'locked') resolveLock();
 }
@@ -344,6 +353,9 @@ function buy(kind, id) {
   const ownedKey = kind === 'cat' ? 'cats' : 'skins';
   const activeKey = kind === 'cat' ? 'activeCat' : 'activeSkin';
 
+  // A cat that has not been revealed yet cannot be bought at any price.
+  if (kind === 'cat' && !unlockProgress(catById(id), stats).revealed) return;
+
   if (wallet[ownedKey].includes(id)) {
     wallet[activeKey] = id;
   } else if (game.coins >= item.price) {
@@ -355,12 +367,25 @@ function buy(kind, id) {
     return; // not enough coins; the price tag already says so
   }
 
+  if (kind === 'cat') wearCat(id);
+
   applySkin();
   view.chipSet = wallet.activeSkin === 'notes' ? 'b' : 'a';
   view.update();
   panels.show(panels.open, game, wallet, stats);
   lobby.update(game);
   save();
+}
+
+/** Wear a cat: its art everywhere, its perk in the rules. */
+function wearCat(id) {
+  wallet.activeCat = id;
+  setWornCat(id);
+  game.setPerk(perkFor(id));
+  if (view) {
+    view.rebuild();
+    view.update();
+  }
 }
 
 function applySkin() {

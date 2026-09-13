@@ -552,3 +552,116 @@ smallest screens their fit. The `xshort` header now gives up more, the corner
 cat stands aside, and the cell floor is 16px. Nothing overlaps at any of the
 eight sizes. Chips do fall to 18px on a 4-inch screen at the full eight columns,
 which is the worst case in the game and worth knowing about.
+
+---
+
+## Cat overlap and disabled buttons
+
+**The cat sat on the tubes and the Undo button** because its height and the
+space the board kept clear for it were two independent numbers. They are now one
+value, `--cat-reserve`, which sets the board's bottom padding and the cat's
+height together; the cat dips only 5px into the ledge, less than the footer's
+own top padding, so it can never reach a button. It also sits behind the footer
+rather than over it.
+
+Two rules had been quietly defeating the reserve: `.board.rows-2` set its own
+bottom padding, which outranked it, so two-row boards never kept the space
+clear at all. And tying the tighter reserve to a height threshold meant a taller
+phone could end up with smaller chips than a shorter one — a Pixel 8 showed 25px
+where a Pixel 4a showed 32px. Two-row boards now always reclaim the space, since
+eight tubes need it more than the cat does.
+
+The cat is noticeably smaller on two-row boards as a result. That is the trade:
+bigger chips, smaller cat.
+
+**Disabled Undo and Sort** were just the coloured button at 45% opacity, which
+read as washed out rather than unavailable. They now go properly grey, with the
+cost pill and its coin desaturated too.
+
+The audit gained checks for the cat overlapping either a tube or a button; both
+were failing on most devices before this and pass on all eight now. Chips fall
+to 18–20px only on 320x524 and 360x592 at the full eight columns.
+
+---
+
+## Cats: perks and art swapping
+
+The tab was a stub — six cats you could buy that changed nothing. Now:
+
+**Milestone reveals, then coins.** Each cat is hidden behind a milestone drawn
+from stats already tracked: bank 25 tubes, survive 15 drops, reach level 4, bank
+100 tubes, reach level 6. Locked cats show `???` with a progress bar and cannot
+be bought at any price. Once revealed they cost 300 to 2,400 coins.
+
+**One cat worn at a time**, so a perk is a choice rather than something that
+accumulates. `Game.setPerk()` rebuilds the config from defaults each time, so
+perks can never stack. `telegraphTurns` became a config value to support Soot.
+
+**Measured, not asserted.** `test/perks.js` plays every cat over identical
+seeds. The spread on losing a level is 17–19% against a 18% baseline, so nothing
+runs away with it. Where they actually differ is elsewhere: Mittens and Pepper
+leave ~330 and ~480 more coins a session, and Marmalade is the real trade — the
+calmest tempo but the lowest net worth, $2,610 against $2,781, because fewer
+drops means fewer chips to bank.
+
+Two perks the simulation cannot value: Soot's extra warning turn is pure
+information, and Mittens' cheap undo only pays off if you undo deliberately. A
+bot does neither, so both are likely worth more in a human's hands than the
+table shows.
+
+**Art follows the worn cat** across peek, cheer, slump and face. Cats flagged
+`hasArt: false` draw Patch instead, so the roster plays today and real art drops
+in by adding four files and flipping a flag. Spec in `docs/CAT-ART-SPEC.md`;
+pre-flight fails if a cat is flagged but missing a pose.
+
+Patch's cheer pose was re-cut with transparency by flooding only the sage edges,
+leaving the cream card alone — seeding from the bottom eats the animal, since
+the card and the fur are the same colour. The milestone card now composes cat
+over sage rather than shipping the ground inside the image, so it works for any
+cat.
+
+### Found while testing
+
+Opening a tab from the lobby covered the bottom nav, so you could not move
+between tabs without closing the sheet first. On the lobby the sheet now stops
+above the nav.
+
+Five superseded assets were deleted, and the missing-art fallback was changed
+from an `onerror` handler to a declared flag — the handler worked but fired
+thirteen 404s on every screen.
+
+---
+
+## Cat art imported
+
+Four of five cats are in: Mittens, Marmalade, Pepper, Biscuit. Soot has no
+artwork yet and plays as Patch until it arrives.
+
+`tools/import_cat.py` turns a green-screen 2x2 collage into the four assets.
+Three things it has to handle, each found by getting it wrong first:
+
+- **Panels are found by projection, not by connected regions.** A cat that
+  touches the top and bottom of its panel splits that panel's green into three
+  pieces, so "take the four largest blobs" picks the wrong four.
+- **Quadrant splitting does not work** either: a top-row panel overhangs the
+  halfway line, dragging the row below's caption into the crop.
+- **Every green pixel is removed, not just those a flood fill can reach.** Green
+  gets trapped in enclosed gaps — between a tail and a body — and a border flood
+  leaves those as bright slivers. The fringe is then despilled, or the
+  anti-aliased edge reads as a lime halo on cream.
+
+Captions printed inside the panel are dropped when they are a separate mark.
+Pepper's touched the cat's chest, so it was one shape and no filter could split
+it; `--trim cheer=0.15` shaves the bottom instead, which costs nothing because
+that edge sits behind the level-up card.
+
+Cat art was quantised to 64 colours: 3.59 MB to 1.74 MB with no visible change
+on flat vector art. The single-file build is 3.08 MB.
+
+Perk balance re-checked with the full roster: 17–19% against a 19% baseline.
+
+### Still open
+
+Soot's four poses. And the peek pose across all cats is a full body where
+Patch's is a chest crop, so worn cats sit smaller on the ledge than Patch does —
+the art is taller than it is wide and that slot is sized by height.

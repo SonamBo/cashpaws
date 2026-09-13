@@ -240,7 +240,7 @@ button {
  * Tubes — glass cylinder with a coloured cap
  * ---------------------------------------------------------------- */
 
-.board { border-top: 0; padding: var(--s3) var(--s4) 120px; }
+.board { border-top: 0; padding: var(--s3) var(--s4) var(--cat-reserve); }
 
 .tube {
   width: var(--tube-w);
@@ -297,19 +297,26 @@ button {
 }
 
 
+/*
+ * The cat's height and the space the board reserves for it are the same
+ * number. Setting them separately is what let it climb over the tubes and the
+ * Undo button on shorter screens.
+ */
 .corner-cat {
   position: absolute;
   left: 0;
-  bottom: calc(100% - 20px);
-  width: 132px;
-  z-index: 1;
+  bottom: calc(100% - 5px);
+  height: calc(var(--cat-reserve) + 5px);
+  width: auto;
+  z-index: 0;
   pointer-events: none;
 }
 
 .corner-heart {
   position: absolute;
-  left: 120px;
-  bottom: calc(100% + 62px);
+  left: calc(var(--cat-reserve) * 0.78);
+  bottom: calc(100% + var(--cat-reserve) * 0.52);
+  z-index: 0;
   width: 26px;
   z-index: 1;
   pointer-events: none;
@@ -323,7 +330,7 @@ button {
 
 .foot {
   position: relative;
-  z-index: 1;
+  z-index: 2;   /* always above the cat */
   display: flex;
   gap: var(--s3);
   padding-top: var(--s3);
@@ -350,7 +357,15 @@ button {
 .act-undo { background: var(--olive); }
 .act-sort { background: var(--violet); }
 .act:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(120, 80, 68, .18); }
-.act[disabled] { opacity: .45; box-shadow: none; }
+.act[disabled] {
+  background: #cdc4b9;
+  color: #8a7f76;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.act[disabled] .act-cost { background: rgba(84, 57, 62, .12); color: #8a7f76; }
+.act[disabled] .coin-art { filter: grayscale(1); opacity: .55; }
 
 .act-cost {
   display: flex;

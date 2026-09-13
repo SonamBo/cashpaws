@@ -6,15 +6,7 @@
 import { netWorthFloor, columnsForLevel, poolForLevel } from './engine.js';
 import { catAvatar, coinIcon, moreIcons } from './art.js';
 import { money } from './render.js';
-
-export const CATS = [
-  { id: 'patch',  name: 'Patch',   price: 0,   note: 'The one who got you started.' },
-  { id: 'mittens',name: 'Mittens', price: 300, note: 'Banks in silence. Never gloats.' },
-  { id: 'soot',   name: 'Soot',    price: 600, note: 'Turns up whenever the flow does.' },
-  { id: 'marmalade', name: 'Marmalade', price: 1000, note: 'Sleeps through most drops.' },
-  { id: 'pepper', name: 'Pepper',  price: 1600, note: 'Counts your columns for you.' },
-  { id: 'biscuit',name: 'Biscuit', price: 2400, note: 'Has opinions about 5s.' },
-];
+import { CATS, unlockProgress } from './cats.js';
 
 export const SKINS = [
   { id: 'classic', name: 'Mint set',  price: 0,   note: 'Blue, silver, copper, green, purple.' },
@@ -26,22 +18,39 @@ const lockRow = (owned, price) =>
     ? `<span class="tag on">${moreIcons.check(14)} Owned</span>`
     : `<span class="tag">${coinIcon(14)} ${price}</span>`;
 
-function catsPanel(wallet) {
+function catsPanel(wallet, stats) {
   return `
     <h2>Cats</h2>
-    <p class="panel-sub">Cosmetic only. Your cat watches the board and nothing else.</p>
+    <p class="panel-sub">One cat at a time. Each changes the game a little, and
+    they pull in different directions — none is simply the best.</p>
     <ul class="cards">
       ${CATS.map((c) => {
         const owned = wallet.cats.includes(c.id);
         const active = wallet.activeCat === c.id;
+        const { revealed, have, need } = unlockProgress(c, stats);
+        const state = !revealed ? 'locked' : active ? 'active' : '';
+
+        const tag = active ? '<span class="tag on">Wearing</span>'
+          : !revealed ? `<span class="tag">${moreIcons.lock(14)}</span>`
+          : lockRow(owned, c.price);
+
+        const line = !revealed
+          ? `<span class="cat-lock">${c.unlock.label} &middot; ${Math.min(have, need)}/${need}</span>`
+          : `<span class="cat-perk">${c.perkText}</span>`;
+
+        const bar = !revealed
+          ? `<span class="cat-bar"><i style="width:${Math.min(100, (have / need) * 100).toFixed(0)}%"></i></span>`
+          : '';
+
         return `
-        <li class="card ${active ? 'active' : ''}" data-buy-cat="${c.id}">
-          <span class="card-art">${catAvatar(44)}</span>
+        <li class="card ${state}" ${revealed ? `data-buy-cat="${c.id}"` : ''}>
+          <span class="card-art">${catAvatar(44, revealed ? c.id : 'patch')}</span>
           <span class="card-main">
-            <b>${c.name}</b>
-            <span>${c.note}</span>
+            <b>${revealed ? c.name : '???'}</b>
+            ${line}
+            ${bar}
           </span>
-          ${active ? '<span class="tag on">Wearing</span>' : lockRow(owned, c.price)}
+          ${tag}
         </li>`;
       }).join('')}
     </ul>`;
@@ -121,7 +130,7 @@ export class Panels {
   show(tab, game, wallet, stats) {
     if (!tab || tab === 'home') return this.hide();
     const html =
-      tab === 'cats' ? catsPanel(wallet)
+      tab === 'cats' ? catsPanel(wallet, stats)
       : tab === 'shop' ? shopPanel(wallet)
       : progressPanel(game, stats);
     this.el.innerHTML = `

@@ -10,6 +10,7 @@ export const DEFAULTS = Object.freeze({
   maxColumns: 8,
   columnsEveryNLevels: 2,
   flowInterval: 7,        // turns between inflows
+  telegraphTurns: 2,      // how many turns ahead the board warns
   minFlowInterval: 4,     // floor after escalation
   escalateEveryNDrops: 3,
   startCoins: 50,
@@ -95,7 +96,9 @@ export function bankValue(value, cfg = DEFAULTS) {
 
 export class Game {
   constructor(options = {}) {
-    this.cfg = { ...DEFAULTS, ...(options.config || {}) };
+    this.baseConfig = { ...(options.config || {}) };
+    this.perk = { ...(options.perk || {}) };
+    this.cfg = { ...DEFAULTS, ...this.baseConfig, ...this.perk };
     this.rng = makeRng(options.seed ?? Date.now());
     this.listeners = new Set();
 
@@ -137,7 +140,9 @@ export class Game {
     return span <= 0 ? 0 : Math.min(1, (this.netWorth - this.floor) / span);
   }
   /** Columns darken for the two turns before a drop. */
-  get telegraphing() { return this.turnsUntilDrop <= 2 && this.status === 'playing'; }
+  get telegraphing() {
+    return this.turnsUntilDrop <= this.cfg.telegraphTurns && this.status === 'playing';
+  }
   get currentInterval() {
     const shortened = Math.floor(this.dropCount / this.cfg.escalateEveryNDrops);
     return Math.max(this.cfg.minFlowInterval, this.cfg.flowInterval - shortened);
@@ -225,6 +230,12 @@ export class Game {
     if (this.movableCount(from, to) === 0) return false;
     if (this.columns[to].length > 0) return true;      // tops match, so it consolidates
     return this.columns[from].length > this.topRun(from);
+  }
+
+  /** Swap the worn cat's perk. Rebuilt from the base so perks never stack. */
+  setPerk(perk = {}) {
+    this.perk = { ...perk };
+    this.cfg = { ...DEFAULTS, ...this.baseConfig, ...this.perk };
   }
 
   /** Board fingerprint, for spotting a player shuffling chips in circles. */
@@ -610,9 +621,9 @@ export class Game {
 
   serialize() { return JSON.stringify({ v: 1, seed: this.rng.seed, state: this.snapshot() }); }
 
-  static deserialize(json, config) {
+  static deserialize(json, config, perk) {
     const { seed, state } = JSON.parse(json);
-    const g = new Game({ seed, config, level: state.level });
+    const g = new Game({ seed, config, perk, level: state.level });
     g.restore(state);
     return g;
   }

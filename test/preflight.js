@@ -62,16 +62,29 @@ for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
 needContains('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml', '@mipmap/ic_fg',
   'the adaptive icon must point at the bitmap foreground');
 need('www/index.html', 'the entry point the WebView loads');
-for (const f of ['engine.js', 'render.js', 'app.js', 'overlays.js', 'tabs.js', 'art.js', 'lobby.js'])
+for (const f of ['engine.js', 'render.js', 'app.js', 'overlays.js', 'tabs.js', 'art.js', 'lobby.js', 'cats.js'])
   need(`www/js/${f}`, 'imported by the app');
 for (const f of ['tokens.css', 'board.css', 'overlays.css']) need(`www/css/${f}`, 'linked from index.html');
 for (const v of [1, 5, 10, 20, 50]) {
   need(`www/img/chip-${v}.png`, `chip artwork for $${v}`);
   need(`www/img/chipb-${v}.png`, `alternate chip artwork for $${v}`);
 }
-for (const f of ['cat-avatar', 'cat-sad', 'cat-hero', 'cat-cheer', 'coin', 'logo', 'tagline',
-                 'ref-cat', 'ref-heart', 'tube', 'knob-cat'])
+for (const f of ['cat-hero', 'coin', 'logo', 'tagline', 'ref-heart', 'tube'])
   need(`www/img/${f}.png`, 'referenced by art.js, the board or the lobby');
+
+/* --- cat art: every cat flagged hasArt must have all four poses --- */
+{
+  const src = readFileSync(join(ROOT, 'www/js/cats.js'), 'utf8');
+  const ids = [...src.matchAll(/id:\s*'([\w-]+)',\s*\n\s*hasArt:\s*(true|false)/g)];
+  if (!ids.length) fails.push('CONTENT  cats.js declares no cats with a hasArt flag');
+  for (const [, id, has] of ids) {
+    if (has !== 'true') continue;
+    for (const pose of ['peek', 'cheer', 'slump', 'face']) {
+      need(`www/img/cat-${id}-${pose}.png`, `${id} is flagged hasArt but is missing its ${pose} pose`);
+    }
+  }
+  notes.push(`${ids.length} cats declared, ${ids.filter((m) => m[2] === 'true').length} with artwork`);
+}
 need('www/img/bg-room.jpg', 'the room background');
 
 /* --- every asset referenced in code or CSS must exist on disk --- */

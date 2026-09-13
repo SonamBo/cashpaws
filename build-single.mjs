@@ -31,7 +31,7 @@ const assetMap = `const __IMG = ${JSON.stringify(images)};\nconst ASSET = (n) =>
 
 /* ---------- modules, flattened in dependency order ---------- */
 
-const ORDER = ['engine.js', 'art.js', 'render.js', 'overlays.js', 'tabs.js', 'lobby.js', 'app.js'];
+const ORDER = ['engine.js', 'cats.js', 'art.js', 'render.js', 'overlays.js', 'tabs.js', 'lobby.js', 'app.js'];
 
 function flatten(src) {
   // drop import statements, including multi-line ones
@@ -50,6 +50,9 @@ let code = ORDER.map((f) => {
   // src is built dynamically in these three places; point them at the map
   if (f === 'art.js') {
     src = src.replace('src="${IMG}${file}.png"', 'src="${ASSET(file)}"');
+    // the cat poses build their path at runtime, so the literal scan misses them
+    src = src.replace('src="${IMG}cat-${id}-${pose}.png"', 'src="${ASSET(`cat-${id}-${pose}`)}"');
+    src = src.replace("this.src='${IMG}cat-patch-${pose}.png'", "this.src=\'${ASSET(`cat-patch-${pose}`)}\'");
   }
   if (f === 'render.js') {
     src = src.replace(

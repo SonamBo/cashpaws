@@ -1,12 +1,9 @@
 /**
  * Artwork.
  *
- * The cats are cut straight out of the source mockup rather than redrawn, so
- * the build carries the real illustration. Backgrounds were removed with an
- * edge flood fill. `cat-cheer` is the exception: the card behind it is the
- * same cream as the cat's fur, so no fill can separate them. It keeps its sage
- * ground and is cropped exactly at the card's top edge (y=256 in the source)
- * to butt onto our own card.
+ * The cats are cut out of the source artwork rather than redrawn. Each cat has
+ * four poses at img/cat-{id}-{pose}.png: peek, cheer, slump, face. Which cat is
+ * drawn follows the one being worn; see cats.js.
  *
  * Source art is roughly 1x for a 402pt screen, so it is displayed at or below
  * native size everywhere. See PROGRESS.md for what that costs on a 3x phone.
@@ -15,24 +12,42 @@
  * colour and stay crisp at any size.
  */
 
+import { catById } from './cats.js';
+
 const IMG = 'img/';
 const art = (file, w, cls = '') =>
   `<img class="art ${cls}" src="${IMG}${file}.png" width="${w}" alt="" draggable="false">`;
 
+/* Which cat the art functions should draw. Set by the controller. */
+let worn = 'patch';
+export const setWornCat = (id) => { worn = id || 'patch'; };
+export const wornCat = () => worn;
+
+/**
+ * A cat in a given pose. If that cat's file is missing — art for the newer
+ * cats may not exist yet — the image quietly falls back to Patch rather than
+ * showing a broken icon.
+ */
+const catPose = (pose, w, cls, want = worn) => {
+  const id = catById(want).hasArt ? want : 'patch';
+  return `<img class="art ${cls}" src="${IMG}cat-${id}-${pose}.png" width="${w}" alt=""
+        draggable="false" onerror="this.onerror=null;this.src='${IMG}cat-patch-${pose}.png'">`;
+};
+
 /** The hero's head, for the header. */
-export const catAvatar = (w = 36) => art('cat-avatar', w, 'cat-avatar');
+export const catAvatar = (w = 36, id) => catPose('face', w, 'cat-avatar', id);
 /** The face that rides the progress bar. */
-export const knobCat = (w = 34) => art('knob-cat', w, 'knob-cat');
+export const knobCat = (w = 34, id) => catPose('face', w, 'knob-cat', id);
 /** Rear view, sitting at the bottom of the board. */
 export const catPeek = (w = 104) => art('cat-peek', w, 'cat-peek');
 /** Slumped. Stuck-board and level-lost cards. */
-export const catSad = (w = 200) => art('cat-sad', w, 'cat-lying');
+export const catSad = (w = 200, id) => catPose('slump', w, 'cat-lying', id);
 /** With the money pile. Reserved for the lobby screen. */
 export const catHero = (w = 260) => art('cat-hero', w, 'cat-hero');
 /** Paws up over the card. Full-width banner, sage ground baked in. */
-export const catCheer = () => art('cat-cheer', 298, 'ovl-banner');
+export const catCheer = (w = 200, id) => catPose('cheer', w, 'ovl-cheer', id);
 /** The peeking cat and heart, cut from the reference screen. */
-export const refCat = (w = 150) => art('ref-cat', w, 'corner-cat');
+export const refCat = (w = 150, id) => catPose('peek', w, 'corner-cat', id);
 export const refHeart = (w = 26) => art('ref-heart', w, 'corner-heart');
 
 /** The paw coin from the balance pill. */

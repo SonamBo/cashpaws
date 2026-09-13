@@ -57,6 +57,12 @@ export class BoardView {
     this.update();
   }
 
+  /** Redraw the static markup, so a change of cat or perk shows up. */
+  rebuild() {
+    this.build();
+    this.renderedColumns = null;
+  }
+
   on(name, fn) { this.handlers[name] = fn; }
   fire(name, ...args) { this.handlers[name]?.(...args); }
 
@@ -262,7 +268,13 @@ export class BoardView {
     this.app.classList.toggle('short', h < 800);
     this.app.classList.toggle('xshort', h < 660);
     board.classList.toggle('rows-2', rows > 1);
-    board.classList.toggle('tight', h < 700 || (rows > 1 && h < 820));
+    // Two rows always claim the cat's space back: eight tubes need it more
+    // than the cat does, and tying it to a height threshold meant a taller
+    // phone could end up with smaller chips than a shorter one.
+    const tight = h < 700 || rows > 1;
+    board.classList.toggle('tight', tight);
+    // also on #app, so the cat reserve variable is visible to the ledge
+    this.app.classList.toggle('tight', tight);
 
     const cs = getComputedStyle(board);
     const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
