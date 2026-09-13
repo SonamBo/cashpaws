@@ -467,7 +467,7 @@ img.art { user-select: none; -webkit-user-drag: none; }
 .board.tight { padding-bottom: var(--s2); }
 .board.tight .mascot { display: none; }
 
-#app.short .hdr { padding-top: var(--s3); padding-bottom: var(--s2); }
+#app.short .hdr { padding-top: calc(var(--s3) + var(--safe-top)); padding-bottom: var(--s2); }
 #app.short .hdr-top { margin-bottom: var(--s2); }
 #app.short .net { font-size: 32px; margin-bottom: var(--s2); }
 #app.short .rail { margin-bottom: var(--s2); }
@@ -495,7 +495,7 @@ img.art { user-select: none; -webkit-user-drag: none; }
   display: flex;
   align-items: center;
   gap: var(--s3);
-  padding: var(--s4) var(--s4) var(--s2);
+  padding: calc(var(--s4) + var(--safe-top)) var(--s4) var(--s2);
   background: var(--ground);
 }
 
@@ -548,7 +548,7 @@ img.art { user-select: none; -webkit-user-drag: none; }
   display: flex;
   align-items: center;
   gap: var(--s2);
-  padding: var(--s5) var(--s4) 0;
+  padding: calc(var(--s5) + var(--safe-top)) var(--s4) 0;
 }
 
 .lobby-main {
@@ -598,7 +598,7 @@ img.art { user-select: none; -webkit-user-drag: none; }
   border-top: 2px solid var(--rule-soft);
   background: var(--surface);
   display: flex;
-  padding: var(--s2) 0 var(--s4);
+  padding: var(--s2) 0 calc(var(--s4) + var(--safe-bottom));
 }
 
 .nav button {
@@ -651,9 +651,35 @@ img.art { user-select: none; -webkit-user-drag: none; }
 #app.xshort .bar { height: 14px; margin-bottom: var(--s2); }
 #app.xshort .bar-figure { font-size: 16px; }
 #app.xshort .bar-sub { display: none; }
-#app.xshort .hdr { padding-top: var(--s2); padding-bottom: 2px; }
+#app.xshort .hdr { padding-top: calc(var(--s2) + var(--safe-top)); padding-bottom: 2px; }
 #app.xshort .hdr-top { margin-bottom: var(--s2); }
-#app.xshort .board { padding-bottom: 64px; }
+
 #app.xshort .corner-cat { width: 96px; }
 #app.xshort .corner-heart { display: none; }
 #app.xshort .act { min-height: 46px; font-size: var(--fs-sm); }
+
+
+/* Short lobbies: the logo and the cat give ground so Play clears the nav. */
+#app.short .logo { width: min(184px, 50vw); }
+#app.short .tagline { width: min(158px, 44vw); margin-bottom: 0; }
+#app.short .lobby-hero { width: min(196px, 52vw); margin: var(--s2) 0 var(--s3); }
+#app.short .lobby-main { gap: var(--s2); padding-bottom: var(--s4); }
+
+#app.xshort .tagline { display: none; }
+#app.xshort .logo { width: min(150px, 44vw); }
+#app.xshort .lobby-hero { width: min(148px, 42vw); margin: var(--s1) 0 var(--s2); }
+#app.xshort .play { min-height: 48px; font-size: 17px; }
+
+#app.xshort .corner-cat { width: 82px; }
+
+
+/* 4-inch screens: eight tubes plus a status bar plus a gesture bar leaves very
+   little, so the header gives up nearly everything and the cat stands aside. */
+#app.xshort .level-title { font-size: 18px; margin-bottom: 4px; }
+#app.xshort .bar { height: 12px; margin: 0 var(--s5) 4px; }
+#app.xshort .bar-figure { font-size: 15px; }
+#app.xshort .flow { height: 18px; }
+#app.xshort .board { padding-top: var(--s2); padding-bottom: 26px; }
+#app.xshort .corner-cat { width: 68px; }
+#app.xshort .act { min-height: 44px; }
+#app.xshort .ledge { padding-bottom: calc(var(--s2) + var(--safe-bottom)); }

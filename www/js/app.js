@@ -25,7 +25,7 @@ let screen = 'lobby';
 let frames = [];
 let busy = false;
 let wallet = { cats: ['patch'], activeCat: 'patch', skins: ['classic'], activeSkin: 'classic' };
-let stats = { banks: 0, drops: 0, bestLevel: 1, shuffles: 0 };
+let stats = { banks: 0, drops: 0, bestLevel: 1, sorts: 0 };
 let log = [];
 
 /* ---------------------------------------------------------------- *
@@ -95,7 +95,7 @@ function attach(g) {
     frames.push({ e, vm: vmOf(game) });
     if (e.type === 'bank') stats.banks++;
     if (e.type === 'inflow') stats.drops++;
-    if (e.type === 'shuffle') stats.shuffles++;
+    if (e.type === 'sort') stats.sorts++;
     if (e.type === 'levelup') stats.bestLevel = Math.max(stats.bestLevel, e.level);
     if (DEV) { log.unshift(e); log = log.slice(0, 9); }
   });
@@ -120,7 +120,7 @@ function boot() {
 
   view.on('tap', onTap);
   view.on('undo', onUndo);
-  view.on('shuffle', onShuffle);
+  view.on('sort', onSort);
   view.on('settings', onMenu);
 
   lobby.on('play', () => showScreen('board'));
@@ -222,16 +222,22 @@ async function drain() {
         await wait(420);
         break;
 
-      case 'shuffle':
+      case 'sort':
         view.update(vm);
-        await wait(300);
+        buzz(16);
+        await wait(380);
+        break;
+
+      case 'refill':
+        view.update(vm);
+        await wait(320);
         break;
 
       case 'lock': {
         view.update(vm);
-        const choice = await lockedCard(e, vm, game.cfg.shuffleCost);
+        const choice = await lockedCard(e, vm, game.cfg.sortCost);
         // Both of these emit into the same live queue, so the loop continues.
-        if (choice === 'shuffle') game.shuffle();
+        if (choice === 'sort') game.sort();
         else game.loseLevel();
         break;
       }
@@ -264,7 +270,7 @@ async function drain() {
 async function resolveLock() {
   const vm = vmOf(game);
   frames = [{
-    e: { type: 'lock', canShuffle: vm.shuffleCanHelp && vm.canAffordShuffle, coins: vm.coins },
+    e: { type: 'lock', canSort: vm.sortCanHelp && vm.canAffordSort, coins: vm.coins },
     vm,
   }];
   await drain();
@@ -294,10 +300,10 @@ function onUndo() {
   drain();
 }
 
-function onShuffle() {
+function onSort() {
   if (busy || panels.open) return;
-  if (!(game.canAffordShuffle && game.shuffleCanHelp)) return;
-  if (!game.shuffle().ok) { frames = []; return; }
+  if (!(game.canAffordSort && game.sortCanHelp)) return;
+  if (!game.sort().ok) { frames = []; return; }
   drain();
 }
 

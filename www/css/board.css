@@ -40,9 +40,10 @@ button {
  * ---------------------------------------------------------------- */
 
 .board {
-  flex: 1 1 auto;
-  /* Without this a flex item refuses to shrink below its content, so a tall
-     board pushes the nav off the bottom of a short phone. */
+  /* Zero basis, not auto: with an auto basis the board's own height depends on
+     its content, so sizing the chips to fit changed the space they were being
+     fitted into. That fed back as a one-pixel wobble on every tap. */
+  flex: 1 1 0;
   min-height: 0;
   border-top: 2px solid var(--rule);
   padding: var(--s5) var(--s4) 96px;
@@ -127,7 +128,7 @@ button {
 
 .hdr {
   flex: 0 0 auto;
-  padding: var(--s4) var(--s4) var(--s2);
+  padding: calc(var(--s4) + var(--safe-top)) var(--s4) var(--s2);
   text-align: center;
 }
 
@@ -213,7 +214,15 @@ button {
   color: #b3a08f;
 }
 
-.flow { display: flex; align-items: center; justify-content: center; gap: var(--s2); }
+/* Fixed height: the flow badge drops in here for a second, and if this row
+   grew to fit it the whole board would resize underneath the player. */
+.flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 22px;
+}
 .flow-label { font-size: var(--fs-xs); font-weight: 800; letter-spacing: var(--track-label); color: #b3a08f; }
 .pips { display: flex; gap: 4px; }
 
@@ -284,7 +293,7 @@ button {
   flex: 0 0 auto;
   position: relative;
   margin-top: auto;
-  padding: 0 var(--s4) var(--s4);
+  padding: 0 var(--s4) calc(var(--s4) + var(--safe-bottom));
 }
 
 
@@ -339,7 +348,7 @@ button {
 }
 
 .act-undo { background: var(--olive); }
-.act-shuffle { background: var(--violet); }
+.act-sort { background: var(--violet); }
 .act:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(120, 80, 68, .18); }
 .act[disabled] { opacity: .45; box-shadow: none; }
 

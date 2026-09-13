@@ -58,19 +58,19 @@ export function milestoneCard(e) {
 }
 
 /**
- * Taupe. No legal move left. Resolves 'shuffle' or 'drop'.
+ * Taupe. No legal move left. Resolves 'sort' or 'drop'.
  * Shuffle is only offered when it could actually change anything.
  */
-export function lockedCard(e, vm, shuffleCost) {
+export function lockedCard(e, vm, sortCost) {
   return new Promise((resolve) => {
     const lead = e.nothingLeft
       ? 'Every move just slides chips about, and the board is too full for the flow to land. '
       : '';
-    const reason = lead + (!vm.shuffleCanHelp
-      ? 'Every column is full, so a shuffle would change nothing.'
-      : !vm.canAffordShuffle
-        ? `A shuffle costs ${shuffleCost} coins. You have ${vm.coins}.`
-        : 'A shuffle redeals every chip on the board.');
+    const reason = lead + (!vm.sortCanHelp
+      ? 'Every tube already holds a single value, so sorting would change nothing.'
+      : !vm.canAffordSort
+        ? `A sort costs ${sortCost} coins. You have ${vm.coins}.`
+        : 'A sort gathers every value into its own tube, and complete sets bank.');
 
     const card = show(`
       <div class="ovl-stack">
@@ -83,20 +83,20 @@ export function lockedCard(e, vm, shuffleCost) {
           <span>Level ${String(vm.level).padStart(2, '0')}</span>
           <b>${money(vm.netWorth)}</b>
         </div>
-        ${e.canShuffle
-          ? `<button class="ovl-btn primary" data-do-shuffle>
-               ${icons.shuffle(18)} Shuffle
-               <span class="ovl-cost">${coinIcon(16)}${shuffleCost}</span>
+        ${e.canSort
+          ? `<button class="ovl-btn primary" data-do-sort>
+               ${icons.sort(18)} Sort
+               <span class="ovl-cost">${coinIcon(16)}${sortCost}</span>
              </button>`
           : ''}
-        <button class="ovl-btn ${e.canShuffle ? 'ghost' : 'primary'}" data-drop>
+        <button class="ovl-btn ${e.canSort ? 'ghost' : 'primary'}" data-drop>
           Drop a level
         </button>
         </div>
       </div>`, 'locked');
 
     const pick = async (choice) => { await dismiss(card); resolve(choice); };
-    card.querySelector('[data-do-shuffle]')?.addEventListener('click', () => pick('shuffle'));
+    card.querySelector('[data-do-sort]')?.addEventListener('click', () => pick('sort'));
     card.querySelector('[data-drop]').addEventListener('click', () => pick('drop'));
   });
 }

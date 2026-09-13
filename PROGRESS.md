@@ -480,3 +480,75 @@ any further. The floor is now 24px, and an `xshort` mode below 660px drops the
 "next level" line, shrinks the title and bar, and stands the corner cat down.
 All eight now pass with nothing clipped, no horizontal overflow, and tap targets
 of 46px or more.
+
+---
+
+## Three fixes after the second APK
+
+**Clearing the board locked the game.** With every chip banked there are no
+legal moves, so `isDeadlocked()` was true and the game declared a deadlock —
+after the player had just done the best possible thing. Level 1 hit it most
+because its board is small enough to clear outright. `refill()` now reseeds the
+board, keeping the flow's drop count and clock, and `resolve()` calls it before
+any lock check. Found by stress-testing 4,000 games for states with no way out:
+79 hit it, all with an empty board.
+
+**Shuffle became Sort.** It gathers every value into its own tube, largest group
+first; any tube holding a complete set banks immediately, which is most of what
+you pay for. When there are more values than tubes, the remainder shares — the
+rule test allows at most two shared tubes.
+
+Sort is far stronger than the random redeal it replaces. At the old 30 coins it
+took locks from 6.2 a session to 1.1 and level losses from 47% to 10%. Priced
+at 150 it settles at 19%, so it stays a real decision. Raising it further barely
+moves the number — at 220 it is 23% — because the power is structural, not
+priced. Say the word if 19% feels too soft.
+
+**Android was drawing under the status and gesture bars.** The inset listener
+was registered after insets had already been dispatched, so it never fired and
+the padding never applied. It now calls `requestApplyInsets` and, rather than
+padding the WebView — which would cut the room background off at the status bar
+— hands the insets to the page as `--safe-top` and `--safe-bottom`. The header,
+lobby, ledge and nav all pad by them, so the art still runs edge to edge.
+
+### Resolution audit, now with system bars simulated
+
+Re-run with 34dp top and 20dp bottom taken out. Two real failures appeared and
+were fixed: Play sat under the lobby nav at 320x524 and 360x592, and the tubes
+ran over the buttons at 320x524. The cell floor is now 20px and `xshort` shrinks
+the logo, hides the tagline and stands the cat down. All eight sizes pass.
+
+One audit bug worth recording: the board check was selecting the lobby's coin
+pill, which is hidden and reports zeros, so it flagged every device as drawing
+under the status bar. The fix was in the test, not the app.
+
+---
+
+## Tube size changed on every tap
+
+Reported from the HTML build; it would have done the same in the APK, since it
+is the same web layer. Three separate feedback loops, each found by measuring
+rather than guessing.
+
+**The `tight` class was derived from the computed cell size**, and it changed
+the board's bottom padding — the very space the cell size was computed from. So
+each update laid out with the previous frame's padding. Every layout switch now
+comes from stable inputs, screen height and row count, applied before measuring.
+
+**`.board` used `flex: 1 1 auto`**, so its own height depended on its content.
+Sizing the chips to fit changed the space they were being fitted into. A zero
+basis makes the board take the leftover space regardless of what is in it.
+
+**The flow badge grew the header.** The `+N` that drops in beside FLOW is inline,
+so for its one second on screen the header was 4px taller and the whole board
+resized under the player. That row now has a fixed height.
+
+`test/stable.mjs` covers it: six viewports straddling every threshold, ten real
+tap-pairs each, asserting the cell size never changes. All six hold now; three
+were resizing before.
+
+Re-auditing afterwards showed the new `tight` thresholds had cost the two
+smallest screens their fit. The `xshort` header now gives up more, the corner
+cat stands aside, and the cell floor is 16px. Nothing overlaps at any of the
+eight sizes. Chips do fall to 18px on a 4-inch screen at the full eight columns,
+which is the worst case in the game and worth knowing about.

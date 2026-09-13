@@ -13,7 +13,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 
@@ -29,6 +28,8 @@ import androidx.webkit.WebViewClientCompat
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private var safeTop = 0f
+    private var safeBottom = 0f
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,18 +72,33 @@ class MainActivity : ComponentActivity() {
                     view: WebView,
                     request: WebResourceRequest,
                 ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
+
+                // The page is only there to receive the insets after it loads.
+                override fun onPageFinished(view: WebView, url: String) = pushSafeArea()
             }
         }
 
         setContentView(webView)
 
-        ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
+        /*
+         * Hand the insets to the page as CSS variables rather than padding the
+         * WebView. Padding would cut the room background off at the status bar;
+         * this way the art runs edge to edge and only the content is inset.
+         */
+        ViewCompat.setOnApplyWindowInsetsListener(webView) { _, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            view.updatePadding(bars.left, bars.top, bars.right, bars.bottom)
+            val density = resources.displayMetrics.density
+            safeTop = bars.top / density
+            safeBottom = bars.bottom / density
+            pushSafeArea()
             insets
         }
+
+        // Insets may already have been dispatched before the listener existed,
+        // in which case it never fires and the app sits under the status bar.
+        ViewCompat.requestApplyInsets(webView)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = routeBack()
@@ -90,6 +106,14 @@ class MainActivity : ComponentActivity() {
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)
         else webView.loadUrl("https://$ASSET_DOMAIN/assets/www/index.html")
+    }
+
+    private fun pushSafeArea() {
+        webView.evaluateJavascript(
+            "document.documentElement.style.setProperty('--safe-top','${safeTop}px');" +
+                "document.documentElement.style.setProperty('--safe-bottom','${safeBottom}px');",
+            null,
+        )
     }
 
     /**

@@ -33,8 +33,8 @@ export function vmOf(g) {
     selected: g.selected,
     status: g.status,
     canUndo: g.canUndo,
-    canAffordShuffle: g.canAffordShuffle,
-    shuffleCanHelp: g.shuffleCanHelp,
+    canAffordSort: g.canAffordSort,
+    sortCanHelp: g.sortCanHelp,
   };
 }
 
@@ -102,9 +102,9 @@ export class BoardView {
             ${icons.undo(20)}<span>Undo</span>
             <span class="act-cost">${coinIcon(18)}<span data-undo-cost>20</span></span>
           </button>
-          <button class="act act-shuffle" data-shuffle>
-            ${icons.shuffle(20)}<span>Shuffle</span>
-            <span class="act-cost">${coinIcon(18)}<span data-shuffle-cost>30</span></span>
+          <button class="act act-sort" data-sort>
+            ${icons.sort(20)}<span>Sort</span>
+            <span class="act-cost">${coinIcon(18)}<span data-sort-cost>150</span></span>
           </button>
         </footer>
       </div>
@@ -118,19 +118,19 @@ export class BoardView {
       fill: $('[data-fill]'), knob: $('[data-knob]'),
       flow: $('[data-flow]'), pips: $('[data-pips]'),
       board: $('[data-board]'), rows: $('[data-rows]'), turn: $('[data-turn]'),
-      undo: $('[data-undo]'), shuffle: $('[data-shuffle]'),
-      undoCost: $('[data-undo-cost]'), shuffleCost: $('[data-shuffle-cost]'),
+      undo: $('[data-undo]'), sort: $('[data-sort]'),
+      undoCost: $('[data-undo-cost]'), sortCost: $('[data-sort-cost]'),
     };
 
     this.el.undoCost.textContent = this.game.cfg.undoCost;
-    this.el.shuffleCost.textContent = this.game.cfg.shuffleCost;
+    this.el.sortCost.textContent = this.game.cfg.sortCost;
 
     this.el.rows.addEventListener('click', (e) => {
       const tube = e.target.closest('.tube');
       if (tube) this.fire('tap', Number(tube.dataset.col));
     });
     this.el.undo.addEventListener('click', () => this.fire('undo'));
-    this.el.shuffle.addEventListener('click', () => this.fire('shuffle'));
+    this.el.sort.addEventListener('click', () => this.fire('sort'));
     $('[data-menu]').addEventListener('click', () => this.fire('settings'));
 
     this.buildTubes(this.game.columnCount);
@@ -237,7 +237,7 @@ export class BoardView {
     });
 
     this.el.undo.disabled = !vm.canUndo;
-    this.el.shuffle.disabled = !(vm.canAffordShuffle && vm.shuffleCanHelp);
+    this.el.sort.disabled = !(vm.canAffordSort && vm.sortCanHelp);
     this.lastVm = vm;
     this.fitBoard();
   }
@@ -251,9 +251,18 @@ export class BoardView {
     const board = this.el.board;
     const rows = board.querySelectorAll('.row').length || 1;
     const cap = this.game.cfg.capacity;
+    const h = this.app.clientHeight;
 
-    this.app.classList.toggle('short', this.app.clientHeight < 800);
-    this.app.classList.toggle('xshort', this.app.clientHeight < 660);
+    /*
+     * Every layout switch is decided from stable inputs — screen height and row
+     * count — and applied before measuring. Deriving `tight` from the computed
+     * cell size instead fed back into the padding it depended on, so the board
+     * resized by one frame's lag on every tap.
+     */
+    this.app.classList.toggle('short', h < 800);
+    this.app.classList.toggle('xshort', h < 660);
+    board.classList.toggle('rows-2', rows > 1);
+    board.classList.toggle('tight', h < 700 || (rows > 1 && h < 820));
 
     const cs = getComputedStyle(board);
     const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
@@ -263,14 +272,14 @@ export class BoardView {
 
     const TUBE_PAD = 36; // the tube art's rim and rounded base, slightly compressed
     let cell = Math.floor((avail / rows - TUBE_PAD) / cap);
-    // 24px is the floor a 320pt phone needs; below that the board would spill
-    // over the buttons rather than shrink.
-    cell = Math.max(24, Math.min(58, cell));
+    // 16px is the floor a 4-inch screen needs at eight columns once the system
+    // bars take their share. Chips are small there, but nothing overlaps.
+    cell = Math.max(16, Math.min(58, cell));
 
     board.style.setProperty('--cell-h', cell + 'px');
-    board.style.setProperty('--chip-d', Math.max(24, cell - 8) + 'px');
-    board.classList.toggle('tight', cell < 42);
+    board.style.setProperty('--chip-d', Math.max(18, cell - 8) + 'px');
   }
+
 
   /* ---------------- feedback ---------------- */
 

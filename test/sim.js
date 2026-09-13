@@ -93,7 +93,7 @@ function hash(g) {
 function playOne(seed) {
   const g = new Game({ seed });
   const stats = {
-    seed, turns: 0, banks: 0, drops: 0, locks: 0, shuffles: 0,
+    seed, turns: 0, banks: 0, drops: 0, locks: 0, sorts: 0, refills: 0,
     losses: 0, maxLevel: 1, maxNet: 0, restarts: 0, undos: 0,
   };
 
@@ -101,7 +101,8 @@ function playOne(seed) {
     if (e.type === 'bank') stats.banks++;
     if (e.type === 'inflow') stats.drops++;
     if (e.type === 'lock') stats.locks++;
-    if (e.type === 'shuffle') stats.shuffles++;
+    if (e.type === 'sort') stats.sorts++;
+    if (e.type === 'refill') stats.refills++;
     if (e.type === 'level-lost') stats.losses++;
     if (e.type === 'levelup') stats.maxLevel = Math.max(stats.maxLevel, e.level);
     if (e.type === 'inflow' && !e.skipped && e.count > 0) {
@@ -114,8 +115,8 @@ function playOne(seed) {
 
   while (stats.turns < MAX_TURNS) {
     if (g.status === 'locked') {
-      if (g.shuffleCanHelp && g.canAffordShuffle) {
-        g.shuffle();
+      if (g.sortCanHelp && g.canAffordSort) {
+        g.sort();
       } else {
         g.loseLevel();
       }
@@ -182,8 +183,8 @@ function unitTests() {
   // Banking pays value x stack.
   {
     const g = new Game({ seed: 7 });
-    g.columns = [[50, 50, 50], [50], [], [], []];
-    const net = g.netWorth;
+    g.columns = [[50, 50, 50], [50], [10, 20], [], []];   // keep chips elsewhere
+    const net = g.netWorth;                                 // so the board is not cleared
     g.move(1, 0);
     ok('a stack of four 50s banks $200', g.netWorth - net === 200);
     ok('the banked column is now empty', g.columns[0].length === 0);
@@ -208,7 +209,7 @@ function unitTests() {
       [5, 20, 10, 5], [10, 5, 20, 10],
     ];
     ok('a full mismatched board is a deadlock', g.isDeadlocked() === true);
-    ok('shuffle refuses to help a full board', g.shuffleCanHelp === false);
+    ok('sort can still tidy a full mixed board', g.sortCanHelp === true);
   }
 
   // An inflow must never seal the board.
@@ -242,7 +243,7 @@ function unitTests() {
     g.loseLevel();
     ok('losing drops one level', g.level === 3);
     ok('losing floors net worth', g.netWorth === netWorthFloor(3));
-    ok('losing always leaves one shuffle', g.coins >= DEFAULTS.shuffleCost);
+    ok('losing always leaves one sort', g.coins >= DEFAULTS.sortCost);
     ok('losing rebuilds the board', g.columnCount === columnsForLevel(3));
   }
 
@@ -274,6 +275,44 @@ function unitTests() {
     g.dropCount = 3; ok('interval is 6 after three drops', g.currentInterval === 6);
     g.dropCount = 9; ok('interval is 4 after nine drops', g.currentInterval === 4);
     g.dropCount = 99; ok('interval never falls below 4', g.currentInterval === 4);
+  }
+
+  // Clearing the board must refill rather than read as a deadlock.
+  {
+    const g = new Game({ seed: 18 });
+    g.columns = [[5, 5, 5], [5], [], [], []];
+    g.turnsUntilDrop = 5;
+    g.move(1, 0);
+    ok('banking the last chips refills the board', g.chipsOnBoard > 0);
+    ok('a cleared board does not lock', g.status === 'playing');
+  }
+
+  // Sort gathers each value into its own tube.
+  {
+    const g = new Game({ seed: 5 });
+    g.coins = 500;
+    g.columns = [[1, 5, 10, 1], [5, 1, 10, 5], [10, 10, 1, 5], [1, 5, 10, 1], [5, 10, 1, 10]];
+    const before = g.netWorth;
+    ok('sort is offered on a mixed board', g.sortCanHelp === true);
+    let banked = 0;
+    g.on((e) => { if (e.type === 'bank') banked++; });
+    const r = g.sort();
+    ok('sort succeeds', r.ok === true);
+    ok('sort charges its cost, less what its banks pay back',
+       g.coins === 500 - DEFAULTS.sortCost + banked * DEFAULTS.coinsPerBank);
+    ok('sort banks the complete sets', g.netWorth > before);
+    // Five values across five tubes cannot all be pure; the remainder shares.
+    const occupied = g.columns.filter((c) => c.length);
+    const impure = occupied.filter((c) => c.some((v) => v !== c[0])).length;
+    ok('sort leaves at most two shared tubes', impure <= 2);
+  }
+
+  {
+    const g = new Game({ seed: 6 });
+    g.coins = 500;
+    g.columns = [[1, 1], [5, 5], [], [], []];
+    ok('sort declines when every tube is already pure', g.sortCanHelp === false);
+    ok('and refuses to charge for it', g.sort().ok === false);
   }
 
   // Save and reload.
@@ -314,7 +353,8 @@ console.log(`  turns / game      avg ${avg('turns')}   max ${max('turns')}`);
 console.log(`  banks / game      avg ${avg('banks')}   max ${max('banks')}`);
 console.log(`  inflows / game    avg ${avg('drops')}   max ${max('drops')}`);
 console.log(`  locks / game      avg ${avg('locks')}   max ${max('locks')}`);
-console.log(`  shuffles / game   avg ${avg('shuffles')}`);
+console.log(`  sorts / game      avg ${avg('sorts')}`);
+console.log(`  refills / game    avg ${avg('refills')}`);
 console.log(`  level losses      avg ${avg('losses')}   max ${max('losses')}`);
 console.log(`  peak level        avg ${avg('maxLevel')}   max ${max('maxLevel')}`);
 console.log(`  peak net worth    avg $${avg('maxNet')}   max $${max('maxNet')}`);

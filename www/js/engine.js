@@ -16,7 +16,7 @@ export const DEFAULTS = Object.freeze({
   coinsPerBank: 10,
   coinsPerLevelUp: 50,
   undoCost: 20,
-  shuffleCost: 30,
+  sortCost: 150,
   junkChance: 0.4,        // odds a drop-5+ chip is a junk 5
   valueLadder: [1, 5, 10, 20, 50],
 });
@@ -143,9 +143,11 @@ export class Game {
     return Math.max(this.cfg.minFlowInterval, this.cfg.flowInterval - shortened);
   }
   get canUndo() { return this.undoSnapshot !== null && this.coins >= this.cfg.undoCost; }
-  get canAffordShuffle() { return this.coins >= this.cfg.shuffleCost; }
-  /** A shuffle cannot rescue a board with no space at all. */
-  get shuffleCanHelp() { return this.openSlots > 0; }
+  get canAffordSort() { return this.coins >= this.cfg.sortCost; }
+  /** Sorting only helps while some tube still holds more than one value. */
+  get sortCanHelp() {
+    return this.columns.some((c) => c.length > 1 && c.some((v) => v !== c[0]));
+  }
 
   /* ---------------- board setup ---------------- */
 
@@ -310,6 +312,13 @@ export class Game {
     this.bankAll();
     this.checkLevelUp();
 
+    /*
+     * Banking the last chips leaves nothing to move, which reads as a deadlock
+     * even though the player just cleared the board. Refill instead. Easiest to
+     * hit at level 1, where the board is small enough to clear outright.
+     */
+    if (this.chipsOnBoard === 0) this.refill();
+
     if (this.turnsUntilDrop <= 0) {
       this.inflow();
       this.bankAll();
@@ -446,7 +455,7 @@ export class Game {
     return { count: placed.length, skipped: false };
   }
 
-  /* ---------------- lock, shuffle, loss ---------------- */
+  /* ---------------- lock, sort, loss ---------------- */
 
   checkLock() {
     const stuck = this.forcedStuck;
@@ -454,53 +463,75 @@ export class Game {
     if (!this.isDeadlocked() && !stuck) return false;
     this.status = 'locked';
     this.selected = null;
-    const rescuable = this.shuffleCanHelp && this.canAffordShuffle;
+    const rescuable = this.sortCanHelp && this.canAffordSort;
     this.emit({
       type: 'lock',
-      canShuffle: rescuable,
-      reason: !this.shuffleCanHelp ? 'board-full' : !this.canAffordShuffle ? 'no-coins' : 'ok',
+      canSort: rescuable,
+      reason: !this.sortCanHelp ? 'nothing-to-sort' : !this.canAffordSort ? 'no-coins' : 'ok',
       nothingLeft: stuck && !this.isDeadlocked(),
       coins: this.coins,
-      cost: this.cfg.shuffleCost,
+      cost: this.cfg.sortCost,
     });
     return true;
   }
 
-  /** Redistribute every chip at random. Costs coins; only offered when it can help. */
-  shuffle() {
-    if (!this.shuffleCanHelp) return { ok: false, reason: 'board-full' };
-    if (!this.canAffordShuffle) return { ok: false, reason: 'no-coins' };
+  /** Fresh chips on a board the player has cleared. The flow clock carries on. */
+  refill() {
+    const drops = this.dropCount;
+    const until = this.turnsUntilDrop;
+    this.seedBoard();
+    this.dropCount = drops;
+    this.turnsUntilDrop = Math.max(1, until);
+    this.emit({ type: 'refill', columns: this.columnCount });
+  }
 
-    const chips = shuffleInPlace(this.columns.flat(), this.rng);
-    const cols = this.columnCount;
-    const next = Array.from({ length: cols }, () => []);
-    let guard = 0;
+  /**
+   * Tidy the board: every value gathered into its own tube, largest group
+   * first. Any tube that ends up holding a full set banks straight away, which
+   * is what makes this worth its price.
+   */
+  sort() {
+    if (this.chipsOnBoard === 0) return { ok: false, reason: 'empty' };
+    if (!this.canAffordSort) return { ok: false, reason: 'no-coins' };
+    if (!this.sortCanHelp) return { ok: false, reason: 'already-sorted' };
 
-    // Re-deal, retrying until the result is actually playable.
-    do {
-      for (const col of next) col.length = 0;
-      shuffleInPlace(chips, this.rng);
-      let c = 0;
-      for (const chip of chips) {
-        let tries = 0;
-        while (next[c % cols].length >= this.cfg.capacity && tries < cols) { c++; tries++; }
-        if (tries >= cols) break; // no room anywhere; cannot happen while openSlots > 0
-        next[c % cols].push(chip);
-        c++;
+    const counts = new Map();
+    for (const v of this.columns.flat()) counts.set(v, (counts.get(v) || 0) + 1);
+    const groups = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+
+    const cap = this.cfg.capacity;
+    const cols = Array.from({ length: this.columnCount }, () => []);
+    const spill = [];
+    let i = 0;
+
+    for (const [value, n] of groups) {
+      let left = n;
+      while (left > 0) {
+        if (i >= cols.length) { for (let k = 0; k < left; k++) spill.push(value); break; }
+        const take = Math.min(left, cap);
+        cols[i] = Array(take).fill(value);
+        i++;
+        left -= take;
       }
-      this.columns = next.map((col) => [...col]);
-    } while (this.isDeadlocked() && guard++ < 40);
+    }
+    // More values than tubes: the remainder stacks wherever there is room.
+    for (const value of spill) {
+      const target = cols.findIndex((c) => c.length < cap);
+      if (target >= 0) cols[target].push(value);
+    }
 
-    this.coins -= this.cfg.shuffleCost;
+    this.columns = cols;
+    this.coins -= this.cfg.sortCost;
     this.selected = null;
     this.undoSnapshot = null;
     this.history.length = 0;
     this.forcedStuck = false;
     this.status = 'playing';
-    this.emit({ type: 'shuffle', coins: this.coins });
+    this.emit({ type: 'sort', coins: this.coins });
 
     this.bankAll();
     this.checkLevelUp();
+    if (this.chipsOnBoard === 0) this.refill();
     if (this.isDeadlocked()) this.checkLock();
     return { ok: true };
   }
@@ -510,7 +541,7 @@ export class Game {
     const from = this.level;
     this.level = Math.max(1, this.level - 1);
     this.netWorth = netWorthFloor(this.level);
-    this.coins = Math.max(this.coins, this.cfg.shuffleCost); // always leave one out
+    this.coins = Math.max(this.coins, this.cfg.sortCost); // always leave one out
     this.seedBoard();
     this.turn = 0;
     this.emit({

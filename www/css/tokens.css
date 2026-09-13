@@ -8,7 +8,7 @@
   --cocoa:         #54393e;   /* titles */
   --cocoa-soft:    #785044;   /* figures */
   --olive:         #96a96f;   /* undo */
-  --violet:        #a88fd2;   /* shuffle */
+  --violet:        #a88fd2;   /* sort */
   --bar-fill:      #69cb67;
   --bar-track:     #ecdaca;
   --ground-old:    #fcf5e6;
@@ -72,6 +72,11 @@
   --shadow-soft: 0 1px 0 rgba(55, 63, 69, .05), 0 10px 24px -16px rgba(55, 63, 69, .45);
   --shadow-chip: 0 1px 2px rgba(55, 63, 69, .18);
   --shadow-lift: 0 6px 14px -6px rgba(55, 63, 69, .5);
+
+  /* Safe areas. The Android shell overwrites these with the real insets; the
+     env() fallback covers browsers and notched iOS. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* board metrics */
   --tube-w:  66px;
