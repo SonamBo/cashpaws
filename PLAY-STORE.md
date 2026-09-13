@@ -97,13 +97,26 @@ The questionnaire should return everyone / PEGI 3.
 coins earned by playing. There are no real-money purchases and no in-app billing
 library. If Play asks about in-app purchases, the answer is no.
 
+## Target API level
+
+Set to **36**, which is Play's current floor. Raising it meant moving three
+things together — bumping `targetSdk` alone fails the build:
+
+| | was | now |
+|---|---|---|
+| compileSdk / targetSdk | 35 | 36 |
+| Android Gradle Plugin | 8.7.3 | 8.9.2 |
+| Gradle | 8.9 | 8.11.1 |
+
+Google raises the floor most years. When it next moves, all three go up together.
+
 ## Before the first upload, check
 
-- Whether Play's required `targetSdk` has moved past 35. It is set in
-  `android/app/build.gradle`, and Google raises the floor most years; an upload
-  below it is rejected outright.
 - That the app opens to the lobby on a real device, plays, and keeps your
   progress after a force-close.
+- Rotate the phone. Android 16 ignores portrait locks on larger screens, so
+  landscape is no longer optional; the board lays its tubes in a single row
+  there.
 
 ## What I cannot do
 

@@ -665,3 +665,33 @@ Perk balance re-checked with the full roster: 17–19% against a 19% baseline.
 Soot's four poses. And the peek pose across all cats is a full body where
 Patch's is a chest crop, so worn cats sit smaller on the ledge than Patch does —
 the art is taller than it is wide and that slot is sized by height.
+
+
+---
+
+## Targeting API 36 for Play
+
+Play rejected the upload at API 35. Raising it is three coordinated changes, not
+one: compileSdk and targetSdk to 36, AGP 8.7.3 to 8.9.2, Gradle 8.9 to 8.11.1.
+compileSdk 36 needs AGP 8.9+, and that AGP needs Gradle 8.11.1+.
+
+Two behaviour changes came with it.
+
+**Predictive back** is declared explicitly with
+`android:enableOnBackInvokedCallback="true"`. The existing
+`OnBackPressedDispatcher` callback is compatible.
+
+**Orientation locks are ignored on screens 600dp and wider**, so landscape
+stopped being optional. Testing it exposed a real bug that had nothing to do
+with the API level: the device frame in `index.html` was gated on
+`max-width: 760px`, so any wide viewport — a tablet, or a phone Android 16
+refuses to hold in portrait — rendered the game inside a fixed 402x874 box
+instead of filling the screen. It is now gated on `pointer: coarse`, so any
+touch device fills regardless of width.
+
+With that fixed, a phone in landscape put the tubes over the buttons. `rowsFor`
+now lays all eight tubes in a single row when the screen is wide and short and
+the width allows, and a rotate triggers a relayout rather than only a refit.
+
+`test/landscape.mjs` covers both orientations. Portrait sizes are unchanged and
+tube sizing is still stable across all six viewport cases.

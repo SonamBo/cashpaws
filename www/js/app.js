@@ -462,7 +462,7 @@ function paintDev() {
 }
 
 // Rotation, split screen, or the keyboard appearing all change the space.
-window.addEventListener('resize', () => { if (view) view.fitBoard(); });
+window.addEventListener('resize', () => { if (view) view.relayout(); });
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && game) save();

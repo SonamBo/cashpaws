@@ -50,8 +50,10 @@ body.dev .panel { display: block; }
 #readout ul { margin: 0; padding-left: 16px; color: var(--ink-soft); }
 #readout b { color: var(--ink); }
 
-/* Phone and the Capacitor shell: no frame, fill everything. */
-@media (max-width: 760px) {
+/* Fill the screen on any touch device, not just narrow ones. Keying this on
+   width alone put a tablet in landscape — or a phone Android 16 refuses to
+   hold in portrait — inside a fixed 402x874 box. */
+@media (max-width: 760px), (pointer: coarse) {
   body { display: block; padding: 0; background: var(--ground); }
   .device { width: auto; border-radius: 0; padding: 0; background: none; box-shadow: none; }
   .device > #app { border-radius: 0; }

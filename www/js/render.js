@@ -38,9 +38,17 @@ export function vmOf(g) {
   };
 }
 
-/** 5 or fewer on one row; 6-8 split into two balanced rows. */
-export function rowsFor(n) {
+/**
+ * 5 or fewer on one row; 6-8 split into two balanced rows.
+ *
+ * On a short wide screen a second row will not fit, so everything goes on one
+ * row provided the width allows. Android 16 ignores portrait locks on larger
+ * screens, so landscape is not optional any more.
+ */
+export function rowsFor(n, availWidth = 0, landscape = false) {
   if (n <= 5) return [n];
+  const TUBE = 66, GAP = 10;
+  if (landscape && availWidth >= n * TUBE + (n - 1) * GAP) return [n];
   return [Math.ceil(n / 2), Math.floor(n / 2)];
 }
 
@@ -61,6 +69,12 @@ export class BoardView {
   rebuild() {
     this.build();
     this.renderedColumns = null;
+  }
+
+  /** Row layout depends on orientation, so a rotate has to re-lay the tubes. */
+  relayout() {
+    this.renderedColumns = null;
+    this.update();
   }
 
   on(name, fn) { this.handlers[name] = fn; }
@@ -146,7 +160,9 @@ export class BoardView {
     this.el.rows.innerHTML = '';
     this.tubes = [];
     let index = 0;
-    const layout = rowsFor(count);
+    const avail = this.el.board.clientWidth - 32;
+    const landscape = this.app.clientWidth > this.app.clientHeight;
+    const layout = rowsFor(count, avail, landscape);
     this.el.board.classList.toggle('rows-2', layout.length > 1);
     for (const n of layout) {
       const row = document.createElement('div');
