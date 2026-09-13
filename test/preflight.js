@@ -52,6 +52,15 @@ for (const f of [
 
 /* --- the game --- */
 need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
+
+/* --- launcher icon at every density --- */
+for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+  for (const f of ['ic_fg.png', 'ic_launcher.png', 'ic_launcher_round.png']) {
+    need(`android/app/src/main/res/mipmap-${d}/${f}`, 'launcher icon');
+  }
+}
+needContains('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml', '@mipmap/ic_fg',
+  'the adaptive icon must point at the bitmap foreground');
 need('www/index.html', 'the entry point the WebView loads');
 for (const f of ['engine.js', 'render.js', 'app.js', 'overlays.js', 'tabs.js', 'art.js', 'lobby.js'])
   need(`www/js/${f}`, 'imported by the app');
@@ -60,21 +69,22 @@ for (const v of [1, 5, 10, 20, 50]) {
   need(`www/img/chip-${v}.png`, `chip artwork for $${v}`);
   need(`www/img/chipb-${v}.png`, `alternate chip artwork for $${v}`);
 }
-for (const f of ['cat-avatar', 'cat-peek', 'cat-sad', 'cat-hero', 'cat-cheer', 'coin', 'logo', 'tagline'])
-  need(`www/img/${f}.png`, 'referenced by art.js or the lobby');
+for (const f of ['cat-avatar', 'cat-sad', 'cat-hero', 'cat-cheer', 'coin', 'logo', 'tagline',
+                 'ref-cat', 'ref-heart', 'tube', 'knob-cat'])
+  need(`www/img/${f}.png`, 'referenced by art.js, the board or the lobby');
+need('www/img/bg-room.jpg', 'the room background');
 
-/* --- every asset referenced in code must exist on disk --- */
-const jsDir = join(ROOT, 'www/js');
+/* --- every asset referenced in code or CSS must exist on disk --- */
 const refs = new Set();
-for (const f of readdirSync(jsDir)) {
-  const src = readFileSync(join(jsDir, f), 'utf8');
-  for (const m of src.matchAll(/img\/([\w-]+)\.png/g)) refs.add(m[1]);
-}
-const html = readFileSync(join(ROOT, 'www/index.html'), 'utf8');
-for (const m of html.matchAll(/img\/([\w-]+)\.png/g)) refs.add(m[1]);
+const scan = (text) => {
+  for (const m of text.matchAll(/img\/([\w-]+)\.(png|jpg|jpeg)/g)) refs.add(`${m[1]}.${m[2]}`);
+};
+for (const f of readdirSync(join(ROOT, 'www/js'))) scan(readFileSync(join(ROOT, 'www/js', f), 'utf8'));
+for (const f of readdirSync(join(ROOT, 'www/css'))) scan(readFileSync(join(ROOT, 'www/css', f), 'utf8'));
+scan(readFileSync(join(ROOT, 'www/index.html'), 'utf8'));
 for (const r of refs) {
-  if (!existsSync(join(ROOT, 'www/img', `${r}.png`))) {
-    fails.push(`MISSING  www/img/${r}.png  — referenced in code but not on disk`);
+  if (!existsSync(join(ROOT, 'www/img', r))) {
+    fails.push(`MISSING  www/img/${r}  — referenced in code or CSS but not on disk`);
   }
 }
 notes.push(`${refs.size} image references checked against disk`);

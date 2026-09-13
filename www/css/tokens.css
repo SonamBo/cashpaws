@@ -2,8 +2,16 @@
    Colours sampled directly from the source mockup, not invented. */
 
 :root {
-  /* ground and surfaces */
-  --ground:        #fcf5e6;
+  /* ground and surfaces — retuned to the reference room */
+  --ground:        #f6eedf;
+  --ledge:         #fbefe0;
+  --cocoa:         #54393e;   /* titles */
+  --cocoa-soft:    #785044;   /* figures */
+  --olive:         #96a96f;   /* undo */
+  --violet:        #a88fd2;   /* shuffle */
+  --bar-fill:      #69cb67;
+  --bar-track:     #ecdaca;
+  --ground-old:    #fcf5e6;
   --surface:       #fdf7ea;
   --surface-sunk:  #f4ecd8;
   --rule:          #e4dbc8;
@@ -80,4 +88,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root { --t-fast: 1ms; --t-base: 1ms; --t-slow: 1ms; }
+}
+
+/* Tube cap palette, sampled from the reference. */
+:root {
+  --cap-1: #fda5a8; --cap-2: #93ccf5; --cap-3: #b4e0a0; --cap-4: #ffde91;
+  --cap-5: #cba5eb; --cap-6: #f89658; --cap-7: #69bbc4; --cap-8: #eb81a4;
 }

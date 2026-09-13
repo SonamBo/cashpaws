@@ -643,3 +643,17 @@ img.art { user-select: none; -webkit-user-drag: none; }
   70%  { opacity: 1; transform: none; }
   100% { opacity: 0; transform: translateY(-10px); }
 }
+
+
+/* Very short screens: the header gives up its subtitle and the cat stands down
+   so the tubes never reach the buttons. */
+#app.xshort .level-title { font-size: 20px; margin-bottom: var(--s2); }
+#app.xshort .bar { height: 14px; margin-bottom: var(--s2); }
+#app.xshort .bar-figure { font-size: 16px; }
+#app.xshort .bar-sub { display: none; }
+#app.xshort .hdr { padding-top: var(--s2); padding-bottom: 2px; }
+#app.xshort .hdr-top { margin-bottom: var(--s2); }
+#app.xshort .board { padding-bottom: 64px; }
+#app.xshort .corner-cat { width: 96px; }
+#app.xshort .corner-heart { display: none; }
+#app.xshort .act { min-height: 46px; font-size: var(--fs-sm); }

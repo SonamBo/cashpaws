@@ -112,6 +112,8 @@ export class Game {
     this.turnsUntilDrop = this.cfg.flowInterval;
     this.undoSnapshot = null;
     this.events = [];
+    this.history = [];          // recent positions, for spotting a back-and-forth
+    this.forcedStuck = false;
 
     this.seedBoard();
   }
@@ -183,6 +185,8 @@ export class Game {
     this.selected = null;
     this.undoSnapshot = null;
     this.dropCount = 0;
+    this.history.length = 0;
+    this.forcedStuck = false;
     this.turnsUntilDrop = this.cfg.flowInterval;
     this.status = 'playing';
   }
@@ -220,6 +224,9 @@ export class Game {
     if (this.columns[to].length > 0) return true;      // tops match, so it consolidates
     return this.columns[from].length > this.topRun(from);
   }
+
+  /** Board fingerprint, for spotting a player shuffling chips in circles. */
+  positionKey() { return this.columns.map((c) => c.join('.')).join('|'); }
 
   hasMeaningfulMove() {
     for (let f = 0; f < this.columnCount; f++) {
@@ -284,6 +291,8 @@ export class Game {
     const count = this.movableCount(from, to);
     if (count === 0) return { ok: false, reason: 'illegal' };
     this.undoSnapshot = this.snapshot();
+    this.history.push(this.positionKey());
+    if (this.history.length > 6) this.history.shift();
     for (let k = 0; k < count; k++) this.columns[to].push(this.columns[from].pop());
     this.selected = null;
     this.turn++;
@@ -307,12 +316,30 @@ export class Game {
       this.checkLevelUp();
     }
 
-    // Nothing useful left to do. Bring the flow forward rather than making the
-    // player burn turns on moves that cannot change anything.
-    if (!this.isDeadlocked() && !this.hasMeaningfulMove()) {
-      this.inflow();
-      this.bankAll();
-      this.checkLevelUp();
+    /*
+     * Two ways to be going nowhere. Either no legal move can change anything,
+     * or the board has come back to a position it already held — the player is
+     * sliding the same chip back and forth to run the clock down to a drop.
+     * Neither should cost turns, so bring the flow forward. If the board is so
+     * full that a drop would be undone by the no-sealing rule, the flow cannot
+     * help either, and the honest answer is to end the board.
+     */
+    if (!this.isDeadlocked()) {
+      // An exact reversal: the board is back where it stood two moves ago. That
+      // is a player sliding one chip to and fro to run the clock down, not
+      // progress. A position repeating by coincidence much later is not.
+      const key = this.positionKey();
+      const cycling = this.history.length >= 2 && this.history[this.history.length - 2] === key;
+
+      if (cycling || !this.hasMeaningfulMove()) {
+        if (this.openSlots > 1) {
+          this.inflow();
+          this.bankAll();
+          this.checkLevelUp();
+        } else {
+          this.forcedStuck = true;
+        }
+      }
     }
 
     this.checkLock();
@@ -331,6 +358,7 @@ export class Game {
       this.coins += this.cfg.coinsPerBank;
       this.lifetimeBanks++;
       banked++;
+      this.history.length = 0;
       this.emit({ type: 'bank', column: i, value, amount, coins: this.cfg.coinsPerBank });
     }
     return banked;
@@ -402,6 +430,7 @@ export class Game {
     }
 
     this.dropCount++;
+    this.history.length = 0;
     this.turnsUntilDrop = this.currentInterval;
     this.undoSnapshot = null; // the flow cannot be undone
 
@@ -420,7 +449,9 @@ export class Game {
   /* ---------------- lock, shuffle, loss ---------------- */
 
   checkLock() {
-    if (!this.isDeadlocked()) return false;
+    const stuck = this.forcedStuck;
+    this.forcedStuck = false;
+    if (!this.isDeadlocked() && !stuck) return false;
     this.status = 'locked';
     this.selected = null;
     const rescuable = this.shuffleCanHelp && this.canAffordShuffle;
@@ -428,6 +459,7 @@ export class Game {
       type: 'lock',
       canShuffle: rescuable,
       reason: !this.shuffleCanHelp ? 'board-full' : !this.canAffordShuffle ? 'no-coins' : 'ok',
+      nothingLeft: stuck && !this.isDeadlocked(),
       coins: this.coins,
       cost: this.cfg.shuffleCost,
     });
@@ -462,6 +494,8 @@ export class Game {
     this.coins -= this.cfg.shuffleCost;
     this.selected = null;
     this.undoSnapshot = null;
+    this.history.length = 0;
+    this.forcedStuck = false;
     this.status = 'playing';
     this.emit({ type: 'shuffle', coins: this.coins });
 

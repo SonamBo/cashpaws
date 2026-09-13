@@ -382,3 +382,101 @@ Pre-flight clean, 41/41 rule tests, no invariant violations over 2,000 games,
 every device size still fits, back routing and both deadlock escapes intact, no
 console errors. The balance probe was updated to use multi-move, since a
 single-chip bot would have measured a game nobody plays.
+
+
+---
+
+## After the second device test
+
+**The stuck board is auto-detected.** The screenshot showed a board that was not
+deadlocked — a $5 could slide between two columns forever — so every bounce
+looked like progress to the engine and the player had to tap until the drop
+arrived. `move()` now records the position before mutating, and `resolve()`
+checks whether the board has returned to exactly where it stood two moves ago.
+That is a back-and-forth, not progress, so the flow comes forward. If the board
+is too full for a drop to land, the no-sealing rule would undo it anyway, so the
+board ends instead and the card says "Nothing left to do".
+
+A first attempt treated any repeated position as cycling. That fired constantly
+during ordinary play: locks went from 3.0 to 13.6 a session and 73% of runs lost
+a level. Narrowing it to an exact reversal within the last two moves brought it
+to 6.2 locks and 47%. That is still above the 38% before this change, and it is
+honest — a player reduced to ping-ponging really is nearly dead.
+
+**The board was rebuilt to the reference screen.** Glass tubes with coloured
+caps, a centred level title, a single progress bar with a cat-head knob, the
+absolute figure and "next level at", labelled Undo and Shuffle pills in olive
+and violet, a cream ledge with the cat and heart cut from the reference, and paw
+prints in the background. Palette sampled from the reference, not guessed.
+
+Two things deliberately not copied. The reference sorts by currency symbol with
+ten tube types; this game sorts by denomination, because net worth, banking at
+value x 4 and every level threshold are built on values. And the big flush-left
+net worth figure is gone, replaced by the centred figure the reference uses.
+
+Verified after all of it: pre-flight clean, 41/41 rule tests, no invariant
+violations over 1,500 games, all six device sizes fit, back routing, both
+deadlock escapes, chips, skins and the pause menu all intact, no console errors.
+
+
+---
+
+## Supplied art: room background and glass tube
+
+Both dropped in as given.
+
+**Background.** `www/img/bg-room.jpg`, on both screens, cover-positioned to the
+bottom so the ledge lands under the buttons. It carries the paw prints, plant,
+shelf, picture frame, window and ledge, so the CSS that faked all of those is
+gone. Shipped as JPEG: as a PNG it was 431KB even quantised to 48 colours,
+because the source has enough noise to defeat run-length compression. JPEG at
+quality 82 is 21KB and visually identical on a flat illustration.
+
+**Tube.** `www/img/tube.png`, nine-sliced with `border-image` so one asset
+stretches to any column height without distorting the rim or the rounded base.
+The first version supplied had its transparency painted on as a checkerboard
+rather than stored as alpha; the second was on white and keyed out cleanly, with
+a median filter over the alpha to clear the speckled edge the flood fill left.
+
+The coloured caps are gone, since the supplied tube has none.
+
+**What it cost.** The tube art's rim and base are tall, and rendering them at
+true proportion shrank chips from 39px to 30px on the design target. Compressing
+that chrome to about 70% of its natural height brought chips back to 34px. The
+art is very slightly squashed top and bottom as a result; the alternative was
+noticeably smaller chips on every phone.
+
+Verified after: pre-flight clean, 41/41 rule tests, no invariant violations over
+1,200 games, all six device sizes fit, back routing, both deadlock escapes,
+chips, skins and the pause menu intact, and the single-file build loads from
+file:// with all 22 images inlined and no console errors. The pre-flight now
+scans CSS as well as JS, since the background is only referenced from a
+stylesheet and the old check would have missed it going missing.
+
+---
+
+## Supplied cat face and app icon
+
+**Progress-bar knob** is now the supplied cat face, keyed off white and median
+filtered. Checked at 120, 56, 36 and 28px; it still reads at the smallest.
+
+**App icon.** The supplied artwork is a rounded green square, which is wrong for
+an adaptive icon: scaled into the safe zone it showed its own edge as a seam
+against any flat background. So the green was cut away and the cat, cash and
+coins placed on a gradient backdrop matching the original (#deeaba to #c9d6a4).
+Foreground sits at 72dp inside the 108dp canvas, so no mask clips it. Generated
+at all five densities, plus square legacy icons for pre-26 launchers, with the
+old hand-drawn vector kept for the monochrome layer.
+
+## Resolution audit
+
+Eight real phone sizes, system bars subtracted, both screens, at the full eight
+columns. Chip sizes: 320x524 and 360x592 and 360x708 give 24px; Pixel 4a and
+Galaxy S24 Ultra 32px; Pixel 8 38px; iPhone 15 Pro Max 39px; foldable inner 49px.
+
+Two real failures found and fixed: at 320x524 and 360x592 the tubes ran over the
+buttons, because the cell size hit its 30px floor and the board could not shrink
+any further. The floor is now 24px, and an `xshort` mode below 660px drops the
+"next level" line, shrinks the title and bar, and stands the corner cat down.
+All eight now pass with nothing clipped, no horizontal overflow, and tap targets
+of 46px or more.

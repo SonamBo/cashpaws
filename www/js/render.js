@@ -10,7 +10,7 @@
  * animation needs.
  */
 
-import { catAvatar, catPeek, coinIcon, icons } from './art.js';
+import { catAvatar, knobCat, coinIcon, icons, refCat, refHeart } from './art.js';
 
 export const money = (n) => '$' + n.toLocaleString('en-US');
 
@@ -64,54 +64,59 @@ export class BoardView {
     this.root.innerHTML = `
       <header class="hdr">
         <div class="hdr-top">
-          <span class="avatar">${catAvatar(34)}</span>
           <div class="coins" data-coin-pill>
-            ${coinIcon(22)}
+            ${coinIcon(26)}
             <span class="coins-n" data-coins>0</span>
             <span class="coins-add">+</span>
           </div>
           <span class="hdr-spacer"></span>
-          <button class="icon-btn" data-menu aria-label="Menu">${icons.pause(22)}</button>
+          <button class="pause-btn" data-menu aria-label="Menu">${icons.pause(20)}</button>
         </div>
 
-        <div class="hdr-meta">
-          <span class="lv">LV <b data-lv>01</b></span>
-          <span class="goal" data-goal></span>
+        <h1 class="level-title">Level <span data-lv>1</span></h1>
+
+        <div class="bar">
+          <span class="bar-fill" data-fill></span>
+          <span class="bar-knob" data-knob>${knobCat(38)}</span>
         </div>
 
-        <p class="net" data-net>$0</p>
-        <div class="rail" data-rail></div>
+        <p class="bar-figure" data-goal></p>
+        <p class="bar-sub" data-sub></p>
 
         <div class="flow" data-flow>
           <span class="flow-label">FLOW</span>
           <span class="pips" data-pips></span>
+          <span class="turn" data-turn>T000</span>
         </div>
       </header>
 
       <main class="board" data-board>
         <div data-rows></div>
-        <div class="mascot">${catPeek(104)}</div>
       </main>
 
-      <footer class="foot">
-        <button class="act" data-undo>
-          ${icons.undo(20)}
-          <span class="act-cost">${coinIcon(16)}<span data-undo-cost>20</span></span>
-        </button>
-        <button class="act" data-shuffle>
-          ${icons.shuffle(20)}
-          <span class="act-cost">${coinIcon(16)}<span data-shuffle-cost>30</span></span>
-        </button>
-        <span class="turn" data-turn>T000</span>
-      </footer>
+      <div class="ledge">
+        ${refCat(150)}
+        ${refHeart(26)}
+        <footer class="foot">
+          <button class="act act-undo" data-undo>
+            ${icons.undo(20)}<span>Undo</span>
+            <span class="act-cost">${coinIcon(18)}<span data-undo-cost>20</span></span>
+          </button>
+          <button class="act act-shuffle" data-shuffle>
+            ${icons.shuffle(20)}<span>Shuffle</span>
+            <span class="act-cost">${coinIcon(18)}<span data-shuffle-cost>30</span></span>
+          </button>
+        </footer>
+      </div>
 
     `;
 
     const $ = (s) => this.root.querySelector(s);
     this.el = {
       coins: $('[data-coins]'), coinPill: $('[data-coin-pill]'),
-      lv: $('[data-lv]'), goal: $('[data-goal]'), net: $('[data-net]'),
-      rail: $('[data-rail]'), flow: $('[data-flow]'), pips: $('[data-pips]'),
+      lv: $('[data-lv]'), goal: $('[data-goal]'), sub: $('[data-sub]'),
+      fill: $('[data-fill]'), knob: $('[data-knob]'),
+      flow: $('[data-flow]'), pips: $('[data-pips]'),
       board: $('[data-board]'), rows: $('[data-rows]'), turn: $('[data-turn]'),
       undo: $('[data-undo]'), shuffle: $('[data-shuffle]'),
       undoCost: $('[data-undo-cost]'), shuffleCost: $('[data-shuffle-cost]'),
@@ -119,13 +124,6 @@ export class BoardView {
 
     this.el.undoCost.textContent = this.game.cfg.undoCost;
     this.el.shuffleCost.textContent = this.game.cfg.shuffleCost;
-
-    for (let i = 0; i < RAIL_SEGMENTS; i++) {
-      const seg = document.createElement('div');
-      seg.className = 'seg';
-      seg.innerHTML = '<span class="seg-fill"></span>';
-      this.el.rail.appendChild(seg);
-    }
 
     this.el.rows.addEventListener('click', (e) => {
       const tube = e.target.closest('.tube');
@@ -151,11 +149,14 @@ export class BoardView {
         const tube = document.createElement('div');
         tube.className = 'tube';
         tube.dataset.col = index;
+        const glass = document.createElement('div');
+        glass.className = 'glass';
         for (let c = 0; c < this.game.cfg.capacity; c++) {
           const cell = document.createElement('div');
           cell.className = 'cell ghost';
-          tube.appendChild(cell);
+          glass.appendChild(cell);
         }
+        tube.appendChild(glass);
         row.appendChild(tube);
         this.tubes.push(tube);
         index++;
@@ -179,14 +180,14 @@ export class BoardView {
 
   /** Top chip of a column, as a DOM node. */
   topChip(col) {
-    const cells = this.tubes[col]?.children;
+    const cells = this.tubes[col]?.querySelector('.glass')?.children;
     if (!cells) return null;
     for (const cell of cells) if (cell.firstElementChild) return cell.firstElementChild;
     return null;
   }
 
   syncTube(tube, values, cap) {
-    const cells = tube.children;
+    const cells = tube.querySelector('.glass').children;
     for (let c = 0; c < cap; c++) {
       const cell = cells[c];
       const value = values[cap - 1 - c];
@@ -206,21 +207,14 @@ export class BoardView {
 
   update(vm = vmOf(this.game)) {
     this.el.coins.textContent = vm.coins;
-    this.el.lv.textContent = String(vm.level).padStart(2, '0');
-    this.el.net.textContent = money(vm.netWorth);
+    this.el.lv.textContent = vm.level;
     this.el.turn.textContent = 'T' + String(vm.turn).padStart(3, '0');
-    this.el.goal.textContent =
-      `${money(vm.netWorth - vm.floor)} / ${money(vm.nextFloor - vm.floor)}`;
+    this.el.goal.textContent = `${money(vm.netWorth)} / ${money(vm.nextFloor)}`;
+    this.el.sub.textContent = `Next level at ${money(vm.nextFloor)}`;
 
-    const first = Math.max(1, vm.level - 2);
-    [...this.el.rail.children].forEach((seg, i) => {
-      const lv = first + i;
-      const done = lv < vm.level;
-      seg.classList.toggle('done', done);
-      seg.classList.toggle('future', lv > vm.level);
-      seg.firstElementChild.style.width =
-        lv === vm.level ? (vm.levelProgress * 100).toFixed(1) + '%' : done ? '100%' : '0%';
-    });
+    const pct = Math.max(0, Math.min(1, vm.levelProgress)) * 100;
+    this.el.fill.style.width = pct.toFixed(1) + '%';
+    this.el.knob.style.left = pct.toFixed(1) + '%';
 
     if (this.el.pips.children.length !== vm.currentInterval) {
       this.el.pips.innerHTML = '';
@@ -259,6 +253,7 @@ export class BoardView {
     const cap = this.game.cfg.capacity;
 
     this.app.classList.toggle('short', this.app.clientHeight < 800);
+    this.app.classList.toggle('xshort', this.app.clientHeight < 660);
 
     const cs = getComputedStyle(board);
     const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
@@ -266,9 +261,11 @@ export class BoardView {
     const avail = board.clientHeight - padY - gaps;
     if (avail <= 0) return;
 
-    const TUBE_PAD = 16; // 6px padding plus 2px border, top and bottom
+    const TUBE_PAD = 36; // the tube art's rim and rounded base, slightly compressed
     let cell = Math.floor((avail / rows - TUBE_PAD) / cap);
-    cell = Math.max(30, Math.min(58, cell));
+    // 24px is the floor a 320pt phone needs; below that the board would spill
+    // over the buttons rather than shrink.
+    cell = Math.max(24, Math.min(58, cell));
 
     board.style.setProperty('--cell-h', cell + 'px');
     board.style.setProperty('--chip-d', Math.max(24, cell - 8) + 'px');
@@ -291,7 +288,7 @@ export class BoardView {
     if (!from || !tube) return;
 
     const chips = [];
-    for (const cell of tube.children) {
+    for (const cell of tube.querySelector('.glass').children) {
       if (cell.firstElementChild) chips.push(cell.firstElementChild);
       if (chips.length === count) break;
     }

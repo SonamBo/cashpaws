@@ -63,18 +63,21 @@ export function milestoneCard(e) {
  */
 export function lockedCard(e, vm, shuffleCost) {
   return new Promise((resolve) => {
-    const reason = !vm.shuffleCanHelp
+    const lead = e.nothingLeft
+      ? 'Every move just slides chips about, and the board is too full for the flow to land. '
+      : '';
+    const reason = lead + (!vm.shuffleCanHelp
       ? 'Every column is full, so a shuffle would change nothing.'
       : !vm.canAffordShuffle
         ? `A shuffle costs ${shuffleCost} coins. You have ${vm.coins}.`
-        : 'A shuffle redeals every chip on the board.';
+        : 'A shuffle redeals every chip on the board.');
 
     const card = show(`
       <div class="ovl-stack">
         ${catSad(210)}
         <div class="ovl-card">
         <p class="ovl-kicker">Board stuck</p>
-        <h2 class="ovl-h">No legal moves left</h2>
+        <h2 class="ovl-h">${e.nothingLeft ? 'Nothing left to do' : 'No legal moves left'}</h2>
         <p class="ovl-sub">${reason}</p>
         <div class="ovl-stat">
           <span>Level ${String(vm.level).padStart(2, '0')}</span>

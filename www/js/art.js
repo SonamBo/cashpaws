@@ -21,6 +21,8 @@ const art = (file, w, cls = '') =>
 
 /** The hero's head, for the header. */
 export const catAvatar = (w = 36) => art('cat-avatar', w, 'cat-avatar');
+/** The face that rides the progress bar. */
+export const knobCat = (w = 34) => art('knob-cat', w, 'knob-cat');
 /** Rear view, sitting at the bottom of the board. */
 export const catPeek = (w = 104) => art('cat-peek', w, 'cat-peek');
 /** Slumped. Stuck-board and level-lost cards. */
@@ -29,6 +31,10 @@ export const catSad = (w = 200) => art('cat-sad', w, 'cat-lying');
 export const catHero = (w = 260) => art('cat-hero', w, 'cat-hero');
 /** Paws up over the card. Full-width banner, sage ground baked in. */
 export const catCheer = () => art('cat-cheer', 298, 'ovl-banner');
+/** The peeking cat and heart, cut from the reference screen. */
+export const refCat = (w = 150) => art('ref-cat', w, 'corner-cat');
+export const refHeart = (w = 26) => art('ref-heart', w, 'corner-heart');
+
 /** The paw coin from the balance pill. */
 export const coinIcon = (s = 22) => art('coin', s, 'coin-art');
 
