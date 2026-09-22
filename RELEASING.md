@@ -20,8 +20,8 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 2, versionName 1.0.1**, ready for your next
-upload.
+Currently set to **versionCode 3, versionName 1.0.2**, ready for your next
+upload. Skipping a number is harmless; reusing one is not.
 
 ## Then
 
@@ -42,6 +42,7 @@ the Play Console.
 | Target API | 36 (Play's floor; raise when Google raises it) |
 | Toolchain | AGP 8.9.2, Gradle 8.11.1, Kotlin 2.0.21 |
 | Signing | four repo secrets, see `PLAY-STORE.md` |
+| Privacy policy | https://pixelartgames000.github.io/privacy-policy/ — lobby gear, Settings |
 
 ## When Play raises the API floor again
 
@@ -53,6 +54,17 @@ alone fails the build:
 - the Gradle version in `.github/workflows/android.yml`, in two places
 
 Each compileSdk needs a minimum AGP, and each AGP needs a minimum Gradle.
+
+## The privacy link and the no-internet promise
+
+The privacy policy opens from the lobby gear. Because the app has no internet
+permission, the Activity hands any outside address to the phone's browser rather
+than loading it — `shouldOverrideUrlLoading` in `MainActivity.kt`.
+
+The pre-flight fails if the link is removed, if that browser hand-off is
+removed, or if anyone adds the `INTERNET` permission — the store listing
+promises the app has none, and that promise is only true while the manifest
+says so.
 
 ## If a build fails
 

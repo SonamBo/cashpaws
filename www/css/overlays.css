@@ -748,3 +748,22 @@ img.art { user-select: none; -webkit-user-drag: none; }
   position: relative;
   z-index: 1;
 }
+
+/* Settings: the privacy link looks like the other rows, not like a web link. */
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 54px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 2px solid var(--rule);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  color: var(--ink);
+  text-decoration: none;
+}
+.menu-link span { flex: 1; }
+.menu-link svg:last-child { color: var(--ink-faint); }
+.settings-note { margin-top: var(--s4); text-align: center; }

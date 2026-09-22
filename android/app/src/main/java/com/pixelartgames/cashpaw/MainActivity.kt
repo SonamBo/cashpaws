@@ -1,6 +1,8 @@
 package com.pixelartgames.cashpaw
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -75,6 +77,27 @@ class MainActivity : ComponentActivity() {
 
                 // The page is only there to receive the insets after it loads.
                 override fun onPageFinished(view: WebView, url: String) = pushSafeArea()
+
+                /*
+                 * Anything that is not the game itself — the privacy policy,
+                 * say — goes to the phone's browser. The app has no internet
+                 * permission, so it could not load an outside page even if it
+                 * tried, and keeping it that way is what lets the store listing
+                 * say no data ever leaves the device.
+                 */
+                override fun shouldOverrideUrlLoading(
+                    view: WebView,
+                    request: WebResourceRequest,
+                ): Boolean {
+                    val url = request.url
+                    if (url.host == ASSET_DOMAIN) return false
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (_: ActivityNotFoundException) {
+                        // no browser installed; nothing sensible to do
+                    }
+                    return true
+                }
             }
         }
 

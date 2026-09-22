@@ -8,6 +8,8 @@ import { money } from './render.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export const PRIVACY_URL = 'https://pixelartgames000.github.io/privacy-policy/';
+
 let host = null;
 export function mountOverlays(root) {
   host = document.createElement('div');
@@ -161,6 +163,40 @@ export function menuCard() {
             <button data-pick="restart">${icons.undo(20)}<span>Restart board</span></button>
             <button data-pick="lobby">${icons.home(20)}<span>Back to lobby</span></button>
           </div>
+        </div>
+      </div>`, 'menu');
+    card.addEventListener('click', async (ev) => {
+      const b = ev.target.closest('[data-pick]');
+      if (!b) return;
+      await dismiss(card);
+      resolve(b.dataset.pick);
+    });
+  });
+}
+
+
+/**
+ * Settings, from the lobby gear. The privacy policy is a plain link: in a
+ * browser it opens a new tab, and in the Android shell the Activity intercepts
+ * any address outside the game and hands it to the phone's browser.
+ * Resolves 'erase' or 'close'.
+ */
+export function settingsCard() {
+  return new Promise((resolve) => {
+    const card = show(`
+      <div class="ovl-stack">
+        <div class="ovl-card">
+          <p class="ovl-kicker">Settings</p>
+          <h2 class="ovl-h">Cash Paws</h2>
+          <div class="menu">
+            <a class="menu-link" href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
+              ${icons.lock(20)}<span>Privacy Policy</span>${icons.external(16)}
+            </a>
+            <button data-pick="erase">${icons.undo(20)}<span>Erase all progress</span></button>
+            <button class="primary" data-pick="close">${icons.play(20)}<span>Done</span></button>
+          </div>
+          <p class="ovl-sub settings-note">No ads, no purchases, and no internet
+          access. Nothing you do in this game leaves your phone.</p>
         </div>
       </div>`, 'menu');
     card.addEventListener('click', async (ev) => {

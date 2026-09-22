@@ -695,3 +695,23 @@ the width allows, and a rotate triggers a relayout rather than only a refit.
 
 `test/landscape.mjs` covers both orientations. Portrait sizes are unchanged and
 tube sizing is still stable across all six viewport cases.
+
+
+---
+
+## Privacy policy link
+
+Added to a new Settings sheet on the lobby gear, alongside Erase all progress,
+which previously was the only thing the gear did.
+
+The app has no internet permission, so the WebView cannot load the policy page
+itself. `shouldOverrideUrlLoading` in `MainActivity.kt` now hands any address
+outside the game to the phone's browser via `ACTION_VIEW`. In a browser the link
+opens a new tab. Tested: the policy opens in a separate page and the game is
+never navigated away.
+
+Pre-flight guards three things: the link is present, the browser hand-off is
+present, and the manifest has not gained `INTERNET` — because the store listing
+promises it has none, and that is only true while the manifest agrees.
+
+Version bumped to 3 / 1.0.2.

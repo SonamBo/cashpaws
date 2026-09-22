@@ -77,6 +77,17 @@ for (const f of [
 /* --- the game --- */
 need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
 
+/* --- the privacy policy Play requires must stay reachable in the app --- */
+needContains('www/js/overlays.js', 'PRIVACY_URL', 'the settings sheet must link the privacy policy');
+needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'ACTION_VIEW',
+  'external links must be handed to the browser; the app has no internet permission');
+{
+  const man = readFileSync(join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+  if (man.includes('android.permission.INTERNET')) {
+    fails.push('CONTENT  the manifest requests INTERNET, but the store listing promises the app has none');
+  }
+}
+
 /* --- launcher icon at every density --- */
 for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
   for (const f of ['ic_fg.png', 'ic_launcher.png', 'ic_launcher_round.png']) {

@@ -59,6 +59,8 @@ const stroke = (d, size = 22) => `
      stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
 export const icons = {
+  lock:    (s) => stroke('<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>', s),
+  external:(s) => stroke('<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', s),
   pause:   (s) => stroke('<path d="M9.5 5v14"/><path d="M14.5 5v14"/>', s),
   play:    (s) => stroke('<path d="M7 4.8 19 12 7 19.2Z"/>', s),
   undo:    (s) => stroke('<path d="M4.6 12a7.4 7.4 0 1 1 2.6 5.6"/><path d="M4.4 5.2v5.1h5.1"/>', s),
@@ -77,4 +79,5 @@ export const moreIcons = {
   check: (s) => stroke('<path d="M4 12.5 9.5 18 20 6.5"/>', s),
   lock:  (s) => stroke('<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>', s),
   close: (s) => stroke('<path d="M6 6l12 12"/><path d="M18 6 6 18"/>', s),
+  external: (s) => stroke('<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', s),
 };

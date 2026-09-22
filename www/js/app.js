@@ -12,7 +12,7 @@ import { Game, DEFAULTS } from './engine.js';
 import { BoardView, vmOf, money } from './render.js';
 import {
   mountOverlays, milestoneCard, lockedCard, levelLostCard,
-  confirmCard, menuCard, wait,
+  confirmCard, menuCard, settingsCard, wait,
 } from './overlays.js';
 import { Panels, SKINS } from './tabs.js';
 import { CATS, perkFor, unlockProgress, catById } from './cats.js';
@@ -180,6 +180,8 @@ function onLobbyTab(tab) {
 
 async function onLobbySettings() {
   if (panels.open) return;
+  const pick = await settingsCard();
+  if (pick !== 'erase') return;
   const yes = await confirmCard({
     kicker: 'Settings',
     title: 'Erase everything?',
