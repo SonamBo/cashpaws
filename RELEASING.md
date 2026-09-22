@@ -66,6 +66,22 @@ removed, or if anyone adds the `INTERNET` permission — the store listing
 promises the app has none, and that promise is only true while the manifest
 says so.
 
+## Workflow maintenance
+
+GitHub deprecates action versions and runner images on its own schedule, and the
+warnings show up as annotations on runs that still succeeded. They are not
+errors. Everything is pinned in `.github/workflows/android.yml`:
+
+| | pinned to |
+|---|---|
+| runner | `ubuntu-24.04` — not `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct 2026 |
+| checkout, setup-node, setup-java | `v5` |
+| setup-android | `v3` — still warns about Node 20, no newer release to move to yet |
+
+When a warning names a new version, bump just that one line. If a bumped version
+does not exist, the run fails immediately with "unable to resolve action", and
+reverting that one line fixes it.
+
 ## If a build fails
 
 Open the failed step in Actions and read the first error, not the last. If the

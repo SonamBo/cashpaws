@@ -77,6 +77,15 @@ for (const f of [
 /* --- the game --- */
 need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
 
+/* --- Kotlin syntax this project's compiler (2.0.x) does not accept --- */
+{
+  const kt = readFileSync(join(ROOT, 'android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt'), 'utf8');
+  // An underscore catch parameter is newer syntax; on 2.0 "_" is a reserved name.
+  if (/catch\s*\(\s*_\s*:/.test(kt)) {
+    fails.push('CONTENT  MainActivity.kt uses catch (_: ...), which Kotlin 2.0 rejects — name the parameter');
+  }
+}
+
 /* --- the privacy policy Play requires must stay reachable in the app --- */
 needContains('www/js/overlays.js', 'PRIVACY_URL', 'the settings sheet must link the privacy policy');
 needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'ACTION_VIEW',

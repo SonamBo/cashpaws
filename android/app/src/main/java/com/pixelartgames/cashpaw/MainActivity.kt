@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                     if (url.host == ASSET_DOMAIN) return false
                     try {
                         startActivity(Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    } catch (_: ActivityNotFoundException) {
+                    } catch (e: ActivityNotFoundException) {
                         // no browser installed; nothing sensible to do
                     }
                     return true

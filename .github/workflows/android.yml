@@ -1,5 +1,9 @@
 name: Build
 
+# Action versions and the runner are pinned deliberately. Bump them when GitHub
+# deprecates them, one at a time, rather than letting "latest" move underneath
+# a build that works.
+
 on:
   push:
     branches: [main]
@@ -10,10 +14,10 @@ jobs:
   # The engine is plain Node with no dependencies, so this runs in seconds and
   # fails fast before anything touches the Android toolchain.
   engine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
       # Presence check first: a missing Gradle root file fails the Android job
@@ -27,15 +31,15 @@ jobs:
         run: node test/pace.js 300
 
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: engine
     env:
       # '' when the secret is unset, so a fork or fresh clone still builds debug.
       SIGNED: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'

@@ -715,3 +715,18 @@ present, and the manifest has not gained `INTERNET` — because the store listin
 promises it has none, and that is only true while the manifest agrees.
 
 Version bumped to 3 / 1.0.2.
+
+
+---
+
+## Workflow deprecations
+
+GitHub warned that actions targeting Node 20 are deprecated, setup-java v4 is
+end of life, and `ubuntu-latest` moves to Ubuntu 26 on 19 October 2026. All were
+annotations on runs that still succeeded, not failures.
+
+Bumped checkout, setup-node and setup-java to v5. Pinned the runner to
+`ubuntu-24.04`, since a new OS image can change the preinstalled Java and
+Android tooling underneath a build that works. setup-android stays on v3: it
+still warns, but there was no newer release to move it to, and naming a
+version that does not exist would fail the run outright.
