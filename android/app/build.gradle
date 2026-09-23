@@ -12,7 +12,7 @@ def keystorePath = System.getenv('KEYSTORE_FILE')
 
 android {
     namespace 'com.pixelartgames.cashpaw'
-    compileSdk 36
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.pixelartgames.cashpaw"
@@ -20,7 +20,7 @@ android {
         targetSdk 36
         // Play rejects an upload whose versionCode it has seen before. Bump
         // this every single time you publish, even for a one-line fix.
-        versionCode 4
+        versionCode 5
         versionName "1.0.3"
     }
 

@@ -76,11 +76,30 @@ errors. Everything is pinned in `.github/workflows/android.yml`:
 |---|---|
 | runner | `ubuntu-24.04` — not `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct 2026 |
 | checkout, setup-node, setup-java | `v5` |
-| setup-android | `v3` — still warns about Node 20, no newer release to move to yet |
 
-When a warning names a new version, bump just that one line. If a bumped version
-does not exist, the run fails immediately with "unable to resolve action", and
-reverting that one line fixes it.
+`setup-android` is **not in the workflow**: it tried to download API 36 preview
+cmdline-tools and then accept its licence unattended, which the preview SDK
+refuses. The runner already has API 35 tools pre-installed and AGP 8.7.3 builds
+`targetSdk 36` with `compileSdk 35` — no download needed.
+
+## Toolchain
+
+| | |
+|---|---|
+| compileSdk | 35 (pre-installed on runner, no download) |
+| targetSdk | 36 (Play's floor — this is the one that matters) |
+| AGP | 8.7.3 |
+| Gradle | 8.9 |
+| Kotlin | 2.0.21 |
+
+When Play raises the floor again: bump `targetSdk` first. If the build still
+passes with `compileSdk` one below, leave it there. Only bump `compileSdk` (and
+with it AGP and Gradle) when the new API level's tools are no longer a preview
+— otherwise you hit the unattended licence problem again.
+
+When a warning names a new action version, bump just that one line. If a bumped
+version does not exist, the run fails immediately with "unable to resolve
+action", and reverting that one line fixes it.
 
 ## If a build fails
 
