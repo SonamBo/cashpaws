@@ -30,6 +30,7 @@ import androidx.webkit.WebViewClientCompat
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var ads: Ads
     private var safeTop = 0f
     private var safeBottom = 0f
 
@@ -126,6 +127,13 @@ class MainActivity : ComponentActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = routeBack()
         })
+
+        // Ads: attached before the page loads so the shell can find it at boot.
+        // Only our own bundled page is ever loaded here — outside links go to
+        // the browser — so exposing this interface reaches no one else.
+        ads = Ads(this, webView)
+        webView.addJavascriptInterface(ads, "CashPawsAds")
+        ads.start()
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)
         else webView.loadUrl("https://$ASSET_DOMAIN/assets/www/index.html")

@@ -74,24 +74,44 @@ Still needed from you:
 - **Privacy policy URL.** Play requires one for every app, including those that
   collect nothing.
 
-## 4. Data safety
+## 4. Data safety — changed in 1.5.0
 
-The honest answers are unusually simple, and worth getting right rather than
-over-declaring:
+Since 1.5.0 the app serves ads through AppLovin MAX, so the Data safety form
+changes from "no data collected". **The game's own data** — progress, coins,
+cats — still stays on the phone and is not collected.
 
-- **Collects no data.** No analytics, no ads, no accounts, no crash reporting.
-- **No data leaves the device.** The app has no `INTERNET` permission at all —
-  the whole game is served from inside the APK. Worth stating in the listing.
-- **One permission: `VIBRATE`**, for the tap when a tube banks.
-- Saves are in the WebView's local storage, on the device only.
+**AppLovin collects and shares data for advertising.** AppLovin does not publish
+a definitive Data safety list, so confirm these against their current guidance
+and your dashboard configuration. Ad SDKs of this kind typically require:
 
-So: "No data collected", "No data shared", and data is not encrypted in transit
-because none is transmitted.
+- **Device or other IDs** — the Advertising ID. Collected, shared.
+- **Location: approximate** — derived from the IP address. Collected, shared.
+- **App activity: app interactions** — which ads were seen and tapped.
+- **App info and performance: crash logs, diagnostics.**
+
+Purposes: advertising or marketing, analytics, fraud prevention. Data is
+encrypted in transit. Users can opt out of interest-based ads through the
+Advertising ID settings on their phone, and US users through the in-app
+"Do not sell or share my personal information" switch.
+
+Elsewhere in the Play Console:
+
+- **App content → Ads:** "Yes, my app contains ads."
+- **Target audience:** 13 and over. Apps aimed at children may not use AppLovin
+  at all, so do not include under-13 age groups.
+- **Advertising ID declaration:** yes, for advertising.
+
+## 4a. app-ads.txt
+
+AppLovin gives you the exact line under Account in their dashboard. It must be
+served from the root of the developer website on your Play listing. For
+`https://pixelartgames000.github.io`, that means a file named `app-ads.txt` at
+the top level of the `pixelartgames000.github.io` repository.
 
 ## 5. Content rating
 
 A sorting puzzle with no violence, no user content, no chat and no purchases.
-The questionnaire should return everyone / PEGI 3.
+Since 1.5.0, answer yes to ads when the questionnaire asks.
 
 **One thing to declare honestly:** the game has an in-game shop that spends
 coins earned by playing. There are no real-money purchases and no in-app billing

@@ -1,4 +1,4 @@
-import pw from '/home/claude/.npm-global/lib/node_modules/playwright/index.js';
+import pw from 'playwright';
 const { chromium } = pw;
 const errs = [];
 const b = await chromium.launch();
@@ -25,7 +25,7 @@ console.log('locked cat bought? =', (await p.evaluate(() => game.coins)) !== bef
 
 // reveal everything, then buy and wear one
 await p.evaluate(() => {
-  stats.banks = 200; stats.drops = 40; stats.bestLevel = 8; game.coins = 9999;
+  stats.coinsEarned = 5000; game.coins = 9999;
 });
 await p.click('[data-tab="progress"]'); await p.waitForTimeout(300);
 await p.click('[data-tab="cats"]'); await p.waitForTimeout(500);
@@ -35,7 +35,7 @@ await p.locator('.device').screenshot({ path: '/home/claude/shots/cats-open.png'
 const undoBefore = await p.evaluate(() => game.cfg.undoCost);
 await p.locator('[data-buy-cat="mittens"]').click();
 await p.waitForTimeout(600);
-console.log('wearing            =', await p.evaluate(() => wallet?.activeCat ?? 'n/a'),
+console.log('wearing            =', await p.evaluate(() => shell.cats.worn),
             '| undo cost', undoBefore, '->', await p.evaluate(() => game.cfg.undoCost));
 
 await p.click('[data-close]'); await p.waitForTimeout(400);

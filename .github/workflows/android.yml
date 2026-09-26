@@ -27,6 +27,16 @@ jobs:
 
       - name: Rule tests and invariant audit
         run: node test/sim.js 3000
+
+      - name: Daily task rules
+        run: node test/daily.js
+
+      - name: Rewards box rules
+        run: node test/rewards.js
+
+      - name: Bell Quest rules
+        run: node test/quest.js
+
       - name: Pacing probe
         run: node test/pace.js 300
 

@@ -1,0 +1,389 @@
+/*
+ * Money Sort's styles: the FLOW strip, tubes, chips, the ledge and its
+ * buttons. Scoped under .ms-root, the element the shell hands this game.
+ * Loaded by the shell because index.js lists it in `styles`.
+ */
+
+/* ---------------------------------------------------------------- *
+ * Board
+ * ---------------------------------------------------------------- */
+
+.board {
+  /* Zero basis, not auto: with an auto basis the board's own height depends on
+     its content, so sizing the chips to fit changed the space they were being
+     fitted into. That fed back as a one-pixel wobble on every tap. */
+  flex: 1 1 0;
+  min-height: 0;
+  border-top: 2px solid var(--rule);
+  padding: var(--s5) var(--s4) 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--s4);
+  position: relative;
+  transition: background var(--t-base) var(--ease);
+}
+
+/* every column darkens for the two turns before a drop */
+.board.telegraph { background: var(--surface-sunk); }
+
+.row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.tube.selected {
+  border-color: var(--green);
+  transform: translateY(-4px);
+}
+
+.tube.full { border-color: var(--rule); }
+
+/* ghost cells keep every column reading as a 4-slot grid */
+.cell {
+  height: var(--cell-h);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.cell.ghost::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 3px;
+  background: var(--rule);
+  border-radius: var(--r-pill);
+}
+
+/* ---------------------------------------------------------------- *
+ * Chips — the source artwork, denomination printed on it
+ * ---------------------------------------------------------------- */
+
+.chip {
+  width: var(--chip-d);
+  height: var(--chip-d);
+  object-fit: contain;
+  animation: chip-in var(--t-base) var(--ease) both;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* bills are wider than they are tall */
+.chip.v20 { width: calc(var(--chip-d) + 6px); }
+
+.chip.lifted { transform: translateY(-6px); }
+
+@keyframes chip-in {
+  from { transform: translateY(-10px) scale(.9); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* Fixed height: the flow badge drops in here for a second, and if this row
+   grew to fit it the whole board would resize underneath the player. */
+.flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 22px;
+}
+
+.flow-label { font-size: var(--fs-xs); font-weight: 800; letter-spacing: var(--track-label); color: #b3a08f; }
+
+.pips { display: flex; gap: 4px; }
+
+.pip {
+  width: 13px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--bar-track);
+  transition: background var(--t-base) var(--ease);
+}
+
+.pip.on { background: #c4ab97; }
+
+.turn { font-size: var(--fs-xs); font-weight: 700; color: #c8b7a6; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- *
+ * Tubes — glass cylinder with a coloured cap
+ * ---------------------------------------------------------------- */
+
+.board { border-top: 0; padding: var(--s3) var(--s4) var(--cat-reserve); }
+
+.tube {
+  width: var(--tube-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.glass {
+  /* tube.png is 232x703; slices are in its pixels, widths scale with the tube */
+  box-sizing: border-box;
+  width: var(--tube-w);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  border-style: solid;
+  border-color: transparent;
+  border-width:
+    calc(var(--tube-w) * 60 / 232)
+    calc(var(--tube-w) * 17 / 232)
+    calc(var(--tube-w) * 64 / 232)
+    calc(var(--tube-w) * 17 / 232);
+  border-image-source: url(img/tube.png);
+  border-image-slice: 88 17 92 17 fill;
+  border-image-repeat: stretch;
+}
+
+.tube.selected { transform: translateY(-6px); }
+
+.tube { filter: drop-shadow(0 4px 5px rgba(120, 80, 68, .16)); }
+
+.tube.selected { filter: drop-shadow(0 6px 8px rgba(105, 203, 103, .5)); }
+
+.board.telegraph .tube { filter: drop-shadow(0 4px 5px rgba(196, 150, 96, .45)); }
+
+.board.flowing .tube { filter: drop-shadow(0 0 7px rgba(235, 122, 41, .65)); }
+
+.cell.ghost::after { background: rgba(120, 80, 68, .10); }
+
+/* ---------------------------------------------------------------- *
+ * Ledge, cat, and the action buttons
+ * ---------------------------------------------------------------- */
+
+.ledge {
+  flex: 0 0 auto;
+  position: relative;
+  margin-top: auto;
+  padding: 0 var(--s4) calc(var(--s4) + var(--safe-bottom));
+}
+
+/*
+ * The cat's height and the space the board reserves for it are the same
+ * number. Setting them separately is what let it climb over the tubes and the
+ * Undo button on shorter screens.
+ */
+.corner-cat {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% - 5px);
+  height: calc(var(--cat-reserve) + 5px);
+  width: auto;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.corner-heart {
+  position: absolute;
+  left: calc(var(--cat-reserve) * 0.78);
+  bottom: calc(100% + var(--cat-reserve) * 0.52);
+  z-index: 0;
+  width: 26px;
+  z-index: 1;
+  pointer-events: none;
+  animation: heart-float 2.6s ease-in-out infinite;
+}
+
+@keyframes heart-float {
+  0%, 100% { transform: translateY(0); opacity: .95; }
+  50% { transform: translateY(-6px); opacity: 1; }
+}
+
+.foot {
+  position: relative;
+  z-index: 2;   /* always above the cat */
+  display: flex;
+  gap: var(--s3);
+  padding-top: var(--s3);
+  border-top: 0;
+}
+
+.act {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  border: 0;
+  border-radius: var(--r-pill);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(120, 80, 68, .18);
+  transition: transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+
+.act-undo { background: var(--olive); }
+
+.act-sort { background: var(--violet); }
+
+.act:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(120, 80, 68, .18); }
+
+.act[disabled] {
+  background: #cdc4b9;
+  color: #8a7f76;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.act[disabled] .act-cost { background: rgba(84, 57, 62, .12); color: #8a7f76; }
+
+.act[disabled] .coin-art { filter: grayscale(1); opacity: .55; }
+
+.act-cost {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px 3px 4px;
+  border-radius: var(--r-pill);
+  background: rgba(84, 57, 62, .28);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Cash Paws — overlays, panels, and board feedback */
+
+/* ---------------------------------------------------------------- *
+ * Board feedback
+ * ---------------------------------------------------------------- */
+
+.tube.banking {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.tube { position: relative; }
+
+.pop {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pop-rise 900ms var(--ease) both;
+}
+
+@keyframes pop-rise {
+  0%   { opacity: 0; transform: translate(-50%, 10px); }
+  20%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -34px); }
+}
+
+.tube.shake { animation: shake 380ms var(--ease); }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  45% { transform: translateX(4px); }
+  70% { transform: translateX(-3px); }
+}
+
+.cat-peek { image-rendering: auto; }
+
+.card.active { border-color: var(--green); background: var(--green-soft); }
+
+.skin-classic { background: linear-gradient(135deg, var(--chip-5) 50%, var(--chip-20) 50%); }
+
+.skin-gems    { background: linear-gradient(135deg, #63c6d8 50%, #b06fd0 50%); }
+
+.skin-tins    { background: linear-gradient(135deg, #e9d8a6 50%, #9aa66b 50%); }
+
+/* Two rows of tubes need shorter cells, or the board overflows the phone
+   and pushes the nav off the bottom. */
+.board.rows-2 {
+  --cell-h: 46px;
+  --chip-d: 40px;
+  gap: var(--s3);
+}
+
+.board.rows-2 .chip { font-size: 14px; }
+
+.board.rows-2 .mascot { transform: translateX(-50%) scale(.82); transform-origin: bottom center; }
+
+/* Short screens: give the board every pixel and drop the mascot. */
+.board.tight .mascot { display: none; }
+
+#app.short .net { font-size: 32px; margin-bottom: var(--s2); }
+
+#app.short .rail { margin-bottom: var(--s2); }
+
+#app.short .foot { padding-top: var(--s2); padding-bottom: var(--s2); }
+
+/* ---------------------------------------------------------------- *
+ * Flow, on the board instead of over it
+ * ---------------------------------------------------------------- */
+
+.board.flowing { background: #f7e4cf; }
+
+.board.flowing .tube { border-color: var(--orange); }
+
+.flow-badge {
+  margin-left: var(--s2);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--orange);
+  color: var(--on-dark);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  animation: flow-badge 1000ms var(--ease) both;
+}
+
+@keyframes flow-badge {
+  0%   { opacity: 0; transform: translateY(6px) scale(.85); }
+  15%  { opacity: 1; transform: none; }
+  70%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+#app.xshort .corner-heart { display: none; }
+
+#app.xshort .act { min-height: 46px; font-size: var(--fs-sm); }
+
+#app.xshort .flow { height: 18px; }
+
+#app.xshort .board { padding-top: var(--s2); }
+
+#app.xshort .act { min-height: 44px; }
+
+#app.xshort .ledge { padding-bottom: calc(var(--s2) + var(--safe-bottom)); }
+
+/* One number drives both the space the board keeps clear and the cat that
+   sits in it. Ordered so the tightest rule wins. */
+.ms-root { --cat-reserve: 118px; }
+
+#app.short .ms-root { --cat-reserve: 92px; }
+
+#app .ms-root.tight { --cat-reserve: 54px; }
+
+#app.xshort .ms-root, #app.xshort .ms-root.tight { --cat-reserve: 18px; }
+
+.ms-root.tight .corner-heart { display: none; }
+
+#app.xshort .corner-cat { display: none; }
+
+/* The FLOW strip sat inside the header before; it is the game's own now. */
+.ms-root > .flow { flex: 0 0 auto; padding: 0 var(--s4) var(--s1); }
+
+/* A Hard level: the FLOW strip turns red so the player knows before it bites. */
+.ms-root.hard-level > .flow .flow-label { color: #cf6f6a; }
+.ms-root.hard-level > .flow .pip.on { background: #cf6f6a; }
+.chip.hidden-chip { filter: saturate(.9); }

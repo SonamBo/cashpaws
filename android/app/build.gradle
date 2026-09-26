@@ -10,9 +10,15 @@ plugins {
  */
 def keystorePath = System.getenv('KEYSTORE_FILE')
 
+def adsProps = new Properties()
+def adsFile = rootProject.file('ads.properties')
+if (adsFile.exists()) adsFile.withInputStream { adsProps.load(it) }
+
 android {
     namespace 'com.pixelartgames.cashpaw'
     compileSdk 35
+
+    buildFeatures { buildConfig true }   // carries the ad keys in
 
     defaultConfig {
         applicationId "com.pixelartgames.cashpaw"
@@ -20,8 +26,13 @@ android {
         targetSdk 36
         // Play rejects an upload whose versionCode it has seen before. Bump
         // this every single time you publish, even for a one-line fix.
-        versionCode 5
-        versionName "1.0.3"
+        // AppLovin keys, from android/ads.properties. Blank means ads are off
+        // and the game shows no ad buttons at all.
+        buildConfigField 'String', 'ADS_SDK_KEY', "\"${adsProps.getProperty('sdkKey', '').trim()}\""
+        buildConfigField 'String', 'ADS_REWARDED_UNIT', "\"${adsProps.getProperty('rewardedAdUnit', '').trim()}\""
+
+        versionCode 12
+        versionName "1.7.1"
     }
 
     signingConfigs {
@@ -68,6 +79,10 @@ android {
 }
 
 dependencies {
+    // Pinned, not '+': a new AppLovin release must not change the build unasked.
+    implementation 'com.applovin:applovin-sdk:13.6.3'
+    // The SDK reads the Advertising ID through this module.
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
     // webkit gives WebViewAssetLoader, which serves the game from a real https
     // origin. On file:// the WebView refuses ES modules and sandboxes storage.
     implementation 'androidx.webkit:webkit:1.12.1'

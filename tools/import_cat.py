@@ -193,7 +193,7 @@ def main():
         note = 'upscaled' if scale > 1.02 else 'downscaled' if scale < 0.98 else 'native'
         print(f'  {pose:6} -> {dest}  {cat.width}x{cat.height}  ({note} {scale:.2f}x)')
 
-    print(f'\nNow set hasArt: true for "{cat_id}" in www/js/cats.js, then run '
+    print(f'\nNow set hasArt: true for "{cat_id}" in www/shell/cats.js, then run '
           f'node test/preflight.js')
 
 

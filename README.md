@@ -25,9 +25,11 @@ node test/pace.js 400  # progression and board-pressure curves
 - `PROGRESS.md` — build status and how to resume. Start here.
 - `docs/DESIGN.md` — rules as implemented, and why.
 - `docs/DESIGN-SYSTEM.md` — tokens, chip language, layout.
-- `www/js/engine.js` — the game. No DOM, no timers, deterministic.
-- `www/js/render.js` — state to DOM.
-- `www/js/art.js` — placeholder cat and icons.
-- `www/js/app.js` — Stage 2 inspection harness (dropped at Stage 4).
+- `www/shell/` — the shell: lobby, header, tabs, cats, coins, save, settings.
+- `www/games/active.js` — the one line that picks the installed game.
+- `www/games/money-sort/` — the shipping game. `engine.js` has no DOM, no
+  timers, and is deterministic from a seed.
+- `www/games/template/` — Coin Catch, a minimal game to copy for a new one.
+- `docs/GAME-MODULE.md` — the contract between the two.
 
 Needs Node 18+. No dependencies, no install step.

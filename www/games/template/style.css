@@ -1,0 +1,36 @@
+/* Coin Catch. Scoped under .cc-root, the element the shell hands this game. */
+
+.cc-root { align-items: center; justify-content: center; gap: var(--s4); padding: var(--s4); }
+
+.cc-hint {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: #b3a08f;
+}
+
+.cc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+  width: min(320px, 82vw);
+}
+
+.cc-cell {
+  aspect-ratio: 1;
+  border: 2px solid rgba(120, 80, 68, .14);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, .55);
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.cc-cell.on { background: #fff7e0; border-color: #f0ad3e; }
+.cc-cell:active { transform: scale(.95); }
+.cc-cell img { pointer-events: none; animation: cc-pop 180ms var(--ease) both; }
+
+@keyframes cc-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.cc-cat { margin-top: auto; align-self: flex-start; }
+.cc-peek { width: 120px; height: auto; display: block; }

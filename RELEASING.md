@@ -20,8 +20,11 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 3, versionName 1.0.2**, ready for your next
+Currently set to **versionCode 12, versionName 1.7.1**, ready for your next
 upload. Skipping a number is harmless; reusing one is not.
+
+**`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in
+`www/shell/main.js`. The pre-flight fails if they disagree.
 
 ## Then
 
@@ -66,6 +69,22 @@ removed, or if anyone adds the `INTERNET` permission — the store listing
 promises the app has none, and that promise is only true while the manifest
 says so.
 
+## Ads (since 1.5.0)
+
+Keys live in `android/ads.properties` — the AppLovin **SDK key** and the Android
+**rewarded ad unit ID**. They are not secret (both end up inside the APK), so the
+file is committed. **Blank keys build an app with no ads at all**: no ad buttons,
+no US opt-out, and Settings says "No ads". The pre-flight prints which you are
+about to build.
+
+AppLovin SDK is pinned at 13.6.3. Update it deliberately, and re-run a build.
+
+Before an ads release reaches Play, all of these must match the build:
+store listing (`docs/store-listing.md`), Data safety and Ads declaration
+(`PLAY-STORE.md`), and the privacy policy (`docs/PRIVACY-POLICY.md`, published
+on your GitHub Pages site). The pre-flight fails if the listing still claims
+the app is ad-free.
+
 ## Workflow maintenance
 
 GitHub deprecates action versions and runner images on its own schedule, and the
@@ -101,11 +120,32 @@ When a warning names a new action version, bump just that one line. If a bumped
 version does not exist, the run fails immediately with "unable to resolve
 action", and reverting that one line fixes it.
 
+## Code layout (since 1.1.0)
+
+The app is a shell plus a swappable game — see `docs/GAME-MODULE.md`.
+
+| | |
+|---|---|
+| `www/shell/` | lobby, header, tabs, cats, coins, save, settings, ads stub |
+| `www/games/active.js` | **the one line that picks the installed game** |
+| `www/games/money-sort/` | the shipping game |
+| `www/games/template/` | Coin Catch — copy it to start a new game |
+
+Before a release, check the pre-flight's "installed game" line says
+`money-sort`. The swap test rewrites `active.js` while it runs and always puts
+it back, but it is worth a glance.
+
 ## If a build fails
 
 Open the failed step in Actions and read the first error, not the last. If the
 **Pre-flight** or **Rule tests** step failed it is a game problem, not a build
 problem, and points somewhere completely different.
+
+## Plans
+
+`docs/ROADMAP.md` — daily tasks, the rewards box, AppLovin.
+`docs/BELL-QUEST.md` — the Bell Quest event and how its prize was sized.
+`docs/LEVEL-DESIGN.md` — level pacing, Hard levels, face-down chips, and how to retune them with `tools/tune.mjs`.
 
 ## Still open
 

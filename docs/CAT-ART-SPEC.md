@@ -30,7 +30,7 @@ The ids are `mittens`, `soot`, `marmalade`, `pepper`, `biscuit`.
 ## Dropping art in
 
 1. Put the four files in `www/img/`.
-2. In `www/js/cats.js`, set that cat's `hasArt: true`.
+2. In `www/shell/cats.js`, set that cat's `hasArt: true`.
 3. `node test/preflight.js` — it fails if a cat is flagged but missing a pose.
 
 Until the flag is flipped, that cat plays with Patch's art. Nothing else to

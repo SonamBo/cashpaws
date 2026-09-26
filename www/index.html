@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#fcf5e6">
 <title>Cash Paws</title>
 <link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/board.css">
-<link rel="stylesheet" href="css/overlays.css">
+<link rel="stylesheet" href="css/shell.css">
+<!-- The installed game's own stylesheet is loaded by the shell at boot. -->
 <style>
 /* Shell. On a phone the app fills the viewport; on a desktop it sits in a
    device frame so the 402x874 target stays honest. */
@@ -73,18 +73,12 @@ body.dev .panel { display: block; }
   <h1>Cash Paws</h1>
   <p class="sub">Stage 3 &mdash; playable</p>
   <h4>BOT</h4>
-  <div class="grid">
-    <button id="step">Step</button>
-    <button id="step10">Step &times;10</button>
-    <button id="telegraph">To telegraph</button>
-    <button id="inflow">Force inflow</button>
-    <button id="levelup">Force level up</button>
-    <button id="wipe">Wipe save</button>
-  </div>
+  <!-- Filled by the shell from the installed game's dev buttons. -->
+  <div class="grid" id="dev-buttons"></div>
   <h4>STATE</h4>
   <div id="readout"></div>
 </aside>
 
-<script type="module" src="js/app.js"></script>
+<script type="module" src="shell/main.js"></script>
 </body>
 </html>

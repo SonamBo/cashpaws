@@ -23,17 +23,17 @@ Cash Paws: Money Sort Puzzle     (28)
 **Recommended:**
 
 ```
-Cat ball sort puzzle with real money stacks. No ads, no internet, just sorting.
+Cat ball sort puzzle with real money stacks. Collect cats, stack cash, level up.
 ```
 
-78 characters. Leads with the two search terms, then the thing that actually
-distinguishes it from every other game in this genre.
+79 characters. Leads with the two search terms. (Up to 1.4 it led with the app
+being ad-free and offline; that stopped being true when AppLovin arrived in 1.5.)
 
 Alternatives:
 
 ```
-Sort cash into tubes in this cosy cat puzzle. No ads, fully offline.      (68)
-A water sort puzzle made of money, run by cats. Play offline, ad-free.    (70)
+Sort cash into tubes in this cosy cat puzzle. Ads only if you want them.  (73)
+A water sort puzzle made of money, run by cats. Daily tasks and rewards.  (72)
 ```
 
 ## Long description
@@ -71,13 +71,18 @@ in a different direction: one halves the cost of an undo, one warns you an extra
 turn before the flow lands, one keeps the flow from ever speeding up. None of
 them is simply the best one, so which you wear is a real choice.
 
-NO ADS. NO PURCHASES. NO INTERNET.
+ADS ONLY WHEN YOU WANT ONE
 
-This is a cat game without the usual catch. There are no adverts, none at all.
-There is no in-app purchase of any kind. The app does not even request internet
-permission, which means nothing you do can leave your device, because there is
-nowhere for it to go. It collects no data about you. It works on a plane, in a
-tunnel, and on a phone with no signal.
+Every ad in Cash Paws is your choice. Stuck and short of coins? Watch one for a
+free Sort. Can't wait four hours? Watch one to open your Rewards Box early.
+Otherwise you will never see one — no pop-ups between levels, no banners over
+the board. There are no in-app purchases of any kind, and no account to make.
+
+EVERY DAY SOMETHING NEW
+
+Three daily tasks, with a streak to keep. A Rewards Box every four hours,
+holding more coins the further you get. And Bell Quest: beat seven levels in a
+row, and split a pile of coins with every cat who makes it to the end.
 
 WHAT YOU GET
 
@@ -88,7 +93,8 @@ WHAT YOU GET
 • Undo and Sort when you are stuck, paid for with coins you earned
 • Six cats to unlock, each bending the rules a different way
 • Chip sets to collect in the shop
-• Completely offline, completely ad-free, no account, no sign-in
+• Daily tasks, a Rewards Box every four hours, and Bell Quest
+• Ads only when you choose one; no purchases, no account
 
 If you like ball sort puzzles, water sort games, or just cats sitting near large
 amounts of cash, this one is for you.
@@ -107,12 +113,7 @@ demoted or rejected, so the density here is deliberately low. The title does
 most of the work; a long description stuffed with "ball sort water sort cat
 sort puzzle game" ranks worse than this, not better.
 
-**The strongest thing in this listing is not a keyword.** "No ads, no purchases,
-no internet permission" is unusual enough in this genre to be the reason someone
-installs yours over the ten above it, and it is worth saying plainly and
-repeating in the first screenshot caption.
-
-Everything above is accurate to the build: no ad SDK, no billing library, no
-`INTERNET` permission in the manifest. Keep it that way, or update the copy the
-day it changes — false claims about ads or data are a removal risk, not just an
-honesty one.
+**The strongest line is still not a keyword.** "Ads only when you want one" is
+unusual in a genre full of forced interstitials. It is true of 1.5.0: every ad
+is a rewarded ad the player chooses. The day an interstitial ships, that line
+must go — `test/preflight.js` checks the listing for stale ad-free claims.

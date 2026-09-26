@@ -7,8 +7,13 @@
  * the same bot, and the spread is reported. Run after touching any perk.
  */
 
-import { Game } from '../www/js/engine.js';
-import { CATS } from '../www/js/cats.js';
+import { Game } from '../www/games/money-sort/engine.js';
+import { CATS } from '../www/shell/cats.js';
+import moneySort from '../www/games/money-sort/index.js';
+
+// Cats belong to the shell; what they do belongs to the game.
+const perkOf = (id) => moneySort.perks[id]?.config || {};
+const perkLine = (id) => moneySort.perks[id]?.text || (id === 'patch' ? 'No tricks. The game as designed.' : 'Cosmetic');
 
 const GAMES = Number(process.argv[2] || 400);
 const HORIZON = 400;
@@ -59,11 +64,11 @@ console.log('cat          perk                                  lost   peak LV  
 
 const rows = [];
 for (const cat of CATS) {
-  const rs = Array.from({ length: GAMES }, (_, i) => run(i * 9721 + 5, cat.perk));
+  const rs = Array.from({ length: GAMES }, (_, i) => run(i * 9721 + 5, perkOf(cat.id)));
   const avg = (k) => rs.reduce((n, r) => n + r[k], 0) / GAMES;
   const lostPct = (rs.filter((r) => r.losses > 0).length / GAMES) * 100;
   rows.push({ cat, lostPct, level: avg('level'), net: avg('net'), coins: avg('coins') });
-  const perk = (cat.perkText || '').slice(0, 34);
+  const perk = perkLine(cat.id).slice(0, 34);
   console.log(
     `${cat.name.padEnd(12)} ${perk.padEnd(35)}` +
     `${lostPct.toFixed(0).padStart(5)}%   ` +

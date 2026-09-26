@@ -3,6 +3,10 @@
 
     <!-- Used for the small tap on banking and on an illegal move. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Ads (AppLovin MAX). The game itself still runs entirely from the APK. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:allowBackup="true"

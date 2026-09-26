@@ -3,7 +3,7 @@
  * board's chip load trend? Feeds the Stage 6 tuning pass.
  */
 
-import { Game } from '../www/js/engine.js';
+import { Game } from '../www/games/money-sort/engine.js';
 
 const GAMES = Number(process.argv[2] || 400);
 const HORIZON = 400; // a generous single session

@@ -730,3 +730,292 @@ Bumped checkout, setup-node and setup-java to v5. Pinned the runner to
 Android tooling underneath a build that works. setup-android stays on v3: it
 still warns, but there was no newer release to move it to, and naming a
 version that does not exist would fail the run outright.
+
+
+---
+
+## 1.1.0: a shell and a swappable game
+
+The app is now a shell (`www/shell/`) and a game module (`www/games/<id>/`),
+joined by a written contract in `docs/GAME-MODULE.md`. Swapping games is one
+line in `www/games/active.js`. The shell owns coins, cats, the header, lobby,
+tabs, pause, settings, the save and the back button; a game owns its own screen
+and talks to the shell only through a `host` object.
+
+**The currency moved out of the engine.** Coins used to live on the Game, so a
+replacement game would have had to reimplement the wallet. The engine now takes
+an injected wallet. Doing this exposed a live exploit: undo restored the
+absolute coin balance from before the move, so buying a 600-coin cat and then
+undoing refunded 580 coins. Undo now only takes back what its own move paid.
+Three regression tests cover it.
+
+**Cat unlocks use lifetime coins earned**, not levels or tubes, because a game
+without those could never unlock the cats. Thresholds were calibrated from
+simulation so Money Sort's pace is unchanged: 300, 500, 800, 1,200, 1,500.
+
+**Proof it is game-agnostic.** `www/games/template/` is Coin Catch — real-time,
+no levels, no progress bar, nothing for sale. With only `active.js` changed it
+runs in the unchanged shell, and `test/swap.mjs` checks 18 things including
+both games' saves surviving each other. It found a real shell bug straight
+away: the pause menu resumed the game underneath an open Cats or Shop sheet.
+Money Sort, being turn-based, never showed it.
+
+**Saves.** Version 2: one record for the shell and a slot per game. 1.0.x saves
+migrate on first launch; `test/migrate.mjs` loads a real save captured from the
+1.0.2 build and checks board, level, net worth, coins, cats, the worn cat's
+perk, the chip set and stats all survive. The old save is left in place.
+
+**Bundler.** `build-single.mjs` now wraps each module in its own scope. The old
+one pasted everything into one scope and only worked because no two files
+shared a name; with games written separately that was bound to break.
+
+**Pre-flight** enforces the boundaries: a game imports only from its own folder,
+the shell reaches games only through `active.js`, each folder's `id` matches its
+name, and the app's version matches Gradle's. Each rule was tested by breaking it.
+
+**Unchanged:** layout is pixel-identical to 1.0.2, element by element; chip
+sizes match on all eight phone sizes; perk balance is the same 17–19%.
+
+
+---
+
+## 1.2.0: daily tasks
+
+The first roadmap feature, built entirely in the shell. A game only declares a
+tiered `tasks` catalogue and reports stats; the shell draws, tracks, rewards
+and saves. It works unchanged in Coin Catch, the template game.
+
+- **Three a day, one per tier**, seeded from the date so reopening never
+  reshuffles. Progress counts from a snapshot taken at the draw.
+- **Claimed, not auto-paid**: 20, 35, 50 coins, plus 50 for all three.
+- **A seven-stamp streak** of consecutive full days, visual only.
+- **A toast** when a task finishes mid-board. Never a full-screen card.
+- **A fifth lobby tab** with a dot badge. Fits at 320pt with 64px tap targets.
+
+**The day is the phone's local date.** The existing day counter used UTC, so in
+India the day rolled over at 05:30. Fixed for both. `test/daily.mjs` runs in the
+Asia/Kolkata timezone and checks that 00:10 local starts a new day while UTC
+still says the day before.
+
+**Money Sort's catalogue was rewritten.** "Use Sort once" was dropped: it cost
+150 coins to earn less. Chip-specific tasks are held back by the new optional
+`canOffer(task)` until those chips can appear — $20s from level 3, $50s from 5.
+The game reports two finer stats for them, and a move count.
+
+Tests: 40 rule tests in `test/daily.js`, run in CI; 26 browser checks in
+`test/daily.mjs` stepping the clock through midnights, a missed day, and a clock
+wound backwards. Pre-flight validates every game's task tiers, stats and targets.
+
+**Economy.** Measured over two simulated weeks with coins carried between days:
+daily rewards barely move difficulty, because the economy is already saturated
+for returning players — see ROADMAP.md for the pre-existing coin-sink problem.
+
+
+---
+
+## 1.3.0: Sort's price rises with level, and the perks were retuned
+
+**The problem.** Over two simulated weeks with coins carried between days, a
+returning player banked 10,000+ coins and lost a level on ~1% of days. Sort,
+Money Sort's difficulty lever, had become free.
+
+**Four sinks simulated** (returning players, days losing a level):
+
+| option | new players | returning | coins after 2 weeks |
+|---|---|---|---|
+| flat 150 (was) | 0% | 0% | 12,909 |
+| doubles on each use per level | 0% | 0% | 10,152 |
+| wallet capped at 2,000 | 0% | 0% | 1,994 |
+| +25 per level | 0% | 0.5% | 3,968 |
+| **+35 per level (chosen)** | **0%** | **8.7%** | **1,916** |
+| +50 per level | 0.3% | 26% | 1,280 |
+
+Doubling never triggers because players use about one Sort per level. The cap
+only deletes coins; Sort stays affordable. The response to level scaling is
+steep between +25 and +50.
+
+Sort costs 150 at level 1, 290 at 5, 465 at 10, 815 at 20. The engine exposes
+`sortPrice`; the button, the stuck card and the safety net all use it, and the
+level-up card now says "Sort now costs …".
+
+**The perks were measured over two weeks too, and three of them erased the fix.**
+Marmalade (flow never faster than every 5 turns) gave 0% losses and used 3 Sorts
+in a fortnight. Pepper (+40% per bank) and any percentage discount on Sort did
+nearly the same. The single-session perk test could not see it. Retuned so each
+helps early and tapers late:
+
+| cat | was | now | returning days lost |
+|---|---|---|---|
+| Patch | — | — | 9.2% |
+| Marmalade | flow floor 5 | flow starts one turn slower | 6.3% |
+| Pepper | 14 coins a bank | level-ups pay 100, not 50 | 5.9% |
+| Biscuit | Sort 100 (flat) | Sort 50 less, at every level | 5.5% |
+
+Mittens and Soot are unchanged; they help human judgement — undoing, heeding a
+warning — which a bot cannot value, so the simulation shows them equal to Patch.
+
+**Side effect, intended:** a first session with no daily rewards now loses a
+level in about 23% of runs, up from 19%, since Sort gets dearer from level 2.
+
+Rule tests 61/61, including the price per level, Biscuit's discount, and the
+safety net covering a Sort at the level just dropped to.
+
+
+---
+
+## 1.4.0: the Rewards Box, and an ad-paid Sort on the stuck card
+
+**Box.** A gift button in the lobby's top bar glows when a box is ready. Every
+4 hours, the first at once. Pays coins only — about half the current Sort price
+on average, a whole Sort one time in eight — so a box means the same at level 20
+as at level 1. The game reports the value through `rewardValue()`; the shell
+knows nothing about Sort. An earlier draft paid Sort/Undo tokens; dropped in
+favour of coins scaled to the price, which gets the same benefit with one less
+system. `shell/rewards.js`, 19 rule tests; `test/box.mjs`, 13 browser checks
+including the refill after four hours and a clock wound back a month.
+
+**Sort now rises 60 per level**, up from 35, because the box pays in proportion
+to it and would otherwise cancel the sink. Chosen from:
+
+| box | Sort per level | returning days lost |
+|---|---|---|
+| 2 a day, ~quarter Sort | +50 | 8.7% |
+| 2 a day, ~half Sort | +60 | 4.2% |
+| 3 a day, ~half Sort | +60 | 0.1% |
+
+The box is load-bearing: 0 a day → 37%, 1 → 16.5%, 2 → 4.2%, 3+ → ~0%.
+Cats under it, opening 2 a day: Patch 4.2%, Marmalade 2.7%, Pepper 3.5%,
+Biscuit 3.6%.
+
+**Stuck and broke.** When a player is stuck and cannot afford Sort, the card
+offers "Watch an ad · free Sort" as the primary button. Skipping the ad costs
+nothing and brings the choice back. A player who can pay sees the paid Sort, not
+the ad. `engine.sort({ free: true })`. `test/rescue.mjs`, 13 checks.
+
+**Ads.** Both placements — `box-early` and `rescue-sort` — go through
+`host.rewarded`, which reports nothing available in the real app until an ad
+network is integrated. Tested: no ad button appears outside dev.
+
+
+---
+
+## 1.5.0: AppLovin MAX, rewarded ads only
+
+Decisions from you: target audience 13+ (apps for children may not use AppLovin
+at all), US and India only for now (so no European consent flow yet), and the
+store listing updated to say ads are present.
+
+**Native.** `Ads.java` — a bridge exposed to the page as `window.CashPawsAds`.
+Written in Java deliberately: the MAX listener's nullability annotations differ
+between AppLovin's own samples, and Kotlin fails the build on a mismatch while
+Java does not. SDK pinned at 13.6.3, the current release, whose minimum Android
+version (24) matches this app. Uses `MaxRewardedAd.getInstance(id)` — the
+Context-taking forms are deprecated in 13.x — `AppLovinPrivacySettings
+.setDoNotSell`, and the `AppLovinSdkInitializationConfiguration` builder, all
+checked against AppLovin's current docs. Compiled here with `-Xlint:all` against
+stubs of those documented signatures; the real SDK is first seen by CI.
+
+**Keys** in `android/ads.properties`, read into `BuildConfig`. Blank keys build
+an app with no ads, no opt-out switch, and a Settings note saying so.
+
+**Web.** `shell/ads.js` picks the native bridge when present and enabled, else
+the stub. Results come back through `window.__adResult`; a reward is paid only
+when the ad was finished. Games did not change — the two placements built in
+1.4.0 simply start working.
+
+**US privacy.** "Do not sell or share my personal information" in Settings,
+stored natively so it applies before the SDK starts on the next launch.
+
+**Honesty guard.** The pre-flight used to fail if the manifest requested
+INTERNET, protecting the "no internet" claim. Retired on purpose; it now fails
+if the listing or the Play guide still claims the app is ad-free. It caught four
+stale claims the moment it ran, including in my own documentation.
+
+**Docs.** Store listing rewritten around "ads only when you want one", which is
+true while every ad is an opt-in rewarded ad. Data safety guidance, flagged as
+typical categories to confirm, since AppLovin publishes no definitive list. A
+draft privacy policy naming AppLovin, with placeholders.
+
+**Tests.** `test/ads.mjs`, 14 checks against a mock of the bridge, including
+that an ad closed early pays nothing and that a keyless build shows no ads.
+
+
+---
+
+## 1.5.1: tubes clipped on narrower phones
+
+Reported on a OnePlus: level 1's outer tubes cut off at both screen edges.
+
+**Cause.** Tubes were a fixed 66px, so a row of five needed a screen at least
+375px wide. Many Android phones report less — anything with the Display size
+setting turned up does. The layout audit never caught it because it only tested
+eight-tube boards, which split into two rows of four; the widest single row is
+the very first board a new player sees.
+
+**Fix.** `fitBoard()` now fits the widest row to the space: first using the
+board's side padding down to a 2px edge (what 375px phones always had), then
+shrinking tubes, never above the 66px design size. The rim-and-base allowance
+and the chip size scale with the tube, and a chip is capped to the glass's inner
+width so the wider $20 note never pokes through. Below a 44px tube, five tubes
+split onto two rows — only reachable in split-screen.
+
+**Nothing else moved.** On 375, 393, 402, 412, 430 and 480px-wide phones, every
+tube, chip, the footer and the cat were compared against the 1.5.0 build at 5,
+6 and 8 tubes: pixel-identical.
+
+`test/fit.mjs` covers every board size on 13 screens from 280px to landscape
+tablets, checking overflow, overlapping tubes and chips outside the glass.
+
+## 1.6.0: level pacing, after comparing against published deconstructions
+
+Full write-up and numbers in `docs/LEVEL-DESIGN.md`. In short:
+
+- **Level 1 cannot be lost.** The first Sort is free (`freeSorts: 1`); the
+  stuck card and the Sort button say "Free". New players forced back to $0 on
+  level 1: 17.6% → 0%.
+- **Shorter levels.** Target is 150 + 50 × (level − 1) net worth per level;
+  Sort costs 150 + 25 a level. First 10 levels: ~37 min → ~13 min.
+- **One new thing at a time.** Tubes arrive at 2, 4, 6; chips at 3, 5. A sim
+  test fails if any level adds both.
+- **Hard levels** at 7, 11, 15, …: flow one turn faster, +20% junk, double
+  coins. The level after is a breather, flow one turn slower. Header says
+  "Hard" and the FLOW strip turns red.
+- **Face-down chips** from level 9: 8% of covered chips turn face down; they
+  flip when they reach the top, and Sort reveals all.
+- **Save v2 → money-sort saveVersion 2.** Old saves keep their level and their
+  fraction through it, and start with no free Sort.
+- **Perks retuned:** Marmalade — Hard levels pay triple; Pepper — level-ups
+  pay 70.
+- Returning players lose a level on 10% of days (was 4%); almost all of it on
+  Hard levels, by design.
+- New tests: `test/newplayer.mjs`, `test/rhythm.mjs`, `test/fit.mjs`.
+  Tuning harness moved to `tools/tune.mjs`.
+
+## 1.7.0: Bell Quest
+
+Royal Match's Lava Quest, adapted. Full design and numbers in
+`docs/BELL-QUEST.md`.
+
+- **Decided with the user:** rivals are shown as cats, never as players; the
+  quest is always on from level 8; no ad to stay in (a Sort protects the
+  streak, and "Drop a level" asks "Give up your quest?" first); art drawn in
+  code for now.
+- **Decided by simulation:** 48 hours, not 24, because at 24 hours 84% of a
+  casual player's quests ran out. The grand prize is ten Sort prices. The
+  rival curve matches the published Lava Quest data.
+- Built in the shell, so any game can use it by declaring `quest` and calling
+  `host.levelWon()`, `host.levelLost()` and `host.confirmLevelLoss()`.
+- The card pops up on app open, and on lobby return when there's news.
+- Also fixed: two toasts at once now stack instead of overlapping.
+- **Flagged:** a player on about 20 minutes a day loses a level on 79% of days
+  in the simulation, with or without the quest. The 1.6 tuning only modelled
+  10 minutes a day. This needs its own pass.
+
+## 1.7.1: Bell Quest art
+
+The Gemini art replaces the code-drawn placeholders: bell, prize, three
+stones and the path scene. It is processed by `tools/process-quest-art.py`
+(watermark removed, magenta keyed out, about 100 KB in total). The layout is
+unchanged, apart from a smaller prize on the path, because the art's heap is
+taller than the placeholder was.
+
