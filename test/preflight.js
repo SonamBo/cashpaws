@@ -121,6 +121,30 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   notes.push(keyed ? 'ads: keys present — this build serves real ads' : 'ads: no keys in android/ads.properties — this build shows no ads');
 }
 
+/* --- Firebase (1.8.0): the config must cover every build, and the privacy
+       policy must say so before any event leaves a phone. --- */
+{
+  const cfgPath = 'android/app/google-services.json';
+  if (!existsSync(join(ROOT, cfgPath))) fails.push(`MISSING  ${cfgPath} — download it from the Firebase console`);
+  else {
+    const cfg = JSON.parse(readFileSync(join(ROOT, cfgPath), 'utf8'));
+    const pkgs = cfg.client.map((c) => c.client_info.android_client_info.package_name);
+    const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
+    const appId = gradle.match(/applicationId\s+"([^"]+)"/)?.[1];
+    const suffix = gradle.match(/applicationIdSuffix\s+"([^"]+)"/)?.[1] || '';
+    for (const want of [appId, appId + suffix]) {
+      if (!pkgs.includes(want)) fails.push(`CONTENT  ${cfgPath} has no app for ${want} — add it in Firebase and download the file again`);
+    }
+    notes.push(`Firebase project ${cfg.project_info.project_id}: ${pkgs.join(', ')}`);
+  }
+  const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
+  const bom = gradle.match(/firebase-bom:([^'"]+)/)?.[1];
+  if (!bom || bom.includes('+')) fails.push('CONTENT  the Firebase BoM must be present and pinned');
+  needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', '"CashPawsAnalytics"', 'the Activity must expose the analytics bridge');
+  needContains('www/shell/analytics.js', 'CashPawsAnalytics', 'the shell must look for the same bridge name');
+  needContains('docs/PRIVACY-POLICY.md', 'Firebase', 'the privacy policy must disclose Firebase');
+}
+
 /* --- launcher icon at every density --- */
 for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
   for (const f of ['ic_fg.png', 'ic_launcher.png', 'ic_launcher_round.png']) {

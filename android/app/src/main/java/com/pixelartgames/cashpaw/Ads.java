@@ -6,6 +6,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import com.applovin.mediation.MaxAd;
+import com.applovin.mediation.MaxAdRevenueListener;
 import com.applovin.mediation.MaxError;
 import com.applovin.mediation.MaxReward;
 import com.applovin.mediation.MaxRewardedAdListener;
@@ -29,7 +30,7 @@ import com.applovin.sdk.AppLovinSdkInitializationConfiguration;
  * SDK: com.applovin:applovin-sdk 13.6.3. Uses MaxRewardedAd.getInstance(id),
  * the form without a Context; the Context-taking APIs are deprecated in 13.x.
  */
-public final class Ads implements MaxRewardedAdListener {
+public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
 
     private static final String PREFS = "cashpaws.ads";
     private static final String DO_NOT_SELL = "doNotSell";
@@ -61,6 +62,7 @@ public final class Ads implements MaxRewardedAdListener {
         AppLovinSdk.getInstance(activity).initialize(config, sdkConfig -> {
             rewarded = MaxRewardedAd.getInstance(BuildConfig.ADS_REWARDED_UNIT);
             rewarded.setListener(this);
+            rewarded.setRevenueListener(this);     // ad revenue into Firebase
             rewarded.loadAd();
         });
     }
@@ -105,6 +107,7 @@ public final class Ads implements MaxRewardedAdListener {
     public void setDoNotSell(boolean value) {
         prefs().edit().putBoolean(DO_NOT_SELL, value).apply();
         if (enabled()) AppLovinPrivacySettings.setDoNotSell(value);
+        Analytics.applyDoNotSell(activity, value);
     }
 
     @JavascriptInterface
@@ -152,6 +155,12 @@ public final class Ads implements MaxRewardedAdListener {
     public void onAdHidden(MaxAd ad) {
         finish(earned);
         if (rewarded != null) rewarded.loadAd();
+    }
+
+    /** What the impression earned, reported as Firebase's ad_impression. */
+    public void onAdRevenuePaid(MaxAd ad) {
+        Analytics.adImpression(activity, ad.getNetworkName(), ad.getFormat().getLabel(),
+            ad.getAdUnitId(), ad.getPlacement(), ad.getRevenue());
     }
 
     public void onAdDisplayFailed(MaxAd ad, MaxError error) {

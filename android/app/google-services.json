@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "656699526930",
+    "project_id": "cash-paws-prod",
+    "storage_bucket": "cash-paws-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:656699526930:android:f7fe4d39f0f55531ac2dcb",
+        "android_client_info": {
+          "package_name": "com.pixelartgames.cashpaw"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqYV_mVewvwdhhBBtLrIbr7OuN3uAs12c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:656699526930:android:502d4d8592d1543eac2dcb",
+        "android_client_info": {
+          "package_name": "com.pixelartgames.cashpaw.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqYV_mVewvwdhhBBtLrIbr7OuN3uAs12c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

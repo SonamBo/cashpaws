@@ -1019,3 +1019,21 @@ stones and the path scene. It is processed by `tools/process-quest-art.py`
 unchanged, apart from a smaller prize on the path, because the art's heap is
 taller than the placeholder was.
 
+## 1.8.0: Firebase Analytics and Crashlytics
+
+- Project cash-paws-prod, with release and .debug apps registered.
+  `google-services.json` is committed; it identifies the project, it isn't a
+  secret.
+- Versions: Firebase BoM 34.19.0, google-services 4.5.0, Crashlytics plugin
+  3.0.8.
+- Native bridge `Analytics.java` (`window.CashPawsAnalytics`); shell
+  `analytics.js`; game events through `host.track()`,
+  `host.levelWon(info)` and `host.levelLost(info)`.
+- AppLovin ad revenue goes to Firebase as `ad_impression`.
+- The "Do not sell" switch also denies Firebase ad personalisation.
+- The Settings note, privacy policy and Play Data safety guidance are updated.
+  **Republish the policy before releasing.**
+- Event reference: `docs/ANALYTICS.md`. Test: `test/analytics.mjs` (25 checks).
+- Couldn't compile the Android side here (no SDK). The first CI build is the
+  compile check.
+

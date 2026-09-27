@@ -35,6 +35,8 @@ export default {
   // Bell Quest opens once level 7, the first Hard level, is beaten. A step is a
   // level-up; dropping a level knocks you out, a Sort does not.
   quest: { unlockLevel: 8, steps: 7 },
+  // Coin reasons that fire many times a level; analytics sums them per level.
+  analytics: { batch: ['bank', 'undo-reversal'] },
   styles: ['style.css'],
 
   /*
@@ -97,11 +99,29 @@ export default {
         }
         if (e.type === 'inflow') host.stat('drops');
         if (e.type === 'sort') host.stat('sorts');
-        if (e.type === 'levelup') { host.stat('levelups'); host.levelWon(); }
-        if (e.type === 'level-lost') host.levelLost();
+        if (e.type === 'move') clock.moves += 1;
+        if (e.type === 'levelup') {
+          host.stat('levelups');
+          // `level` is the level just reached; turns and seconds are for the one beaten.
+          host.levelWon({ level: e.level, kind: e.kind, beat_hard: !!e.beatHard, coins: e.coins, ...levelClock() });
+        }
+        if (e.type === 'level-lost') host.levelLost({ level: e.from, to: e.to, ...levelClock() });
       });
       window.game = game;       // a debugging handle, as it always was
     }
+
+    // How long a level took, for analytics. Seconds count only while the
+    // board is on screen, so a phone left on the table does not skew them.
+    let clock = { moves: 0, ms: 0, since: null };
+    let onScreen = false;
+    function levelClock() {
+      const ms = clock.ms + (clock.since ? Date.now() - clock.since : 0);
+      const out = { moves: clock.moves, seconds: Math.round(ms / 1000) };
+      clock = { moves: 0, ms: 0, since: clock.since ? Date.now() : null };
+      return out;
+    }
+    const clockOn = () => { if (!clock.since) clock.since = Date.now(); };
+    const clockOff = () => { if (clock.since) { clock.ms += Date.now() - clock.since; clock.since = null; } };
 
     function report(vm = vmOf(game)) {
       const started = vm.netWorth > 0 || vm.turn > 0 || vm.level > 1;
@@ -188,6 +208,10 @@ export default {
             for (;;) {
               // Broke and stuck: an ad can pay for the Sort instead.
               const adOffer = !vm.canAffordSort && vm.sortCanHelp && host.rewarded.available('rescue-sort');
+              host.track('board_stuck', {
+                level: vm.level, kind: vm.kind, can_sort: !!e.canSort, free: vm.freeSorts > 0,
+                coins: host.wallet.coins, price: vm.sortPrice, ad_offer: !!adOffer,
+              });
               choice = await stuckCard(host, e, vm, vm.freeSorts > 0 ? 'Free' : vm.sortPrice, adOffer);
               // Dropping a level can cost an event, such as Bell Quest: the shell asks first.
               if (choice === 'drop') { if (await host.confirmLevelLoss()) break; continue; }
@@ -196,8 +220,9 @@ export default {
               // Skipped the ad: nothing lost, the choice comes back.
             }
             // Each of these emits into the same live queue, so the loop carries on.
-            if (choice === 'sort') game.sort();
-            else if (choice === 'free-sort') { game.sort({ free: true }); host.stat('adSorts'); }
+            host.track('stuck_choice', { level: vm.level, choice });
+            if (choice === 'sort') { trackSort(vm.freeSorts > 0 ? 'free' : 'paid', 'stuck'); game.sort(); }
+            else if (choice === 'free-sort') { trackSort('ad', 'stuck'); game.sort({ free: true }); host.stat('adSorts'); }
             else game.loseLevel();
             break;
           }
@@ -250,11 +275,17 @@ export default {
     function onUndo() {
       if (busy || !game.canUndo) return;
       if (!game.undo().ok) { frames = []; return; }
+      host.track('undo_used', { level: game.level });
       drain();
+    }
+
+    function trackSort(how, where) {
+      host.track('sort_used', { level: game.level, how, where, price: how === 'paid' ? game.sortPrice : 0 });
     }
 
     function onSort() {
       if (busy || !(game.canAffordSort && game.sortCanHelp)) return;
+      trackSort(game.freeSorts > 0 ? 'free' : 'paid', 'button');
       if (!game.sort().ok) { frames = []; return; }
       drain();
     }
@@ -315,10 +346,17 @@ export default {
       },
 
       show() {
+        onScreen = true;
+        clockOn();
         view.relayout();
         report();
         if (game.status === 'locked') resolveLock();
       },
+
+      // Turn-based: nothing runs underneath, so these only stop the level clock.
+      hide() { onScreen = false; clockOff(); },
+      pause() { clockOff(); },
+      resume() { if (onScreen) clockOn(); },
 
       async restart() {
         const yes = await host.confirm({

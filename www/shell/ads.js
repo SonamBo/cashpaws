@@ -26,7 +26,7 @@ function nativeBridge() {
   try { return b && b.isEnabled() ? b : null; } catch { return null; }
 }
 
-export function createAds({ dev, confirm }) {
+export function createAds({ dev, confirm, track = () => {} }) {
   const native = nativeBridge();
 
   const rewarded = native
@@ -53,6 +53,15 @@ export function createAds({ dev, confirm }) {
         });
       },
     };
+
+  // Every rewarded ad started, and whether it paid out, by placement.
+  const show = rewarded.show;
+  rewarded.show = async (placement) => {
+    track('ad_rewarded_start', { placement });
+    const earned = await show(placement);
+    track('ad_rewarded_result', { placement, earned });
+    return earned;
+  };
 
   return {
     /** True when real ads can be served; the privacy controls and wording follow it. */

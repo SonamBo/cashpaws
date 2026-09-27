@@ -20,7 +20,7 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 12, versionName 1.7.1**, ready for your next
+Currently set to **versionCode 13, versionName 1.8.0**, ready for your next
 upload. Skipping a number is harmless; reusing one is not.
 
 **`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in
@@ -144,6 +144,7 @@ problem, and points somewhere completely different.
 ## Plans
 
 `docs/ROADMAP.md` — daily tasks, the rewards box, AppLovin.
+`docs/ANALYTICS.md` — every analytics event, and the one-time Firebase console setup.
 `docs/BELL-QUEST.md` — the Bell Quest event and how its prize was sized.
 `docs/LEVEL-DESIGN.md` — level pacing, Hard levels, face-down chips, and how to retune them with `tools/tune.mjs`.
 

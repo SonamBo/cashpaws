@@ -133,6 +133,8 @@ class MainActivity : ComponentActivity() {
         // the browser — so exposing this interface reaches no one else.
         ads = Ads(this, webView)
         webView.addJavascriptInterface(ads, "CashPawsAds")
+        // Firebase: gameplay events and crash reports. Same reasoning as above.
+        webView.addJavascriptInterface(Analytics(this), "CashPawsAnalytics")
         ads.start()
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)

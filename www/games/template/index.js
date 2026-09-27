@@ -16,6 +16,7 @@ export default {
   name: 'Coin Catch',
   saveVersion: 1,
   styles: ['style.css'],
+  analytics: { batch: ['catch'] },   // a coin a tap: summed, not sent one by one
 
   // Only one cat does anything here; the rest are cosmetic in this game.
   perks: {

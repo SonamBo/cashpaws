@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'      // needs app/google-services.json
+    id 'com.google.firebase.crashlytics'
 }
 
 /**
@@ -31,8 +33,8 @@ android {
         buildConfigField 'String', 'ADS_SDK_KEY', "\"${adsProps.getProperty('sdkKey', '').trim()}\""
         buildConfigField 'String', 'ADS_REWARDED_UNIT', "\"${adsProps.getProperty('rewardedAdUnit', '').trim()}\""
 
-        versionCode 12
-        versionName "1.7.1"
+        versionCode 13
+        versionName "1.8.0"
     }
 
     signingConfigs {
@@ -83,6 +85,12 @@ dependencies {
     implementation 'com.applovin:applovin-sdk:13.6.3'
     // The SDK reads the Advertising ID through this module.
     implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
+    // Firebase, versions from the BoM. google-services.json covers both
+    // com.pixelartgames.cashpaw and its .debug build, which report as
+    // separate apps so testing never mixes with real players.
+    implementation platform('com.google.firebase:firebase-bom:34.19.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
     // webkit gives WebViewAssetLoader, which serves the game from a real https
     // origin. On file:// the WebView refuses ES modules and sandboxes storage.
     implementation 'androidx.webkit:webkit:1.12.1'

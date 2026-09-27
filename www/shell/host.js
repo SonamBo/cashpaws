@@ -39,13 +39,17 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     },
 
     /*
-     * Outcomes, for events like Bell Quest. A game reports each level it wins
-     * and each it loses; what those mean is the game's call. Before a loss the
+     * Outcomes, for events like Bell Quest and for analytics. A game reports
+     * each level it wins and each it loses, with anything worth recording
+     * (Money Sort sends { level, kind }). What those mean is the game's call. Before a loss the
      * player chose, the game asks confirmLevelLoss(), which resolves true at
      * once unless something running would be lost with it.
      */
-    levelWon: () => events.levelWon?.(),
-    levelLost: () => events.levelLost?.(),
+    levelWon: (info) => events.levelWon?.(info),
+    levelLost: (info) => events.levelLost?.(info),
+
+    /** An event of the game's own, for analytics: host.track('board_stuck', { level: 12 }). */
+    track: (name, params) => events.track?.(name, params),
     confirmLevelLoss: () => (events.confirmLevelLoss ? events.confirmLevelLoss() : Promise.resolve(true)),
 
     celebrate,

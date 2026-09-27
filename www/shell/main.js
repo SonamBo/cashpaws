@@ -10,6 +10,7 @@ import game from '../games/active.js';
 import * as store from './save.js';
 import { Wallet } from './wallet.js';
 import { createAds } from './ads.js';
+import { createAnalytics } from './analytics.js';
 import { createHost, loadStyles } from './host.js';
 import { Header } from './header.js';
 import { LobbyView } from './lobby.js';
@@ -25,14 +26,14 @@ import * as Q from './quest.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 
 // Game folders are named after their id; assets and styles resolve from here.
 game.path = `games/${game.id}/`;
 
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
-let wallet, header, lobby, panels, instance, ads;
+let wallet, header, lobby, panels, instance, ads, analytics;
 let screen = 'lobby';
 
 /* ---------------------------------------------------------------- *
@@ -83,6 +84,10 @@ function onClaim(which) {
   const stats = gameStats();
   const coins = which === 'bonus' ? claimBonus(shell.daily, stats) : claimTask(shell.daily, which, stats);
   if (!coins) return;
+  const task = which === 'bonus' ? null : shell.daily.tasks[which];
+  track(which === 'bonus' ? 'daily_bonus' : 'daily_claim', which === 'bonus'
+    ? { coins, streak: shell.daily.streak }
+    : { coins, task: task?.id, tier: task?.tier });
   wallet.earn(coins, 'daily');
   lobby.setDailyBadge(claimable(shell.daily, stats));
   panels.show('daily', panelContext());
@@ -116,6 +121,7 @@ async function onBox() {
     value: instance.rewardValue?.() ?? DEFAULT_VALUE,
   });
   if (!won) return;
+  track('box_open', { coins: won.coins, via_ad: pick === 'ad', big: won.big });
   wallet.earn(won.coins, 'box');
   refreshBox();
   save();
@@ -180,14 +186,18 @@ async function openQuest() {
     const q = shell.quest;
     if (q.status === 'won') {
       await wonCard({ share: q.share, grand: q.grand, others: q.field[q.steps] });
+      track('quest_claim', { share: q.share, finishers: q.field[q.steps] + 1 });
       wallet.earn(Q.claim(q), 'quest');
+      analytics.setUser('quest_wins', q.wins);
     } else if (q.status === 'lost' || q.status === 'expired') {
       const pick = await overCard({ reason: q.status, step: q.step, steps: q.steps, left: Q.catsLeft(q) });
+      track('quest_over_seen', { reason: q.status, step: q.step, again: pick === 'again' });
       Q.acknowledge(q);
       save();
       if (pick === 'again') await startQuest();
     } else if (q.status === 'offer') {
       offeredThisSession = true;
+      track('quest_offer', { level: shell.stats.bestLevel });
       const pick = await introCard({
         grand: Q.grandPrize(questValue()), steps: questSteps(), hours: Q.DURATION_MS / 3600000,
       });
@@ -209,6 +219,7 @@ async function startQuest() {
   const q = shell.quest;
   const seed = (Math.random() * 2 ** 31) | 0;
   if (!Q.start(q, { now: Date.now(), value: questValue(), steps: questSteps(), seed })) return;
+  track('quest_start', { grand: q.grand, quest_number: q.played });
   save();
   await findingCard({ grand: q.grand });
   const first = !q.seenRules;
@@ -226,11 +237,14 @@ function autoQuest(reason) {
   if (reason === 'open' || Q.hasNews(q) || (q.status === 'offer' && !offeredThisSession)) openQuest();
 }
 
-function onLevelWon() {
+function onLevelWon(info = {}) {
+  flushCoins();
+  track('level_up', { ...info, quest_step: Q.isActive(shell.quest) ? shell.quest.step + 1 : undefined });
   if (!questOn()) return;
   const q = shell.quest;
   const step = Q.advance(q, Date.now());
   if (!step) { refreshQuest(); return; }
+  track(q.status === 'won' ? 'quest_win' : 'quest_step', { step, cats_left: Q.catsLeft(q) });
   toast(q.status === 'won'
     ? `${bell(20)} <span>Bell Quest complete! Claim your prize in the lobby.</span>`
     : `${bell(20)} <span>Bell Quest ${step}/${q.steps} &middot; ${Q.catsLeft(q)} cats left</span>`, 3200);
@@ -238,8 +252,11 @@ function onLevelWon() {
   save();
 }
 
-function onLevelLost() {
+function onLevelLost(info = {}) {
+  flushCoins();
+  track('level_lost', info);
   if (!questOn() || !Q.knockOut(shell.quest)) return;
+  track('quest_knockout', { step: shell.quest.step });
   toast(`${bell(20)} <span>Out of Bell Quest</span>`, 3200);
   refreshQuest();
   save();
@@ -250,7 +267,7 @@ async function confirmLevelLoss() {
   questSync();
   const q = shell.quest;
   if (!questOn() || !Q.isActive(q)) return true;
-  return confirm({
+  const yes = await confirm({
     kicker: 'Bell Quest',
     title: 'Give up your quest?',
     line: `Dropping a level knocks you out of Bell Quest on step ${q.step + 1} of ${q.steps}. `
@@ -258,10 +275,57 @@ async function confirmLevelLoss() {
     ok: 'Drop a level anyway',
     cancel: 'Back',
   });
+  track('quest_give_up_prompt', { step: q.step, gave_up: yes });
+  return yes;
 }
 
 // The timer on the icon counts down while the lobby is on screen.
 setInterval(refreshQuest, 30000);
+
+/* ---------------------------------------------------------------- *
+ * Analytics — the destination lives in analytics.js
+ *
+ * Coins: every earn and spend is an event, except the reasons a game marks as
+ * frequent (Money Sort's banks), which are summed and sent at each level end,
+ * so one level is a handful of events rather than dozens.
+ * ---------------------------------------------------------------- */
+
+const track = (name, params) => analytics?.track(name, params);
+const pendingCoins = new Map();          // 'earn:bank' -> total since last flush
+
+function onCoins(delta, reason) {
+  if (!delta || !reason || reason === 'set') return;
+  const dir = delta > 0 ? 'earn' : 'spend';
+  if ((game.analytics?.batch || []).includes(reason)) {
+    const k = `${dir}:${reason}`;
+    pendingCoins.set(k, (pendingCoins.get(k) || 0) + Math.abs(delta));
+    return;
+  }
+  sendCoins(dir, reason, Math.abs(delta));
+}
+
+function sendCoins(dir, reason, value) {
+  track(dir === 'earn' ? 'earn_virtual_currency' : 'spend_virtual_currency', {
+    virtual_currency_name: 'coins',
+    value,
+    [dir === 'earn' ? 'source' : 'item_name']: reason,
+    balance: wallet.coins,
+  });
+}
+
+function flushCoins() {
+  for (const [k, v] of pendingCoins) { const [dir, reason] = k.split(':'); sendCoins(dir, reason, v); }
+  pendingCoins.clear();
+}
+
+/** Facts that stay attached to every later event. */
+function refreshUser() {
+  analytics.setUser('game', game.id);
+  analytics.setUser('best_level', shell.stats.bestLevel);
+  analytics.setUser('cat_worn', shell.cats.worn);
+  analytics.setUser('days_played', shell.stats.daysPlayed);
+  analytics.setUser('cats_owned', shell.cats.owned.length);
+}
 
 /* ---------------------------------------------------------------- *
  * Boot
@@ -281,6 +345,7 @@ async function boot() {
     </div>`;
 
   wallet = new Wallet(shell.coins, shell.stats);
+  analytics = createAnalytics({ dev: DEV });
   lobby = new LobbyView(root.querySelector('[data-screen="lobby"]'));
   header = new Header(root.querySelector('[data-header]'), { onPause });
   mountOverlays(root);
@@ -289,7 +354,8 @@ async function boot() {
   panels.onClaim = onClaim;
   panels.onClose = closePanel;
 
-  wallet.onChange((coins, delta) => {
+  wallet.onChange((coins, delta, reason) => {
+    onCoins(delta, reason);
     header.setCoins(coins);
     if (delta > 0) header.pulseCoins();
     lobby.update({ coins, summary: shell.summaries[game.id] });
@@ -304,7 +370,7 @@ async function boot() {
   setWornCat(shell.cats.worn);
   await loadStyles(game);
 
-  ads = createAds({ dev: DEV, confirm });
+  ads = createAds({ dev: DEV, confirm, track });
   const host = createHost({
     game, shell, wallet, header, ads,
     onProgress: () => lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] }),
@@ -312,7 +378,7 @@ async function boot() {
     save,
     exit: () => showScreen('lobby'),
     dev: DEV,
-    events: { levelWon: onLevelWon, levelLost: onLevelLost, confirmLevelLoss },
+    events: { levelWon: onLevelWon, levelLost: onLevelLost, confirmLevelLoss, track },
   });
 
   instance = game.create(host, root.querySelector('[data-game-root]'));
@@ -328,6 +394,8 @@ async function boot() {
   lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
   applySizeClasses();
   installBridge();
+  refreshUser();
+  track('app_ready', { coins: wallet.coins, best_level: shell.stats.bestLevel, quest: shell.quest.status });
   showScreen('lobby', { opening: true });
   save();
 
@@ -341,6 +409,7 @@ async function boot() {
 function showScreen(next, { opening = false } = {}) {
   const from = screen;
   screen = next;
+  if (next !== from || opening) track('screen_view', { screen_name: next, screen_class: next });
   const root = document.getElementById('app');
   root.classList.toggle('on-lobby', next === 'lobby');
   root.classList.toggle('on-game', next === 'game');
@@ -374,7 +443,7 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (!instance) return;
-  if (document.visibilityState === 'hidden') { instance.pause?.(); save(); }
+  if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); }
   else {
     refreshDaily(); refreshBox(); refreshQuest(); instance.resume?.();
     if (screen === 'lobby') autoQuest('return');   // a quest may have ended while away
@@ -397,6 +466,7 @@ function onLobbyTab(tab) {
   lobby.setNavTab(tab);
   if (tab === 'home') return panels.hide();
   if (tab === 'daily') refreshDaily();
+  track('screen_view', { screen_name: tab, screen_class: 'tab' });
   panels.show(tab, panelContext());
 }
 
@@ -425,18 +495,23 @@ async function onPause() {
 const SETTINGS_NOTE_ADS = 'Free to play, with optional ads that earn rewards. No purchases. '
   + 'Ads are served by AppLovin; see the Privacy Policy for what they collect.';
 const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress stays on this phone.';
+// Only said where it is true: the Android app, where Firebase is built in.
+const SETTINGS_NOTE_ANALYTICS = ' Gameplay statistics and crash reports are sent to Google Firebase '
+  + 'to help improve the game.';
 
 async function onSettings() {
   if (panels.open) return;
   const pick = await settings({
     title: 'Cash Paws',
-    note: ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS,
+    note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
+      + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
     doNotSell: ads.enabled || DEV ? ads.getDoNotSell() || !!shell.privacy?.doNotSell : null,
   });
   if (pick === 'dns') {
     const next = !(ads.getDoNotSell() || !!shell.privacy?.doNotSell);
     shell.privacy = { ...(shell.privacy || {}), doNotSell: next };
     ads.setDoNotSell(next);
+    track('do_not_sell', { on: next });
     save();
     return onSettings();          // reopen, showing the new state
   }
@@ -449,6 +524,7 @@ async function onSettings() {
     ok: 'Erase and start over',
   });
   if (!yes) return;
+  track('progress_erased', { best_level: shell.stats.bestLevel });
   store.erase();
   location.reload();
 }
@@ -470,6 +546,8 @@ function buy(kind, id) {
       shell.cats.owned.push(id);
     }
     shell.cats.worn = id;
+    track('cat_select', { cat: id });
+    refreshUser();
     setWornCat(id);
     header.redrawCat();
     instance.setPerk?.(perkIn(game, id)?.config || {});
@@ -484,6 +562,7 @@ function buy(kind, id) {
       mine.owned.push(id);
     }
     mine.active = id;
+    track('cosmetic_select', { item: id });
     instance.setCosmetic?.(id);
   }
 

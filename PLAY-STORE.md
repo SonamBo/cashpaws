@@ -101,6 +101,29 @@ Elsewhere in the Play Console:
   at all, so do not include under-13 age groups.
 - **Advertising ID declaration:** yes, for advertising.
 
+## 4b. Data safety — added in 1.8.0: Firebase
+
+Firebase Analytics and Crashlytics are built in, so the form gains these.
+Google processes this data for you as a service provider, which Play does not
+count as "sharing", so mark each one **collected, not shared**:
+
+- **App activity → App interactions:** levels, Sorts, taps on features. Purpose:
+  Analytics.
+- **App activity → Other actions:** in-game coins earned and spent. Purpose:
+  Analytics.
+- **App info and performance → Crash logs** and **Diagnostics.** Purpose:
+  Analytics.
+- **Device or other IDs:** the Firebase app-instance ID. Purpose: Analytics.
+  This is already ticked for AppLovin, as collected and shared; keep that.
+
+Then answer:
+- Is data encrypted in transit? **Yes.**
+- Can users request deletion? **Yes**, by email, per the privacy policy.
+- Is collection optional? **No** for analytics, since it runs when the app does.
+
+Republish the privacy policy (`docs/PRIVACY-POLICY.md`) **before** releasing
+1.8.0, because it now names Firebase.
+
 ## 4a. app-ads.txt
 
 AppLovin gives you the exact line under Account in their dashboard. It must be

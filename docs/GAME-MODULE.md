@@ -57,6 +57,7 @@ export default {
     { id: 'bank-8', tier: 'easy', text: 'Bank 8 tubes', stat: 'banks', target: 8 },
   ],
   quest: { unlockLevel: 8, steps: 7 },   // optional: opts in to Bell Quest
+  analytics: { batch: ['bank'] },        // coin reasons too frequent to send one by one
 
   create(host, root) { return instance; },
 };
@@ -92,8 +93,9 @@ host.wallet.earn(n, reason)       // reason feeds stats and, later, analytics
 host.wallet.spend(n, reason)      // false, and no change, if short
 
 host.stat(key, n = 1)             // count something; this game's daily tasks read these
-host.levelWon()                   // a level beaten: one Bell Quest step
-host.levelLost()                  // a level lost: knocks the player out of Bell Quest
+host.levelWon(info)               // a level beaten: one Bell Quest step, and a level_up event
+host.levelLost(info)              // a level lost: knocks out of Bell Quest; a level_lost event
+host.track(name, params)          // an analytics event of the game's own (see docs/ANALYTICS.md)
 await host.confirmLevelLoss()     // before a loss the player chose; false means don't
 
 host.stats                        // this game's counters so far, read-only
