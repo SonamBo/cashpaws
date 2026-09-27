@@ -43,7 +43,7 @@ the Play Console.
 |---|---|
 | Package | `com.pixelartgames.cashpaw` — permanent, never change it |
 | Target API | 36 (Play's floor; raise when Google raises it) |
-| Toolchain | AGP 8.9.2, Gradle 8.11.1, Kotlin 2.0.21 |
+| Toolchain | AGP 8.7.3, Gradle 8.9, Kotlin 2.2.21 |
 | Signing | four repo secrets, see `PLAY-STORE.md` |
 | Privacy policy | https://pixelartgames000.github.io/privacy-policy/ — lobby gear, Settings |
 
@@ -109,7 +109,7 @@ refuses. The runner already has API 35 tools pre-installed and AGP 8.7.3 builds
 | targetSdk | 36 (Play's floor — this is the one that matters) |
 | AGP | 8.7.3 |
 | Gradle | 8.9 |
-| Kotlin | 2.0.21 |
+| Kotlin | 2.2.21 — bumped from 2.0.21 because Firebase's `play-services-measurement-impl` ships metadata version 2.2.0, which older compilers can't read |
 
 When Play raises the floor again: bump `targetSdk` first. If the build still
 passes with `compileSdk` one below, leave it there. Only bump `compileSdk` (and
