@@ -97,6 +97,13 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.activity:activity-ktx:1.9.3'
     implementation 'androidx.core:core-splashscreen:1.0.1'
+    // Not used directly (MainActivity is a bare ComponentActivity, no
+    // Fragments) — pinned only to force a modern version onto the resolved
+    // classpath. Without it some transitive dependency drags in a
+    // pre-1.3.0 Fragment, and lintVitalRelease hard-fails the release build
+    // over InvalidFragmentVersionForActivityResult even though nothing here
+    // actually hits the code path the check is protecting.
+    implementation 'androidx.fragment:fragment-ktx:1.9.1'
     // Reminders: WorkManager keeps scheduled notifications across restarts.
     implementation 'androidx.work:work-runtime:2.10.0'
 }
