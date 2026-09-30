@@ -387,3 +387,55 @@
 .ms-root.hard-level > .flow .flow-label { color: #cf6f6a; }
 .ms-root.hard-level > .flow .pip.on { background: #cf6f6a; }
 .chip.hidden-chip { filter: saturate(.9); }
+
+/* ---------------------------------------------------------------- *
+ * Level modifiers (1.11): Lucky Paw, frozen coins, locked tube
+ * ---------------------------------------------------------------- */
+
+/* The Lucky Paw has sparkles past its rim, so it draws a touch larger. */
+.chip.lucky { width: calc(var(--chip-d) + 6px); height: calc(var(--chip-d) + 6px); animation: chip-in var(--t-base) var(--ease) both, lucky-glint 2.6s ease-in-out 1s infinite; }
+@keyframes lucky-glint { 0%, 82%, 100% { filter: none; } 90% { filter: brightness(1.18) drop-shadow(0 0 4px rgba(255, 214, 107, .9)); } }
+
+/* Ice over a frozen coin: see-through, so the coin still reads. */
+.cell.frozen::after {
+  content: "";
+  position: absolute;
+  width: calc(var(--chip-d) + 10px);
+  height: calc(var(--chip-d) + 10px);
+  background: url(img/ice.png) center / contain no-repeat;
+  pointer-events: none;
+  animation: chip-in var(--t-base) var(--ease) both;
+}
+.cell.frozen.cracked::after { background-image: url(img/ice-cracked.png); }
+
+/* A locked tube: dimmed glass, the padlock across it, the count to go. */
+.tube.locked .glass { opacity: .55; }
+.lock {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: calc(var(--tube-w) * .72);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.lock img { display: block; width: 100%; height: auto; }
+.lock b {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--cocoa, #54393e);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+.lock.opening { animation: lock-open .6s var(--ease) forwards; }
+@keyframes lock-open {
+  0% { transform: translate(-50%, -50%) rotate(0); }
+  30% { transform: translate(-50%, -60%) rotate(-12deg) scale(1.1); }
+  100% { transform: translate(-50%, -120%) rotate(8deg) scale(.6); opacity: 0; }
+}

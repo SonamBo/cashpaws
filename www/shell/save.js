@@ -28,6 +28,8 @@ export function freshShell() {
     daily: emptyDaily(),  // today's tasks, claims and the streak
     box: emptyBox(),      // the Rewards Box timer; the first is ready at once
     quest: emptyQuest(),  // Bell Quest; offered once the game's unlock level is reached
+    flags: {},            // [gameId]: { ftue: true, ... } via host.flag()
+    reminders: { on: true, asked: false },   // local notifications; Android still asks
   };
 }
 
@@ -65,6 +67,8 @@ function normalise(rec) {
   shell.daily = { ...base.daily, ...(shell.daily || {}) };   // absent in 1.1.0 saves
   shell.box = { ...base.box, ...(shell.box || {}) };         // absent before 1.4.0
   shell.quest = { ...base.quest, ...(shell.quest || {}) };   // absent before 1.7.0
+  shell.flags = { ...(shell.flags || {}) };                  // absent before 1.9.0
+  shell.reminders = { ...base.reminders, ...(shell.reminders || {}) };   // absent before 1.10.0
   return { v: 2, shell, games: rec.games || {} };
 }
 

@@ -55,6 +55,7 @@ export class Header {
     }
     this.el.figure.textContent = p.figure || '';
     this.el.sub.textContent = p.sub || '';
+    this.el.sub.hidden = !p.sub;        // no line, no gap: Money Sort's figure says it all
   }
 
   pulseCoins() {

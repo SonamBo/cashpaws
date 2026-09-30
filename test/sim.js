@@ -3,7 +3,7 @@
  * engine's invariants after every single action. Usage: node test/sim.js [games]
  */
 
-import { Game, columnsForLevel, netWorthFloor, poolForLevel, levelKind, DEFAULTS } from '../www/games/money-sort/engine.js';
+import { Game, columnsForLevel, netWorthFloor, poolForLevel, levelKind, levelModifiers, DEFAULTS, WILD } from '../www/games/money-sort/engine.js';
 
 const GAMES = Number(process.argv[2] || 2000);
 const MAX_TURNS = 1500;
@@ -41,16 +41,25 @@ function audit(g, where) {
     { where, level: g.level, net: g.netWorth, next: netWorthFloor(g.level + 1) }
   );
   check(
-    !g.columns.some((c) => c.length === cfg.capacity && c.every((v) => v === c[0])),
+    !g.columns.some((c, i) => g.bankableValue(i) > 0),
     'a full matching column was left unbanked',
     { where, cols: g.columns }
   );
   const pool = poolForLevel(g.level, cfg);
   check(
-    g.columns.flat().every((v) => cfg.valueLadder.includes(Math.abs(v))),
+    g.columns.flat().every((v) => cfg.valueLadder.includes(Math.abs(v)) || v === WILD),
     'chip value outside the ladder',
     { where }
   );
+  // Modifiers (1.11).
+  check(g.level >= cfg.luckyFrom || !g.columns.flat().includes(WILD) || g.cfg.luckyFrom <= 1,
+    'a Lucky Paw before level ' + cfg.luckyFrom, { where, level: g.level });
+  check(!g.locked || g.columns[g.locked.column].length === 0, 'a locked tube holds coins', { where, locked: g.locked });
+  check(!g.locked || g.locked.need > 0, 'a lock that should have opened', { where, locked: g.locked });
+  check(g.ice.every((f) => f.index < g.columns[f.column].length && g.columns[f.column][f.index] !== WILD && f.hits > 0),
+    'ice on nothing, on a Lucky Paw, or already melted', { where, ice: g.ice, cols: g.columns });
+  check(g.level >= cfg.frozenFrom || g.ice.length === 0, 'frozen coins before they are introduced', { where, level: g.level });
+  check(g.level >= cfg.lockFrom || !g.locked, 'a locked tube before it is introduced', { where, level: g.level });
   // Face-down chips are negative, and one must never be left on top: the
   // player could not see or move it, and the board would be unreadable.
   check(

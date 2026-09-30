@@ -31,11 +31,29 @@ const toLobby = async () => {
 };
 // Beat a level without playing it: the engine emits a real levelup.
 const levelUp = () => p.evaluate(() => { game.netWorth = game.nextFloor; game.checkLevelUp(); });
+// Beat a level with a real move, so the whole sequence plays: the bank, the
+// level-up card, then whatever comes between levels.
+const levelUpByMove = async () => {
+  await p.evaluate(() => {
+    game.columns = game.columns.map(() => []);
+    game.columns[0] = [5, 5, 5]; game.columns[1] = [5];
+    game.netWorth = game.nextFloor - 1; game.turnsUntilDrop = 9;
+    game.status = 'playing'; game.selected = null; view.update();
+  });
+  await p.click('.tube[data-col="1"]'); await p.waitForTimeout(150);
+  await p.click('.tube[data-col="0"]'); await p.waitForTimeout(1500);
+};
+const waveLevelUp = async () => {
+  await p.locator('.ovl-milestone.in [data-go]').click(); await p.waitForTimeout(700);
+};
 
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
 
 /* ---- locked for a new player ---- */
+await boot();
+// The tutorial is for real first boards; it has its own test (test/ftue.mjs).
+await edit(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; CashPaws.flush(); });
 await boot();
 check('a new player sees no quest icon', await p.locator('[data-quest]').isHidden());
 check('and no popup', await card().count() === 0);
@@ -77,25 +95,30 @@ check('the quest is running', q.status === 'active' && q.step === 0 && q.steps =
 await pick('play');
 check('Play on the path opens the game', await p.evaluate(() => document.getElementById('app').classList.contains('on-game')));
 
-/* ---- a step ---- */
-await levelUp(); await p.waitForTimeout(300);
-const toasts = async () => (await p.locator('.toast').allTextContents()).join(' | ');
-check('a level-up counts as a step, with a toast', /Bell Quest 1\/7/.test(await toasts()), await toasts());
+/* ---- a step: shown in the game, between levels ---- */
+await levelUpByMove();
+check('the level-up card comes first', await p.locator('.ovl-milestone.in').count() === 1);
+check('with the quest not yet shown', await card().count() === 0);
 q = await quest();
 check('step 1 saved', q.step === 1);
-await p.waitForTimeout(3400);   // let the toast leave
-// Let the level-up card show and wave it through.
-await p.evaluate(() => { const c = document.querySelector('.ovl.in [data-go]'); if (c) c.click(); });
-await p.waitForTimeout(400);
-await toLobby();
-check('returning with a new step pops the path up', await card().count() === 1);
+await waveLevelUp();
+check('then the quest path, still in the game', await card().count() === 1
+  && await p.evaluate(() => document.getElementById('app').classList.contains('on-game')));
 check('saying you made it', /You made it to the next step/.test(await text('.ovl-quest.in')));
+check('with Continue, not Play', /Continue/.test(await text('.ovl-quest.in [data-pick="play"]')));
 check('your cat stands on the first stone', await p.locator('.ovl-quest.in .q-stone.here').count() === 1
   && await p.locator('.ovl-quest.in .q-stone.start.here').count() === 0);
+await p.waitForTimeout(1300);   // let the cat hop across
+const meLeft = await p.evaluate(() => document.querySelector('.ovl-quest.in [data-me]').style.left);
+check('and hops from the start to it', meLeft === '30%', meLeft);
 check('and the rules not repeated', await p.locator('.q-rules').count() === 0);
 check('fewer cats left', Number((await text('.q-stats')).match(/(\d+)\/100/)[1]) < 100);
 await p.locator('.ovl-quest.in').screenshot({ path: '/tmp/quest-path1.png' });
-await pick('close');
+await pick('play');
+check('Continue returns to the board', await card().count() === 0
+  && await p.evaluate(() => document.getElementById('app').classList.contains('on-game')));
+await toLobby();
+check('seen in the game, so the lobby does not repeat it', await card().count() === 0);
 check('the icon shows the step', (await text('[data-quest-badge]')) === '1/7');
 await p.locator('.screen[data-screen="lobby"]').screenshot({ path: '/tmp/quest-lobby.png' });
 
@@ -125,13 +148,16 @@ await jam();
 check('the board is stuck', await p.locator('.ovl.in [data-drop]').count() === 1);
 await p.locator('.ovl.in [data-drop]').click(); await p.waitForTimeout(450);
 check('Drop asks about the quest', /Give up your quest\?/.test(await text('.ovl.in')));
-check('naming the step and the prize', /step 2 of 7/.test(await text('.ovl.in')));
+check('in the same card: one card, the slumped cat still on it', await p.locator('.ovl').count() === 1
+  && await p.locator('.ovl.in .cat-lying').count() === 1);
+check('naming the step and the prize', /Step 2 of 7/.test(await text('.ovl.in')) && /sharing/.test(await text('.ovl.in')));
 await p.locator('.ovl.in').screenshot({ path: '/tmp/quest-confirm.png' });
-await p.locator('.ovl.in [data-cancel]').click(); await p.waitForTimeout(450);
-check('Back returns to the stuck card', await p.locator('.ovl.in [data-drop]').count() === 1);
+await p.locator('.ovl.in [data-keep]').click(); await p.waitForTimeout(300);
+check('Keep my quest puts the stuck card back', await p.locator('.ovl.in [data-drop]').count() === 1
+  && /No legal moves left|Nothing left to do/.test(await text('.ovl.in')));
 check('with the quest intact', (await quest()).status === 'active');
-await p.locator('.ovl.in [data-drop]').click(); await p.waitForTimeout(450);
-await p.locator('.ovl.in [data-ok]').click(); await p.waitForTimeout(500);
+await p.locator('.ovl.in [data-drop]').click(); await p.waitForTimeout(300);
+await p.locator('.ovl.in [data-drop-anyway]').click(); await p.waitForTimeout(500);
 check('dropping anyway knocks you out', (await quest()).status === 'lost');
 await p.waitForTimeout(300);
 await p.evaluate(() => { const c = document.querySelector('.ovl.in [data-go]'); if (c) c.click(); });
@@ -152,15 +178,13 @@ await pick('close');
 /* ---- winning ---- */
 await edit(() => { shell.quest.step = 6; shell.quest.seenStep = 6; });
 await p.click('[data-play]'); await p.waitForTimeout(500);
-await levelUp(); await p.waitForTimeout(300);
-check('the last step wins, with a toast', /complete/.test(await toasts()), await toasts());
+await levelUpByMove();
 q = await quest();
+check('the last step wins', q.status === 'won');
 const others = q.field[7];
-await p.waitForTimeout(3400);
-await p.evaluate(() => { const c = document.querySelector('.ovl.in [data-go]'); if (c) c.click(); });
-await p.waitForTimeout(400);
-await toLobby();
-check('the lobby shows the win', await p.locator('.q-won').count() === 1);
+await waveLevelUp();
+check('the win shows in the game, right after the level-up', await p.locator('.q-won').count() === 1
+  && await p.evaluate(() => document.getElementById('app').classList.contains('on-game')));
 const shareText = await text('.q-share');
 check('paying the grand prize over the finishers', Number(shareText.replace(/\D/g, '')) === q.share
   && q.share === Math.max(10, Math.round(q.grand / (others + 1) / 5) * 5), `${shareText} of ${q.grand}, ${others + 1} finishers`);
@@ -168,8 +192,11 @@ await p.locator('.ovl-quest.in').screenshot({ path: '/tmp/quest-won.png' });
 const before = await p.evaluate(() => wallet.coins);
 await pick('claim');
 check('claiming pays it', (await p.evaluate(() => wallet.coins)) - before === q.share);
+await toLobby();
 q = await quest();
 check('and the next quest is on offer', q.status === 'offer' && q.wins === 1);
+check('which the lobby offers', await card().count() === 1 && /Start/.test(await text('.ovl-quest.in')));
+await pick('close');
 
 /* ---- no quest running: Drop is not questioned ---- */
 await p.click('[data-play]'); await p.waitForTimeout(500);

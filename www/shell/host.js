@@ -11,7 +11,7 @@ export function haptic(pattern) {
   try { navigator.vibrate?.(pattern); } catch { /* not supported */ }
 }
 
-export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {} }) {
+export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach }) {
   const stats = (shell.gameStats[game.id] ||= {});
 
   return {
@@ -51,6 +51,10 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     /** An event of the game's own, for analytics: host.track('board_stuck', { level: 12 }). */
     track: (name, params) => events.track?.(name, params),
     confirmLevelLoss: () => (events.confirmLevelLoss ? events.confirmLevelLoss() : Promise.resolve(true)),
+    /** The same, as data for the game's own card: { kicker, title, line, stat, ok, cancel, answer(yes) } or null. */
+    levelLossWarning: () => events.levelLossWarning?.() ?? null,
+    /** Between one level's celebration and the next level: the shell may show event progress. */
+    levelBreak: () => Promise.resolve(events.levelBreak?.()),
 
     celebrate,
     setback,
@@ -65,6 +69,16 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
       coin: (width) => coinIcon(width),
     },
     asset: (path) => asset(game.path + path),
+
+    /** Tutorial coach marks: tip(), spotlight(), clear(). See coach.js. */
+    coach,
+
+    /** Small facts a game remembers across launches, such as a finished tutorial. */
+    flag: (key) => !!(shell.flags[game.id] || {})[key],
+    setFlag(key, value = true) {
+      (shell.flags[game.id] ||= {})[key] = value;
+      save();
+    },
 
     haptic,
     save,

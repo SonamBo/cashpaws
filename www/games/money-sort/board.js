@@ -7,6 +7,8 @@
  * already moved on. Snapshots are captured as each event fires.
  */
 
+import { WILD } from './engine.js';
+
 export const money = (n) => '$' + n.toLocaleString('en-US');
 
 /* A chip seen from behind: a plain coin with a question mark. Drawn here, as
@@ -42,6 +44,8 @@ export function vmOf(g) {
     kind: g.kind,
     sortPrice: g.sortPrice,
     sortCanHelp: g.sortCanHelp,
+    locked: g.locked ? { ...g.locked } : null,
+    ice: g.ice.map((f) => ({ ...f })),
   };
 }
 
@@ -181,7 +185,11 @@ export class BoardView {
   /** Chips are the source artwork; the denomination is printed on it. */
   chipEl(value) {
     const el = document.createElement('img');
-    if (value < 0) {
+    if (value === WILD) {
+      el.className = 'chip lucky';
+      el.src = this.host.asset('img/chip-lucky.png');
+      el.alt = 'a Lucky Paw coin, which counts as any value';
+    } else if (value < 0) {
       // Face down: the value stays secret until it reaches the top.
       el.className = 'chip hidden-chip';
       el.src = FACE_DOWN;
@@ -197,6 +205,36 @@ export class BoardView {
     return el;
   }
 
+  /** A locked tube: the padlock on its glass and how many cash-ins to go. */
+  syncLock(tube, need) {
+    let lock = tube.querySelector('.lock');
+    if (!need) {
+      if (lock && !lock.classList.contains('opening')) lock.remove();
+      tube.classList.remove('locked');
+      return;
+    }
+    tube.classList.add('locked');
+    if (!lock) {
+      lock = document.createElement('div');
+      lock.className = 'lock';
+      lock.innerHTML = `<img src="${this.host.asset('img/padlock.png')}" alt="" draggable="false"><b></b>`;
+      tube.appendChild(lock);
+    }
+    lock.querySelector('b').textContent = need;
+    tube.setAttribute('aria-label', `Locked. Cash in ${need} more to open.`);
+  }
+
+  /** The padlock springs open and fades. */
+  unlockPop(col) {
+    const tube = this.tubes[col];
+    const lock = tube?.querySelector('.lock');
+    if (!lock) return;
+    lock.classList.add('opening');
+    tube.classList.remove('locked');
+    tube.removeAttribute('aria-label');
+    setTimeout(() => lock.remove(), 650);
+  }
+
   /** Top chip of a column, as a DOM node. */
   topChip(col) {
     const cells = this.tubes[col]?.querySelector('.glass')?.children;
@@ -205,11 +243,15 @@ export class BoardView {
     return null;
   }
 
-  syncTube(tube, values, cap) {
+  syncTube(tube, values, cap, ice = []) {
     const cells = tube.querySelector('.glass').children;
     for (let c = 0; c < cap; c++) {
       const cell = cells[c];
       const value = values[cap - 1 - c];
+      // Frozen coins: ice drawn over the cell, cracked once it has one hit left.
+      const f = ice.find((x) => x.index === cap - 1 - c);
+      cell.classList.toggle('frozen', !!f && value !== undefined);
+      cell.classList.toggle('cracked', !!f && f.hits === 1);
       const chip = cell.firstElementChild;
       if (value === undefined) {
         if (chip) chip.remove();
@@ -242,7 +284,8 @@ export class BoardView {
 
     if (this.renderedColumns !== vm.columnCount) this.buildTubes(vm.columnCount);
     this.tubes.forEach((tube, i) => {
-      this.syncTube(tube, vm.columns[i] || [], vm.capacity);
+      this.syncTube(tube, vm.columns[i] || [], vm.capacity, (vm.ice || []).filter((f) => f.column === i));
+      this.syncLock(tube, vm.locked && vm.locked.column === i ? vm.locked.need : 0);
       tube.classList.toggle('selected', vm.selected === i);
       tube.classList.toggle('full', (vm.columns[i] || []).length >= vm.capacity);
     });

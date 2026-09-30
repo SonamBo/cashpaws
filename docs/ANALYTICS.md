@@ -34,8 +34,8 @@ Firebase collects some events itself: `first_open`, `session_start`,
 |---|---|---|
 | `app_ready` | coins, best_level, quest | The app has loaded. |
 | `screen_view` | screen_name: `lobby`, `game`, `daily`, `cats`, `progress`, `shop` | Each screen or tab. |
-| `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
-| `level_lost` | level, to, moves, seconds | The player drops a level. |
+| `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), modifiers (`locked`, `frozen`, `lucky`, comma-separated, or `none`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
+| `level_lost` | level, to, modifiers, moves, seconds | The player drops a level. |
 | `board_stuck` | level, kind, can_sort, free, coins, price, ad_offer | The stuck card appears. |
 | `stuck_choice` | level, choice: `sort`/`free-sort`/`drop` | The player's answer to the stuck card. |
 | `sort_used` | level, how: `paid`/`free`/`ad`, where: `button`/`stuck`, price | Each Sort. |
@@ -61,12 +61,18 @@ to the background.
 | `box_open` | coins, via_ad, big |
 | `quest_offer`, `quest_start` | level / grand, quest_number |
 | `quest_step`, `quest_win` | step, cats_left |
-| `quest_claim` | share, finishers |
+| `quest_claim` | share, finishers, where (`game` when claimed right after the level-up) |
 | `quest_knockout` | step |
 | `quest_give_up_prompt` | step, gave_up (the "Give up your quest?" answer) |
 | `quest_over_seen` | reason (`lost`/`expired`), step, again |
 | `cat_select`, `cosmetic_select` | cat / item |
 | `do_not_sell` | on |
+| `ftue_step` | step: `move`, `stack`, `bank` (each beat of the first-time tutorial as it starts) |
+| `ftue_complete` | (the player tapped Got it on the progress-bar spotlight) |
+| `reminders_offer` | reason (`box`/`quest`), yes (the in-game ask) |
+| `reminders_permission` | granted (Android's own prompt) |
+| `reminders_toggle` | on (the Settings switch) |
+| `reminder_open` | id (`box`/`quest`): the app was opened from a reminder |
 | `progress_erased` | best_level |
 
 **Ads**

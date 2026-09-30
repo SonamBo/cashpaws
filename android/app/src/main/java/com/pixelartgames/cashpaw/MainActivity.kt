@@ -11,6 +11,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -31,6 +32,14 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
     private lateinit var ads: Ads
+    private lateinit var notify: Notify
+
+    // Android 13+: the system prompt for notifications. Registered up front, as
+    // the API requires; launched only when the page asks, after its own card.
+    private val notifyPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            notify.onPermissionResult(granted)
+        }
     private var safeTop = 0f
     private var safeBottom = 0f
 
@@ -135,6 +144,12 @@ class MainActivity : ComponentActivity() {
         webView.addJavascriptInterface(ads, "CashPawsAds")
         // Firebase: gameplay events and crash reports. Same reasoning as above.
         webView.addJavascriptInterface(Analytics(this), "CashPawsAnalytics")
+        // Reminders (Rewards Box, Bell Quest), scheduled by shell/notify.js.
+        notify = Notify(this, webView) {
+            notifyPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        notify.setLaunchSource(intent?.getStringExtra(ReminderWorker.EXTRA_FROM))
+        webView.addJavascriptInterface(notify, "CashPawsNotify")
         ads.start()
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)
@@ -162,6 +177,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Tapped a reminder while the app was already running (singleTask). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.getStringExtra(ReminderWorker.EXTRA_FROM)?.let { id ->
+            webView.evaluateJavascript(
+                "window.__reminderOpened && window.__reminderOpened(${org.json.JSONObject.quote(id)})", null)
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
@@ -169,6 +194,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        Notify.foreground = false
         webView.onPause()
         // Flush the save before the process can be killed in the background.
         webView.evaluateJavascript("window.CashPaws && window.CashPaws.flush()", null)
@@ -176,6 +202,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        Notify.foreground = true
         webView.onResume()
     }
 

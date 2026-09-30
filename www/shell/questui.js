@@ -36,9 +36,10 @@ const face = (i, w = 30) =>
   `<span class="q-face" style="--i:${i}">${cat('face', w, 'cat-avatar', RIVAL_FACES[i % RIVAL_FACES.length])}</span>`;
 const faces = (n, w = 30) => Array.from({ length: n }, (_, i) => face(i, w)).join('');
 
-function card(html, pickSel = '[data-pick]') {
+function card(html, after = null, pickSel = '[data-pick]') {
   return new Promise((resolve) => {
     const el = show(html, 'quest');
+    after?.(el);
     el.addEventListener('click', async (ev) => {
       const b = ev.target.closest(pickSel);
       if (!b) return;
@@ -109,7 +110,7 @@ export async function findingCard({ grand }) {
  * adds the three rules, once, the first time a player sees a quest.
  * Resolves 'play' or 'close'.
  */
-export function pathCard({ q, now, first = false, advanced = false }) {
+export function pathCard({ q, now, first = false, advanced = false, from = null, inGame = false }) {
   const steps = q.steps;
   const left = catsLeft(q);
   const stones = [];
@@ -120,6 +121,8 @@ export function pathCard({ q, now, first = false, advanced = false }) {
     stones.push({ x, y, cls, i });
   }
   const here = stones[q.step];
+  // Arriving from an earlier stone: start there, then hop (CSS eases the move).
+  const start = from !== null && from < q.step ? stones[Math.max(0, from)] : here;
   const lead = advanced && q.step > 0 ? 'You made it to the next step!' : `Beat ${steps} levels in a row. Don't drop one.`;
   return card(`
     <div class="q-card q-path-card">
@@ -132,7 +135,7 @@ export function pathCard({ q, now, first = false, advanced = false }) {
       <div class="q-path">
         <div class="q-path-prize">${prizePile(q.grand, 104)}</div>
         ${stones.map(stone).join('')}
-        <div class="q-me" style="left:${here.x}%;top:${here.y}%">
+        <div class="q-me" data-me style="left:${start.x}%;top:${start.y}%" data-to="${here.x},${here.y}">
           ${catFace(40)}
           ${left > 1 ? `<span class="q-with">+${left - 1}</span>` : ''}
         </div>
@@ -142,8 +145,16 @@ export function pathCard({ q, now, first = false, advanced = false }) {
         <li>Use a Sort when stuck. Dropping a level knocks you out.</li>
         <li>The prize is shared equally by every cat who finishes</li>
       </ul>` : ''}
-      <button class="ovl-btn primary" data-pick="play">${icons.play(18)} Play</button>
-    </div>`);
+      <button class="ovl-btn primary" data-pick="play">${icons.play(18)} ${inGame ? 'Continue' : 'Play'}</button>
+    </div>`, hop);
+}
+
+/** Move your cat to its new stone once the card is up. */
+function hop(el) {
+  const me = el.querySelector('[data-me]');
+  if (!me) return;
+  const [x, y] = me.dataset.to.split(',');
+  setTimeout(() => { me.style.left = `${x}%`; me.style.top = `${y}%`; }, 450);
 }
 
 /** Finished. Resolves when the prize is claimed. */

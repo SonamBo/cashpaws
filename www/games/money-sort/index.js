@@ -7,9 +7,10 @@
  * they fire, then drained with animations and cards in between.
  */
 
-import { Game, poolForLevel, DEFAULTS, levelKind, netWorthFloor, legacyFloor } from './engine.js';
+import { Game, poolForLevel, DEFAULTS, levelKind, levelModifiers, netWorthFloor, legacyFloor } from './engine.js';
 import { BoardView, vmOf, money } from './board.js';
 import { stuckCard } from './cards.js';
+import { createTutorial } from './ftue.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -85,12 +86,16 @@ export default {
     let busy = false;
     let perk = {};
     let chipSet = 'a';
+    const tutorial = createTutorial({
+      host, getGame: () => game, getView: () => view, suggest: (g) => greedy(g),
+    });
 
     function attach(g) {
       game = g;
       frames = [];
       game.on((e) => {
         frames.push({ e, vm: vmOf(game) });
+        tutorial.onEvent(e);
         if (e.type === 'move') host.stat('moves');
         if (e.type === 'bank') {
           host.stat('banks');
@@ -103,9 +108,17 @@ export default {
         if (e.type === 'levelup') {
           host.stat('levelups');
           // `level` is the level just reached; turns and seconds are for the one beaten.
-          host.levelWon({ level: e.level, kind: e.kind, beat_hard: !!e.beatHard, coins: e.coins, ...levelClock() });
+          host.levelWon({
+            level: e.level, kind: e.kind, beat_hard: !!e.beatHard, coins: e.coins, ...levelClock(),
+            // the new level's modifiers, e.g. "locked,lucky", or "none"
+            modifiers: Object.keys(e.mods || {}).filter((k) => e.mods[k]).join(',') || 'none',
+          });
         }
-        if (e.type === 'level-lost') host.levelLost({ level: e.from, to: e.to, ...levelClock() });
+        if (e.type === 'level-lost') {
+          const m = levelModifiers(e.from, game.cfg);
+          host.levelLost({ level: e.from, to: e.to, ...levelClock(),
+            modifiers: Object.keys(m).filter((k) => m[k]).join(',') || 'none' });
+        }
       });
       window.game = game;       // a debugging handle, as it always was
     }
@@ -129,7 +142,6 @@ export default {
         title: vm.kind === 'hard' ? `Level ${vm.level} · Hard` : `Level ${vm.level}`,
         fraction: vm.levelProgress,
         figure: `${money(vm.netWorth)} / ${money(vm.nextFloor)}`,
-        sub: `Next level at ${money(vm.nextFloor)}`,
         level: vm.level,
         summary: started ? `Level ${pad(vm.level)} · ${money(vm.netWorth)}` : '',
       });
@@ -170,6 +182,14 @@ export default {
             if (e.gainedColumn) gains.push(`+1 tube &middot; now ${e.columns}`);
             if (e.poolGrew) gains.push('A bigger chip joins the pool');
             if (e.mysteryArrives) gains.push('New: the flow can bury chips face down. They turn over when they reach the top.');
+            // Level modifiers: explained in full the first time, named after that.
+            const m = e.mods || {};
+            if (e.lockArrives) gains.push('New: a locked tube. Cash in 2 tubes to open it. The flow skips it till then.');
+            else if (m.locked && !e.gainedColumn) gains.push('This level: a locked tube');
+            if (e.frozenArrives) gains.push('New: frozen coins can\'t be lifted. Each cash-in cracks the ice; the second frees them.');
+            else if (m.frozen) gains.push('This level: frozen coins');
+            if (e.luckyArrives) gains.push('New: a Lucky Paw coin! It counts as any coin, so it finishes any set.');
+            else if (m.lucky) gains.push('A Lucky Paw coin is on the board');
             if (e.kind === 'hard') gains.push('Next up: a Hard level. Faster flow, and it pays double.');
             if (e.kind === 'breather') gains.push('Hard level beaten. This one is gentler.');
             gains.push(`Sort now costs ${vm.sortPrice}`);
@@ -180,6 +200,8 @@ export default {
               figure: money(e.netWorth),
               reward: gains,
             });
+            // Before the new level starts: Bell Quest shows its step here.
+            await host.levelBreak();
             await host.moment('level-complete');
             break;
           }
@@ -213,8 +235,8 @@ export default {
                 coins: host.wallet.coins, price: vm.sortPrice, ad_offer: !!adOffer,
               });
               choice = await stuckCard(host, e, vm, vm.freeSorts > 0 ? 'Free' : vm.sortPrice, adOffer);
-              // Dropping a level can cost an event, such as Bell Quest: the shell asks first.
-              if (choice === 'drop') { if (await host.confirmLevelLoss()) break; continue; }
+              // A drop is already confirmed: the card itself warns if it would cost
+              // an event such as Bell Quest (host.levelLossWarning).
               if (choice !== 'ad') break;
               if (await host.rewarded.show('rescue-sort')) { choice = 'free-sort'; break; }
               // Skipped the ad: nothing lost, the choice comes back.
@@ -237,6 +259,19 @@ export default {
             });
             break;
 
+          case 'unlock':
+            paint(vm);
+            view.unlockPop(e.column);
+            host.haptic([0, 12, 40, 18]);
+            await wait(520);
+            break;
+
+          case 'thaw':
+          case 'lock-count':
+            paint(vm);
+            await wait(e.type === 'thaw' && e.freed.length ? 300 : 120);
+            break;
+
           case 'restart':
           case 'undo':
             paint(vm);
@@ -252,6 +287,7 @@ export default {
       document.body.classList.remove('busy');
       paint(vmOf(game));
       host.save();
+      tutorial.update();
     }
 
     /** A board restored mid-lock puts the card back in front of the player. */
@@ -268,8 +304,9 @@ export default {
       const res = game.tap(col);
       if (res.action === 'move') { drain(); return; }
       frames = [];
-      if (!res.ok && res.reason === 'illegal') { view.shake(col); host.haptic(9); }
+      if (!res.ok && ['illegal', 'frozen', 'locked'].includes(res.reason)) { view.shake(col); host.haptic(9); }
       view.update();
+      tutorial.update();           // lifted or put down: point at the next tap
     }
 
     function onUndo() {
@@ -351,10 +388,11 @@ export default {
         view.relayout();
         report();
         if (game.status === 'locked') resolveLock();
+        requestAnimationFrame(() => tutorial.show());   // after layout, so the hand lands on the tubes
       },
 
       // Turn-based: nothing runs underneath, so these only stop the level clock.
-      hide() { onScreen = false; clockOff(); },
+      hide() { onScreen = false; clockOff(); tutorial.hide(); },
       pause() { clockOff(); },
       resume() { if (onScreen) clockOn(); },
 

@@ -96,6 +96,10 @@ host.stat(key, n = 1)             // count something; this game's daily tasks re
 host.levelWon(info)               // a level beaten: one Bell Quest step, and a level_up event
 host.levelLost(info)              // a level lost: knocks out of Bell Quest; a level_lost event
 host.track(name, params)          // an analytics event of the game's own (see docs/ANALYTICS.md)
+await host.levelBreak()           // between a level's celebration and the next level: Bell Quest shows its step here
+host.levelLossWarning()           // before a chosen loss: { kicker, title, line, stat, ok, cancel, answer(yes) } or null
+host.coach.tip / spotlight / clear  // tutorial coach marks; 'progress' targets the shared progress bar
+host.flag(key), host.setFlag(key) // small remembered facts, such as a finished tutorial
 await host.confirmLevelLoss()     // before a loss the player chose; false means don't
 
 host.stats                        // this game's counters so far, read-only

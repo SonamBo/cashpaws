@@ -1037,3 +1037,61 @@ taller than the placeholder was.
 - Couldn't compile the Android side here (no SDK). The first CI build is the
   compile check.
 
+## 1.9.0: first-time tutorial, and Bell Quest in the game
+
+- **Tutorial** (`www/games/money-sort/ftue.js`, coach marks in
+  `www/shell/coach.js`). On a player's very first board: a hand taps the best
+  move; "Put 4 of the same coin in one tube to cash it in"; then, on the first
+  cash-in, a spotlight on the progress bar and figure: cashing in grows net
+  worth, and filling the bar levels you up. Tips never block; only the last
+  waits for "Got it". Skipped by anyone past level 1 or who has banked.
+  Remembered in `shell.flags`. Tracked as `ftue_step` and `ftue_complete`.
+- **Give up your quest?** is now the stuck card itself with its content
+  swapped. Same cat, same layout. "Keep my quest" is the green button and puts
+  the stuck card back.
+- **Bell Quest in the game.** After the level-up card, the path card shows the
+  new step (the cat hops across) with Continue. A win is claimed on the spot.
+  The step toast is gone. New host hooks: `levelBreak()` and
+  `levelLossWarning()`.
+- Tests: `test/ftue.mjs` (16 checks); `test/quest.mjs` now plays real
+  level-ups (52 checks).
+
+## 1.10.0: reminders, and a lighter header
+
+- The "Next level at $X" line is gone from the game header; the figure
+  "$20 / $150" already says it. The header drops the line whenever a game
+  sends none.
+- **Local reminders** (`www/shell/notify.js`; native `Notify.java`,
+  `ReminderWorker.java` on WorkManager 2.10.0):
+  - Rewards Box ready: at the box's refill time.
+  - Bell Quest daily, at 7 pm local time and at least 4 hours after the
+    player was last in the app. It says the step and cats left, "prize is
+    waiting", or "a new Bell Quest is ready". If the quest would end first,
+    it comes 2 hours before the end instead.
+  - Never posted while the app is open. Rescheduled every time the app goes
+    to the background.
+- **Permission.** The game asks first with the cheering-cat card, after the
+  first Rewards Box or the first Bell Quest start. Only a yes leads to
+  Android 13's system prompt. "Not now" is never repeated. Settings has a
+  Reminders switch.
+- Tests: `test/notify.js` (14 checks, in CI) and `test/reminders.mjs` (12).
+- The Android side is not compiled here; the first CI build checks it.
+
+## 1.11.0: level modifiers
+
+- **Lucky Paw** (a coin that counts as any value) on every breather from 12;
+  **locked tube** from 17 (tested on 19); **frozen coins** from 25 (tested on
+  27). Rules, schedule and balance: `docs/LEVEL-DESIGN.md`.
+- Engine: `WILD` chip value (999), `game.locked`, `game.ice`, and
+  `levelModifiers(level)`, which is deterministic per level. Saves from before
+  1.11 load with no modifiers.
+- Level-up card: the full rule the first time, then "This level: a locked
+  tube", and so on. Tapping a frozen coin or a locked tube shakes it.
+- `level_up` and `level_lost` carry `modifiers` for analytics.
+- Simulation: difficulty-neutral (days lost 10.0% becomes 9.1%). Late Hard
+  levels are still the real wall.
+- Tests: `test/modifiers.js` (38, in CI), `test/modifiers.mjs` (11), and sim
+  invariants for all three.
+- Art from ChatGPT: padlock, ice, cracked ice, Lucky Paw. The piggy bank and
+  mouse are still to come.
+

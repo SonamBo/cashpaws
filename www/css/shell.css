@@ -1183,7 +1183,7 @@ img.art { user-select: none; -webkit-user-drag: none; }
   transform: translate(-50%, -88%);
   display: flex;
   align-items: flex-end;
-  transition: left var(--t-slow) var(--ease), top var(--t-slow) var(--ease);
+  transition: left .7s var(--ease), top .7s var(--ease);
 }
 .q-me .cat-avatar { border-radius: 50%; background: #fff; border: 3px solid #e5a64b; }
 .q-with {
@@ -1250,3 +1250,48 @@ img.art { user-select: none; -webkit-user-drag: none; }
   .q-rules li { padding: 4px 10px; }
 }
 .bell-art { height: auto; flex: 0 0 auto; }
+
+/* ---------------------------------------------------------------- *
+ * Coach marks (first-time tutorial)
+ * ---------------------------------------------------------------- */
+
+.coach { position: absolute; inset: 0; z-index: 35; pointer-events: none; }
+.coach.blocking { pointer-events: auto; }
+.coach-bubble {
+  position: absolute;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--cocoa);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: var(--shadow-lift);
+  animation: coach-in .3s var(--ease) both;
+}
+.coach-bubble b { color: #ffd66b; }
+.coach-bubble .ovl-btn { min-height: 42px; margin: 12px 0 0; max-width: none; }
+.coach-hole {
+  position: absolute;
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 9999px rgba(55, 45, 40, .62);
+  outline: 3px solid #ffd66b;
+  animation: coach-in .3s var(--ease) both;
+}
+.coach-hand {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  transition: left .35s var(--ease), top .35s var(--ease);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .25));
+}
+.coach-hand.tap { animation: coach-tap 1.1s var(--ease) both; }
+@keyframes coach-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes coach-tap {
+  0% { transform: translate(6px, 10px); opacity: 0; }
+  25% { transform: none; opacity: 1; }
+  45% { transform: scale(.86); }
+  60%, 100% { transform: none; opacity: 1; }
+}
+.bar-sub[hidden] { display: none; }

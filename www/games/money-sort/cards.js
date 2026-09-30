@@ -58,8 +58,36 @@ export function stuckCard(host, e, vm, sortCost, adOffer = false) {
       </div>`, 'locked');
 
     const pick = async (choice) => { await host.cards.dismiss(card); resolve(choice); };
-    card.querySelector('[data-do-sort]')?.addEventListener('click', () => pick('sort'));
-    card.querySelector('[data-ad-sort]')?.addEventListener('click', () => pick('ad'));
-    card.querySelector('[data-drop]').addEventListener('click', () => pick('drop'));
+    const body = card.querySelector('.ovl-card');
+    const original = body.innerHTML;
+
+    // One listener for both faces of the card, so swapping content never
+    // leaves a button without one.
+    card.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button');
+      if (!b) return;
+      if (b.matches('[data-do-sort]')) pick('sort');
+      else if (b.matches('[data-ad-sort]')) pick('ad');
+      else if (b.matches('[data-drop]')) {
+        // Dropping would cost something running, such as Bell Quest: say so in
+        // this same card, and let the player take it back.
+        const w = host.levelLossWarning?.();
+        if (!w) { pick('drop'); return; }
+        warning = w;
+        body.innerHTML = warningHtml(host, w);
+      } else if (b.matches('[data-drop-anyway]')) { warning.answer(true); pick('drop'); }
+      else if (b.matches('[data-keep]')) { warning.answer(false); body.innerHTML = original; }
+    });
+    let warning = null;
   });
+}
+
+function warningHtml(host, w) {
+  return `
+    <p class="ovl-kicker">${w.kicker}</p>
+    <h2 class="ovl-h">${w.title}</h2>
+    <p class="ovl-sub">${w.line}</p>
+    ${w.stat ? `<div class="ovl-stat"><span>${w.stat.label}</span><b>${w.stat.value}</b></div>` : ''}
+    <button class="ovl-btn primary" data-keep>${w.cancel}</button>
+    <button class="ovl-btn ghost" data-drop-anyway>${w.ok}</button>`;
 }

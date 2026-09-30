@@ -11,6 +11,8 @@ import * as store from './save.js';
 import { Wallet } from './wallet.js';
 import { createAds } from './ads.js';
 import { createAnalytics } from './analytics.js';
+import { createCoach } from './coach.js';
+import { createNotify, boxReminder, questReminder } from './notify.js';
 import { createHost, loadStyles } from './host.js';
 import { Header } from './header.js';
 import { LobbyView } from './lobby.js';
@@ -18,7 +20,7 @@ import { Panels } from './tabs.js';
 import { CATS, catById, unlockProgress, perkIn } from './cats.js';
 import { setWornCat, icons } from './art.js';
 import {
-  mountOverlays, anyCardOpen, confirm, pauseMenu, settings, toast, boxCard, celebrate,
+  mountOverlays, anyCardOpen, confirm, ask, pauseMenu, settings, toast, boxCard, celebrate,
 } from './overlays.js';
 import { localDay, ensureDay, claimable, claimTask, claimBonus, newlyDone } from './daily.js';
 import { isReady, msUntil, formatWait, openBox, adOpensLeft, DEFAULT_VALUE } from './rewards.js';
@@ -26,14 +28,14 @@ import * as Q from './quest.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.11.0';
 
 // Game folders are named after their id; assets and styles resolve from here.
 game.path = `games/${game.id}/`;
 
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
-let wallet, header, lobby, panels, instance, ads, analytics;
+let wallet, header, lobby, panels, instance, ads, analytics, notify;
 let screen = 'lobby';
 
 /* ---------------------------------------------------------------- *
@@ -131,6 +133,8 @@ async function onBox() {
     reward: won.big ? 'A big one!' : '',
     go: 'Nice',
   });
+  refreshReminders();
+  await offerReminders('box');
 }
 
 // A box can become ready while the lobby is on screen.
@@ -225,7 +229,9 @@ async function startQuest() {
   const first = !q.seenRules;
   q.seenRules = true;
   save();
-  if ((await pathCard({ q, now: Date.now(), first })) === 'play') showScreen('game');
+  const pick = await pathCard({ q, now: Date.now(), first });
+  await offerReminders('quest');
+  if (pick === 'play') showScreen('game');
 }
 
 /** Pop the card up by itself: always on app open, on lobby return only with news. */
@@ -245,11 +251,38 @@ function onLevelWon(info = {}) {
   const step = Q.advance(q, Date.now());
   if (!step) { refreshQuest(); return; }
   track(q.status === 'won' ? 'quest_win' : 'quest_step', { step, cats_left: Q.catsLeft(q) });
-  toast(q.status === 'won'
-    ? `${bell(20)} <span>Bell Quest complete! Claim your prize in the lobby.</span>`
-    : `${bell(20)} <span>Bell Quest ${step}/${q.steps} &middot; ${Q.catsLeft(q)} cats left</span>`, 3200);
+  // The card itself comes at the break between levels: see onLevelBreak().
   refreshQuest();
   save();
+}
+
+/**
+ * The game has finished celebrating a level and is about to start the next:
+ * show the quest's progress here, in the game, rather than waiting for the
+ * lobby. A win is claimed on the spot.
+ */
+async function onLevelBreak() {
+  if (!questOn() || questOpen) return;
+  const q = shell.quest;
+  if (!Q.hasNews(q) || (q.status !== 'active' && q.status !== 'won')) return;
+  questOpen = true;
+  try {
+    if (q.status === 'won') {
+      await wonCard({ share: q.share, grand: q.grand, others: q.field[q.steps] });
+      track('quest_claim', { share: q.share, finishers: q.field[q.steps] + 1, where: 'game' });
+      wallet.earn(Q.claim(q), 'quest');
+      analytics.setUser('quest_wins', q.wins);
+    } else {
+      const from = q.seenStep;
+      q.seenStep = q.step;
+      save();
+      await pathCard({ q, now: Date.now(), advanced: true, from, inGame: true });
+    }
+  } finally {
+    questOpen = false;
+    refreshQuest();
+    save();
+  }
 }
 
 function onLevelLost(info = {}) {
@@ -262,25 +295,96 @@ function onLevelLost(info = {}) {
   save();
 }
 
-/** Before a level the player chose to lose: warn them if it ends a quest. */
-async function confirmLevelLoss() {
+/**
+ * What to warn about before a level the player chose to lose, or null when
+ * nothing would be lost with it. The game shows it in its own card (Money
+ * Sort swaps it into the stuck card) and reports the answer.
+ */
+function levelLossWarning() {
   questSync();
   const q = shell.quest;
-  if (!questOn() || !Q.isActive(q)) return true;
-  const yes = await confirm({
+  if (!questOn() || !Q.isActive(q)) return null;
+  return {
     kicker: 'Bell Quest',
     title: 'Give up your quest?',
-    line: `Dropping a level knocks you out of Bell Quest on step ${q.step + 1} of ${q.steps}. `
+    line: `Dropping a level knocks you out of Bell Quest. `
         + `${Q.catsLeft(q)} cats are still in, sharing ${q.grand.toLocaleString('en-US')} coins.`,
+    stat: { label: `Step ${q.step + 1} of ${q.steps}`, value: `${Q.catsLeft(q)} cats` },
     ok: 'Drop a level anyway',
-    cancel: 'Back',
-  });
-  track('quest_give_up_prompt', { step: q.step, gave_up: yes });
+    cancel: 'Keep my quest',
+    answer: (gaveUp) => track('quest_give_up_prompt', { step: q.step, gave_up: gaveUp }),
+  };
+}
+
+/** The same warning as a plain confirm, for a game with no card of its own. */
+async function confirmLevelLoss() {
+  const w = levelLossWarning();
+  if (!w) return true;
+  const yes = await confirm({ kicker: w.kicker, title: w.title, line: w.line, ok: w.ok, cancel: w.cancel });
+  w.answer(yes);
   return yes;
 }
 
 // The timer on the icon counts down while the lobby is on screen.
 setInterval(refreshQuest, 30000);
+
+/* ---------------------------------------------------------------- *
+ * Reminders — the wording and timing live in notify.js
+ *
+ * Android asks for permission once; so the game asks first, in its own
+ * words, at a moment the reminder obviously helps: just after opening a
+ * Rewards Box, or starting a Bell Quest. "Not now" is respected: it never
+ * asks again, and Settings has the switch.
+ * ---------------------------------------------------------------- */
+
+const remindersOn = () => notify?.available && shell.reminders.on && notify.permission() === 'granted';
+
+function refreshReminders() {
+  if (!notify?.available) return;
+  const on = remindersOn();
+  const now = Date.now();
+  questSync();                     // a quest may have unlocked or ended since
+  notify.set('box', on ? boxReminder(shell.box, now) : null);
+  notify.set('quest', on && questOn() ? questReminder(shell.quest, now, questValue()) : null);
+}
+
+async function offerReminders(reason) {
+  if (!notify?.available || shell.reminders.asked || notify.permission() !== 'ask') return;
+  if (panels.open || anyCardOpen()) return;
+  shell.reminders.asked = true;
+  save();
+  const yes = await ask({
+    kicker: 'Reminders',
+    title: reason === 'box' ? 'Want a nudge when it refills?' : 'Want a nudge to keep going?',
+    line: 'We can tell you when your next Rewards Box is ready, and once a day, in the evening, '
+        + 'how your Bell Quest is going. Nothing else.',
+    ok: 'Yes, remind me',
+    cancel: 'Not now',
+  });
+  track('reminders_offer', { reason, yes });
+  if (!yes) return;
+  const granted = await notify.request();
+  shell.reminders.on = granted;
+  track('reminders_permission', { granted });
+  save();
+  refreshReminders();
+}
+
+/** Settings switch. Turning on may need the system prompt, or the phone's settings. */
+async function toggleReminders() {
+  if (remindersOn()) { shell.reminders.on = false; }
+  else {
+    const perm = notify.permission();
+    if (perm === 'ask') shell.reminders.on = await notify.request();
+    else if (perm === 'granted') shell.reminders.on = true;
+    else toast('Turn on notifications for Cash Paws in your phone\'s settings first.', 3600);
+  }
+  track('reminders_toggle', { on: remindersOn() });
+  save();
+  refreshReminders();
+}
+
+globalThis.__reminderOpened = (id) => track('reminder_open', { id });
 
 /* ---------------------------------------------------------------- *
  * Analytics — the destination lives in analytics.js
@@ -346,6 +450,7 @@ async function boot() {
 
   wallet = new Wallet(shell.coins, shell.stats);
   analytics = createAnalytics({ dev: DEV });
+  notify = createNotify({ dev: DEV });
   lobby = new LobbyView(root.querySelector('[data-screen="lobby"]'));
   header = new Header(root.querySelector('[data-header]'), { onPause });
   mountOverlays(root);
@@ -378,7 +483,11 @@ async function boot() {
     save,
     exit: () => showScreen('lobby'),
     dev: DEV,
-    events: { levelWon: onLevelWon, levelLost: onLevelLost, confirmLevelLoss, track },
+    coach: createCoach(root),
+    events: {
+      levelWon: onLevelWon, levelLost: onLevelLost, levelBreak: onLevelBreak,
+      levelLossWarning, confirmLevelLoss, track,
+    },
   });
 
   instance = game.create(host, root.querySelector('[data-game-root]'));
@@ -396,6 +505,9 @@ async function boot() {
   installBridge();
   refreshUser();
   track('app_ready', { coins: wallet.coins, best_level: shell.stats.bestLevel, quest: shell.quest.status });
+  const from = notify.launchSource();
+  if (from) track('reminder_open', { id: from });
+  refreshReminders();
   showScreen('lobby', { opening: true });
   save();
 
@@ -443,7 +555,7 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (!instance) return;
-  if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); }
+  if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); refreshReminders(); }
   else {
     refreshDaily(); refreshBox(); refreshQuest(); instance.resume?.();
     if (screen === 'lobby') autoQuest('return');   // a quest may have ended while away
@@ -506,7 +618,12 @@ async function onSettings() {
     note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
       + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
     doNotSell: ads.enabled || DEV ? ads.getDoNotSell() || !!shell.privacy?.doNotSell : null,
+    reminders: notify.available ? remindersOn() : null,
   });
+  if (pick === 'reminders') {
+    await toggleReminders();
+    return onSettings();
+  }
   if (pick === 'dns') {
     const next = !(ads.getDoNotSell() || !!shell.privacy?.doNotSell);
     shell.privacy = { ...(shell.privacy || {}), doNotSell: next };

@@ -34,6 +34,8 @@ const clear = () => p.evaluate(() => { window.__events.length = 0; });
 
 await boot();
 check('app_ready on launch', (await named('app_ready')).length === 1);
+// The tutorial has its own test; here it would spotlight the first bank.
+await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; CashPaws.flush(); });
 check('the lobby is a screen view', (await named('screen_view')).some((e) => e.params.screen_name === 'lobby'));
 const user = (await events()).filter((e) => e.user);
 check('player facts are set', ['game', 'best_level', 'cat_worn', 'days_played', 'cats_owned']

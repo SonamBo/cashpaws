@@ -31,6 +31,15 @@ export const DEFAULTS = Object.freeze({
   hardRewardMultiplier: 2,
   mysteryFrom: 9,         // face-down chips arrive here, on a normal level
   mysteryChance: 0.08,    // odds a chip the flow covers turns face down
+  // Level modifiers (docs/LEVEL-DESIGN.md). Each arrives on a normal level and
+  // is tested by the next Hard one; after that it turns up on some levels.
+  luckyFrom: 12,          // a Lucky Paw coin on every breather from here
+  lockFrom: 17,           // a locked tube
+  lockNeed: 2,            // cash-ins to open it
+  frozenFrom: 25,         // frozen coins
+  frozenCount: 2,         // how many
+  iceHits: 2,             // cash-ins to free one
+  modifierChance: 0.35,   // odds a later level has each modifier
   valueLadder: [1, 5, 10, 20, 50],
   levelBase: 150,         // net worth to climb out of level 1
   levelStep: 50,          // and how much more each level after needs
@@ -103,6 +112,46 @@ export function levelKind(level, cfg = DEFAULTS) {
   return k === 0 ? 'hard' : k === 1 ? 'breather' : 'normal';
 }
 
+/** The Lucky Paw coin: counts as any value. Never face down, never frozen. */
+export const WILD = 999;
+
+/** A steady 0..1 per level and salt, so a level's modifiers never change. */
+function levelRoll(level, salt) {
+  let h = (level * 2654435761 + salt * 40503) >>> 0;
+  h ^= h >>> 16; h = Math.imul(h, 2246822507) >>> 0; h ^= h >>> 13;
+  return (h >>> 0) / 4294967296;
+}
+
+function firstHardAfter(level, cfg) {
+  for (let l = level + 1; l < level + 1 + cfg.hardEvery * 2; l++) if (levelKind(l, cfg) === 'hard') return l;
+  return level + cfg.hardEvery;
+}
+
+/**
+ * Which modifiers a level has: { locked, frozen, lucky }.
+ * - Lucky Paw: every breather (the level after a Hard one) from luckyFrom.
+ * - Locked tube and frozen coins: always on their first level and on the Hard
+ *   level after it, then on about a third of levels, never on a breather.
+ *   A normal level gets at most one of the two; a Hard level may get both.
+ */
+export function levelModifiers(level, cfg = DEFAULTS) {
+  const kind = levelKind(level, cfg);
+  const lucky = level >= cfg.luckyFrom && kind === 'breather';
+  const has = (from, salt) => {
+    if (level < from) return false;
+    if (level === from || level === firstHardAfter(from, cfg)) return true;
+    if (level < firstHardAfter(from, cfg) || kind === 'breather') return false;
+    return levelRoll(level, salt) < cfg.modifierChance;
+  };
+  let locked = has(cfg.lockFrom, 1);
+  let frozen = has(cfg.frozenFrom, 2);
+  const intro = level === cfg.lockFrom || level === cfg.frozenFrom;
+  if (locked && frozen && kind !== 'hard' && !intro) {
+    if (levelRoll(level, 3) < 0.5) locked = false; else frozen = false;
+  }
+  return { locked, frozen, lucky };
+}
+
 /** Chip values in play: 1-2 use 5/10/20, 3-4 add 50, 5+ add 100. */
 export function poolForLevel(level, cfg = DEFAULTS) {
   const [a, b, c, d, e] = cfg.valueLadder;
@@ -160,6 +209,8 @@ export class Game {
     this.events = [];
     this.history = [];          // recent positions, for spotting a back-and-forth
     this.forcedStuck = false;
+    this.locked = null;         // { column, need }: a tube that opens after `need` cash-ins
+    this.ice = [];              // [{ column, index, hits }]: frozen coins, by position
 
     this.seedBoard();
   }
@@ -172,8 +223,11 @@ export class Game {
   get columnCount() { return this.columns.length; }
   get pool() { return poolForLevel(this.level, this.cfg); }
   get openSlots() {
-    return this.columns.reduce((n, col) => n + (this.cfg.capacity - col.length), 0);
+    return this.columns.reduce((n, col, i) => n + (this.isLocked(i) ? 0 : this.cfg.capacity - col.length), 0);
   }
+  get modifiers() { return levelModifiers(this.level, this.cfg); }
+  isLocked(i) { return !!this.locked && this.locked.column === i; }
+  iceAt(c, i) { return this.ice.find((f) => f.column === c && f.index === i) || null; }
   get chipsOnBoard() { return this.columns.reduce((n, col) => n + col.length, 0); }
   get floor() { return netWorthFloor(this.level, this.cfg); }
   get nextFloor() { return netWorthFloor(this.level + 1, this.cfg); }
@@ -219,7 +273,8 @@ export class Game {
   get canAffordSort() { return this.freeSorts > 0 || this.coins >= this.sortPrice; }
   /** Sorting only helps while some tube still holds more than one value. */
   get sortCanHelp() {
-    return this.columns.some((c) => c.length > 1 && c.some((v) => Math.abs(v) !== Math.abs(c[0])));
+    return this.ice.length > 0
+      || this.columns.some((c) => c.length > 1 && c.some((v) => Math.abs(v) !== Math.abs(c[0])));
   }
 
   /*
@@ -242,7 +297,10 @@ export class Game {
    */
   seedBoard() {
     const cols = columnsForLevel(this.level, this.cfg);
-    const receivers = cols - 1;
+    const mods = this.modifiers;
+    // A locked tube is the last one, and another stays empty, so the board is
+    // still never born without a legal move.
+    const receivers = cols - (mods.locked ? 2 : 1);
     const sets = Math.max(1, Math.floor((3 * receivers) / this.cfg.capacity));
     const pool = this.pool;
 
@@ -282,6 +340,60 @@ export class Game {
     this.forcedStuck = false;
     this.turnsUntilDrop = this.cfg.flowInterval;
     this.status = 'playing';
+    this.locked = null;
+    this.ice = [];
+    if (mods.locked) this.locked = { column: cols - 1, need: this.cfg.lockNeed };
+    if (mods.frozen) this.freezeSome();
+    // The Lucky Paw takes the place of one coin in a set, so the set still banks.
+    if (mods.lucky) {
+      const spots = [];
+      this.columns.forEach((col, c) => col.forEach((v, i) => { if (v > 0) spots.push([c, i]); }));
+      if (spots.length) { const [c, i] = this.rng.pick(spots); this.columns[c][i] = WILD; }
+    }
+  }
+
+  /** Freeze buried coins (never a tube's top), at most one per tube. */
+  freezeSome() {
+    const spots = [];
+    this.columns.forEach((col, c) => {
+      if (this.isLocked(c) || col.length < 2) return;
+      for (let i = 0; i < col.length - 1; i++) if (col[i] !== WILD) spots.push([c, i]);
+    });
+    shuffleInPlace(spots, this.rng);
+    const used = new Set();
+    for (const [c, i] of spots) {
+      if (this.ice.length >= this.cfg.frozenCount) break;
+      if (used.has(c)) continue;
+      used.add(c);
+      this.ice.push({ column: c, index: i, hits: this.cfg.iceHits });
+    }
+  }
+
+  /**
+   * A new level brings its own modifiers onto the board as it stands (a level
+   * up keeps the board): last level's lock opens and its ice melts, then this
+   * level's arrive. A lock needs an empty tube; with none free, it waits.
+   */
+  applyLevelModifiers() {
+    const mods = this.modifiers;
+    this.locked = null;
+    this.ice = [];
+    if (mods.locked) {
+      for (let c = this.columnCount - 1; c >= 0; c--) {
+        if (this.columns[c].length === 0 && this.columns.some((col, k) => k !== c && col.length === 0)) {
+          this.locked = { column: c, need: this.cfg.lockNeed };
+          break;
+        }
+      }
+    }
+    if (mods.frozen) this.freezeSome();
+    if (mods.lucky && this.openSlots > 1) {
+      // Somewhere it can't fill a tube on the spot: it's for the player to use.
+      const room = this.columns.map((col, c) => c).filter((c) => !this.isLocked(c)
+        && this.columns[c].length < this.cfg.capacity - 1);
+      if (room.length) this.columns[this.rng.pick(room)].push(WILD);
+    }
+    return mods;
   }
 
   /* ---------------- legality ---------------- */
@@ -295,10 +407,23 @@ export class Game {
   topRun(i) {
     const col = this.columns[i];
     if (!col.length) return 0;
-    const v = col[col.length - 1];
-    let n = 1;
-    for (let k = col.length - 2; k >= 0 && col[k] === v; k--) n++;
+    const v = this.faceValue(i);
+    let n = 0;
+    for (let k = col.length - 1; k >= 0; k--) {
+      if (this.iceAt(i, k)) break;                      // frozen: stays put, and so does all below
+      if (col[k] === v || col[k] === WILD) n++; else break;
+    }
     return n;
+  }
+
+  /**
+   * What a tube's top counts as: its top coin, or, under Lucky Paws, the first
+   * real coin beneath them. A tube of nothing but Lucky Paws is WILD.
+   */
+  faceValue(i) {
+    const col = this.columns[i];
+    for (let k = col.length - 1; k >= 0; k--) if (col[k] !== WILD) return col[k];
+    return WILD;
   }
 
   /** Chips that would actually travel: the whole run, capped by space. */
@@ -341,9 +466,12 @@ export class Game {
     const src = this.columns[from];
     const dst = this.columns[to];
     if (!src || !dst || src.length === 0) return false;
+    if (this.isLocked(from) || this.isLocked(to)) return false;
+    if (this.iceAt(from, src.length - 1)) return false;  // a frozen top can't be lifted
     if (dst.length >= this.cfg.capacity) return false;
     if (dst.length === 0) return true;
-    return dst[dst.length - 1] === src[src.length - 1];
+    const a = this.faceValue(from), b = this.faceValue(to);
+    return a === b || a === WILD || b === WILD;
   }
 
   legalMoves() {
@@ -364,7 +492,12 @@ export class Game {
   tap(i) {
     if (this.status !== 'playing') return { ok: false, reason: 'not-playing' };
     if (this.selected === null) {
+      if (this.isLocked(i)) { this.emit({ type: 'reject', column: i, why: 'locked' }); return { ok: false, reason: 'locked' }; }
       if (this.columns[i].length === 0) return { ok: false, reason: 'empty' };
+      if (this.iceAt(i, this.columns[i].length - 1)) {
+        this.emit({ type: 'reject', column: i, why: 'frozen' });
+        return { ok: false, reason: 'frozen' };
+      }
       this.selected = i;
       this.emit({ type: 'lift', column: i, value: this.top(i) });
       return { ok: true, action: 'lift' };
@@ -376,7 +509,7 @@ export class Game {
     }
     if (this.canMove(this.selected, i)) return this.move(this.selected, i);
     // Re-target onto another occupied column rather than rejecting outright.
-    if (this.columns[i].length > 0) {
+    if (this.columns[i].length > 0 && !this.isLocked(i) && !this.iceAt(i, this.columns[i].length - 1)) {
       this.selected = i;
       this.emit({ type: 'lift', column: i, value: this.top(i) });
       return { ok: true, action: 'lift' };
@@ -454,15 +587,23 @@ export class Game {
     this.checkLock();
   }
 
+  /** A full tube banks if its real coins all match; Lucky Paws fill in. */
+  bankableValue(i) {
+    const col = this.columns[i];
+    if (col.length !== this.cfg.capacity) return 0;
+    const real = col.filter((v) => v !== WILD);
+    if (!real.length) return Math.max(...this.pool);
+    return real.every((v) => v === real[0]) && real[0] > 0 ? real[0] : 0;
+  }
+
   bankAll() {
     let banked = 0;
     for (let i = 0; i < this.columnCount; i++) {
-      const col = this.columns[i];
-      if (col.length !== this.cfg.capacity) continue;
-      if (!col.every((v) => v === col[0])) continue;
-      const value = col[0];
+      const value = this.bankableValue(i);
+      if (!value) continue;
       const amount = bankValue(value, this.cfg);
       this.columns[i] = [];
+      this.ice = this.ice.filter((f) => f.column !== i);
       this.netWorth += amount;
       this.wallet.earn(this.cfg.coinsPerBank, 'bank');
       this.lifetimeBanks++;
@@ -470,7 +611,29 @@ export class Game {
       this.history.length = 0;
       this.emit({ type: 'bank', column: i, value, amount, coins: this.cfg.coinsPerBank });
     }
+    if (banked) this.afterBanks(banked);
     return banked;
+  }
+
+  /** Each cash-in cracks every frozen coin once, and counts down the lock. */
+  afterBanks(n) {
+    for (let k = 0; k < n; k++) {
+      for (const f of this.ice) f.hits -= 1;
+      const freed = this.ice.filter((f) => f.hits <= 0);
+      this.ice = this.ice.filter((f) => f.hits > 0);
+      if (freed.length || this.ice.length) {
+        this.emit({ type: 'thaw', freed: freed.map((f) => ({ column: f.column, index: f.index })),
+          cracked: this.ice.map((f) => ({ column: f.column, index: f.index, hits: f.hits })) });
+      }
+      if (this.locked) {
+        this.locked.need -= 1;
+        if (this.locked.need <= 0) {
+          const column = this.locked.column;
+          this.locked = null;
+          this.emit({ type: 'unlock', column });
+        } else this.emit({ type: 'lock-count', column: this.locked.column, need: this.locked.need });
+      }
+    }
   }
 
   checkLevelUp() {
@@ -487,6 +650,8 @@ export class Game {
       while (this.columns.length < after) this.columns.push([]);
       this.wallet.earn(reward, 'levelup');
       levelled++;
+      const hadLock = this.locked?.column ?? null;
+      const mods = this.applyLevelModifiers();
       this.emit({
         type: 'levelup',
         level: this.level,
@@ -497,6 +662,11 @@ export class Game {
         beatHard: leaving === 'hard',
         kind: levelKind(this.level, this.cfg),
         mysteryArrives: this.level === this.cfg.mysteryFrom,
+        mods,
+        lockArrives: this.level === this.cfg.lockFrom,
+        frozenArrives: this.level === this.cfg.frozenFrom,
+        luckyArrives: mods.lucky && this.level < this.cfg.luckyFrom + this.cfg.hardEvery,
+        unlocked: hadLock,
         poolGrew: poolForLevel(this.level, this.cfg).length >
                   poolForLevel(this.level - 1, this.cfg).length,
       });
@@ -510,7 +680,7 @@ export class Game {
   dropPool() {
     const n = this.dropCount + 1;
     if (n <= 2) {
-      const onBoard = [...new Set(this.columns.flat().map(Math.abs))];
+      const onBoard = [...new Set(this.columns.flat().map(Math.abs))].filter((v) => v !== WILD);
       return onBoard.length ? onBoard : this.pool;
     }
     return this.pool;
@@ -519,7 +689,7 @@ export class Game {
   inflow() {
     const targets = this.columns
       .map((col, i) => i)
-      .filter((i) => this.columns[i].length < this.cfg.capacity);
+      .filter((i) => !this.isLocked(i) && this.columns[i].length < this.cfg.capacity);
 
     // No room at all: skip silently, never flash "+0".
     if (targets.length === 0) {
@@ -537,7 +707,8 @@ export class Game {
     for (const i of targets) {
       const col = this.columns[i];
       // The flow buries chips: the one it lands on may turn face down.
-      if (mystery && col.length && this.rng() < this.cfg.mysteryChance) {
+      if (mystery && col.length && col[col.length - 1] !== WILD && !this.iceAt(i, col.length - 1)
+          && this.rng() < this.cfg.mysteryChance) {
         col[col.length - 1] = -Math.abs(col[col.length - 1]);
       }
       const junk = junky && this.rng() < junkChance;
@@ -612,11 +783,17 @@ export class Game {
     if (!this.sortCanHelp) return { ok: false, reason: 'already-sorted' };
 
     const counts = new Map();
-    for (const v of this.columns.flat().map(Math.abs)) counts.set(v, (counts.get(v) || 0) + 1);
+    let wilds = 0;
+    for (const v of this.columns.flat().map(Math.abs)) {
+      if (v === WILD) { wilds++; continue; }
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
     const groups = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0]);
 
     const cap = this.cfg.capacity;
-    const cols = Array.from({ length: this.columnCount }, () => []);
+    // The locked tube stays shut and empty: sort into the others.
+    const open = this.columns.map((c, k) => k).filter((k) => !this.isLocked(k));
+    const cols = Array.from({ length: open.length }, () => []);
     const spill = [];
     let i = 0;
 
@@ -635,8 +812,19 @@ export class Game {
       const target = cols.findIndex((c) => c.length < cap);
       if (target >= 0) cols[target].push(value);
     }
+    // Lucky Paws finish whichever set is closest to full.
+    for (let w = 0; w < wilds; w++) {
+      const best = cols.map((c, k) => k).filter((k) => cols[k].length < cap)
+        .sort((a, b) => cols[b].length - cols[a].length)[0];
+      if (best !== undefined) cols[best].push(WILD);
+    }
 
-    this.columns = cols;
+    const next = this.columns.map(() => []);
+    open.forEach((k, j) => { next[k] = cols[j]; });
+    this.columns = next;
+    // Sorting shakes the ice loose.
+    if (this.ice.length) this.emit({ type: 'thaw', freed: this.ice.map((f) => ({ column: f.column, index: f.index })), cracked: [] });
+    this.ice = [];
     if (free) { /* paid with an ad */ }
     else if (this.freeSorts > 0) this.freeSorts -= 1;
     else this.wallet.spend(this.sortPrice, 'sort');
@@ -717,6 +905,8 @@ export class Game {
       turnsUntilDrop: this.turnsUntilDrop,
       lifetimeBanks: this.lifetimeBanks,
       status: this.status,
+      locked: this.locked ? { ...this.locked } : null,
+      ice: this.ice.map((f) => ({ ...f })),
     };
   }
 
@@ -729,6 +919,8 @@ export class Game {
     this.turnsUntilDrop = s.turnsUntilDrop;
     this.lifetimeBanks = s.lifetimeBanks;
     this.status = s.status;
+    this.locked = s.locked ? { ...s.locked } : null;         // absent before 1.11
+    this.ice = (s.ice || []).map((f) => ({ ...f }));
     this.selected = null;
   }
 

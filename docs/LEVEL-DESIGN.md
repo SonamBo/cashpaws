@@ -103,11 +103,47 @@ start did nothing. Marmalade's perk is now a reward instead.
 halfway through level 7 stays halfway. The raw net worth would otherwise
 cascade through several level-ups on load. Old saves have used their free Sort.
 
+## Level modifiers (1.11)
+
+Each arrives on a normal level and is tested by the next Hard level. After
+that it appears on about a third of levels (`modifierChance`), never on a
+breather. A normal level gets at most one of the two harder ones.
+
+| Modifier | First | Tested | Rule | Settings |
+|---|---|---|---|---|
+| Lucky Paw coin | 12 | every breather after | Counts as any coin. A run moves by the value under its paws; a full tube banks at its one real value; Sort uses it to finish the fullest set. | `luckyFrom` |
+| Locked tube | 17 | 19 | One empty tube is padlocked: nothing goes in or out, and the flow skips it. It opens after 2 cash-ins. | `lockFrom`, `lockNeed` |
+| Frozen coins | 25 | 27 | Two buried coins are iced. They can't be lifted, and nothing under them can move, but coins can land on them. Each cash-in cracks the ice; the second frees them. Sort thaws them all. | `frozenFrom`, `frozenCount`, `iceHits` |
+
+A level-up keeps the board, so a new level's modifiers arrive on the board
+as it stands: the previous level's lock opens and its ice melts first. The
+new lock takes an empty tube; if there's none spare, that level has no lock.
+A fresh board (lost level, restart, cleared board) deals them in from the
+start, and still leaves one open empty tube.
+
+**Balance.** On the same levels, simulated with the modifiers on and off,
+they don't change how often a level is lost:
+
+| Levels (12+) | Off | On |
+|---|---|---|
+| Normal, locked | 32% | 27% |
+| Normal, frozen | 48% | 43% |
+| Hard, locked | 71% | 60% |
+| Hard, frozen | 85% | 84% |
+| Breather, Lucky Paw | 17% | 17% |
+
+Two weeks for a returning player: days losing a level go from 10.0% to 9.1%.
+The modifiers add variety, not difficulty. The high loss rates on late Hard
+levels are there with or without them: the late-game economy issue in
+`docs/BELL-QUEST.md`.
+
+Art: `tools/art-src/` (ChatGPT), processed by `tools/process-modifier-art.py`;
+prompts in `docs/MODIFIER-ART-PROMPTS.md`.
+
 ## Next, following the same principles
 
-One new thing every 10–15 levels, each on a normal level, each tested by the
-next Hard level. Candidates: a locked tube that opens after a bank, a frozen
-chip that needs two moves, a tube that only takes one value.
+Still to come, with prompts already written: the piggy-bank tube and the
+mouse thief. Candidates after that: a tube that only takes one value.
 
 ## Tools
 

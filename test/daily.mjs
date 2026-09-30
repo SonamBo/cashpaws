@@ -30,6 +30,8 @@ await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
 await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);
+// The tutorial has its own test; here it would spotlight the bot's first bank.
+await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; });
 
 /* ---- day one ---- */
 let d = await daily();

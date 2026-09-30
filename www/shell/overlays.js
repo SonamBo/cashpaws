@@ -87,6 +87,29 @@ export function confirm({ kicker, title, line, ok, cancel = 'Back' }) {
   });
 }
 
+/**
+ * A friendly two-button question, in the same card as a celebration: the worn
+ * cat cheering over a cream card. Resolves true on `ok`, false on `cancel`.
+ */
+export function ask({ kicker, title, line, ok, cancel }) {
+  return new Promise((resolve) => {
+    const card = show(`
+      <div class="ovl-stack">
+        ${cat('cheer', 210, 'ovl-cheer')}
+        <div class="ovl-card">
+          <p class="ovl-kicker">${kicker}</p>
+          <h2 class="ovl-h">${title}</h2>
+          <p class="ovl-sub">${line}</p>
+          <button class="ovl-btn primary" data-ok>${ok}</button>
+          <button class="ovl-btn ghost" data-cancel>${cancel}</button>
+        </div>
+      </div>`, 'milestone');
+    const pick = async (v) => { await dismiss(card); resolve(v); };
+    card.querySelector('[data-ok]').addEventListener('click', () => pick(true));
+    card.querySelector('[data-cancel]').addEventListener('click', () => pick(false));
+  });
+}
+
 function pickMenu(kicker, title, items, note = '') {
   return new Promise((resolve) => {
     const card = show(`
@@ -124,7 +147,7 @@ export function pauseMenu({ canRestart, title }) {
  * opens a tab, and the Android shell hands any outside address to the phone's
  * browser, since the app itself has no internet permission.
  */
-export function settings({ title, note, doNotSell = null }) {
+export function settings({ title, note, doNotSell = null, reminders = null }) {
   // doNotSell is null when there are no ads, so there is nothing to opt out of.
   return pickMenu('Settings', title, [
     `<a class="menu-link" href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
@@ -134,6 +157,11 @@ export function settings({ title, note, doNotSell = null }) {
      <button class="menu-toggle" data-pick="dns" role="switch" aria-checked="${doNotSell}">
        ${icons.lock(20)}<span>Do not sell or share my personal information</span>
        <i class="switch ${doNotSell ? 'on' : ''}"></i>
+     </button>`,
+    reminders === null ? '' : `
+     <button class="menu-toggle" data-pick="reminders" role="switch" aria-checked="${reminders}">
+       ${icons.daily(20)}<span>Reminders: Rewards Box and Bell Quest</span>
+       <i class="switch ${reminders ? 'on' : ''}"></i>
      </button>`,
     `<button data-pick="erase">${icons.undo(20)}<span>Erase all progress</span></button>`,
     `<button class="primary" data-pick="close">${icons.play(20)}<span>Done</span></button>`,

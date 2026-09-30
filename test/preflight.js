@@ -145,6 +145,12 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   needContains('docs/PRIVACY-POLICY.md', 'Firebase', 'the privacy policy must disclose Firebase');
 }
 
+/* --- reminders (1.10.0): the bridge names match, and Android 13 can ask --- */
+needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', '"CashPawsNotify"', 'the Activity must expose the reminders bridge');
+needContains('www/shell/notify.js', 'CashPawsNotify', 'the shell must look for the same bridge name');
+needContains('android/app/src/main/AndroidManifest.xml', 'POST_NOTIFICATIONS', 'Android 13+ needs the permission declared to ask for it');
+need('android/app/src/main/res/drawable/ic_notify.xml', 'the white notification icon');
+
 /* --- launcher icon at every density --- */
 for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
   for (const f of ['ic_fg.png', 'ic_launcher.png', 'ic_launcher_round.png']) {

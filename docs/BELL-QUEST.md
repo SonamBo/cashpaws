@@ -17,11 +17,15 @@ makes it.
    - 100 cats start the quest.
    - Use a Sort when stuck. Dropping a level knocks you out.
    - The prize is shared equally by every cat who finishes.
-5. **Each level beaten** is a step. A toast in the game shows it:
-   "Bell Quest 3/7 · 30 cats left".
-6. **Dropping a level** knocks you out. The stuck card's "Drop a level" first asks
-   "Give up your quest?", which names your step and the prize. "Back" returns to
-   the stuck card, where Sort (or a Sort paid for with an ad) is still on offer.
+5. **Each level beaten** is a step. Right after the level-up card, before the
+   next level starts, the path card appears in the game and your cat hops to
+   its new stone. The button there says **Continue**. A win is shown and
+   claimed on the spot. (1.9.0; before that, a toast.)
+6. **Dropping a level** knocks you out. Tapping "Drop a level" turns the stuck
+   card itself into "Give up your quest?", with the same cat and layout, the
+   step, the cats left and the prize. **Keep my quest** (the green button)
+   turns it back into the stuck card, where Sort (or a Sort paid for with an
+   ad) is still on offer.
    This is our version of Lava Quest's "spend boosters to protect your streak".
 7. **The result:** Claim, Knocked out, or Time ran out. The next quest is offered
    straight away; "Start a new quest" on the knockout card goes directly in.

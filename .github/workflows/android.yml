@@ -37,6 +37,12 @@ jobs:
       - name: Bell Quest rules
         run: node test/quest.js
 
+      - name: Reminder rules
+        run: node test/notify.js
+
+      - name: Level modifier rules
+        run: node test/modifiers.js
+
       - name: Pacing probe
         run: node test/pace.js 300
 
