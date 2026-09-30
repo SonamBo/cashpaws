@@ -78,6 +78,16 @@ android {
     packaging {
         resources { excludes += ['META-INF/*.kotlin_module'] }
     }
+
+    // NullSafeMutableLiveData's detector (bundled in a Lifecycle lint.jar
+    // pulled in transitively, likely via Firebase) crashes lint on Kotlin
+    // 2.2.21: it hits Kotlin's Analysis API expecting a class where 2.2.x now
+    // has an interface (KaCallableMemberCall). Gradle's own crash message
+    // suggests this exact workaround. AGP 8.7.3's bundled Lint predates
+    // Kotlin 2.2 — revisit when AGP is next bumped.
+    lint {
+        disable "NullSafeMutableLiveData"
+    }
 }
 
 dependencies {
