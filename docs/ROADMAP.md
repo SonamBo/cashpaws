@@ -146,6 +146,10 @@ Free first Sort, shorter levels, Hard levels every 4th from 7 with a breather af
 
 Seven levels in a row, shared prize, from level 8. See `docs/BELL-QUEST.md`. Next: illustrated art, and a pass on Money Sort's economy for long sessions.
 
+## 6. Ads moved to Google AdMob — 1.12.0
+
+AppLovin MAX was never live (its keys stayed blank). 1.12.0 serves rewarded ads through AdMob directly: one unit, Rewarded_admob, for both placements, and Google's UMP for consent. No mediation yet; AppLovin and others can join later as AdMob mediation partners once there's a contract, with no code changes beyond an adapter dependency.
+
 ## Housekeeping carried forward
 
 - **Soot has no artwork** and plays as Patch. Four poses, per

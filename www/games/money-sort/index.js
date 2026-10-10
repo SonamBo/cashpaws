@@ -185,7 +185,7 @@ export default {
             // Level modifiers: explained in full the first time, named after that.
             const m = e.mods || {};
             if (e.lockArrives) gains.push('New: a locked tube. Cash in 2 tubes to open it. The flow skips it till then.');
-            else if (m.locked && !e.gainedColumn) gains.push('This level: a locked tube');
+            else if (m.locked) gains.push('This level: a locked tube');
             if (e.frozenArrives) gains.push('New: frozen coins can\'t be lifted. Each cash-in cracks the ice; the second frees them.');
             else if (m.frozen) gains.push('This level: frozen coins');
             if (e.luckyArrives) gains.push('New: a Lucky Paw coin! It counts as any coin, so it finishes any set.');

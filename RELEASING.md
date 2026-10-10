@@ -20,7 +20,7 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 16, versionName 1.11.0**, ready for your next
+Currently set to **versionCode 19, versionName 1.13.0**, ready for your next
 upload. Skipping a number is harmless; reusing one is not.
 
 **`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in
@@ -43,7 +43,7 @@ the Play Console.
 |---|---|
 | Package | `com.pixelartgames.cashpaw` — permanent, never change it |
 | Target API | 36 (Play's floor; raise when Google raises it) |
-| Toolchain | AGP 8.7.3, Gradle 8.9, Kotlin 2.2.21 |
+| Toolchain | AGP 8.9.2, Gradle 8.11.1, Kotlin 2.0.21 |
 | Signing | four repo secrets, see `PLAY-STORE.md` |
 | Privacy policy | https://pixelartgames000.github.io/privacy-policy/ — lobby gear, Settings |
 
@@ -71,13 +71,18 @@ says so.
 
 ## Ads (since 1.5.0)
 
-Keys live in `android/ads.properties` — the AppLovin **SDK key** and the Android
-**rewarded ad unit ID**. They are not secret (both end up inside the APK), so the
-file is committed. **Blank keys build an app with no ads at all**: no ad buttons,
-no US opt-out, and Settings says "No ads". The pre-flight prints which you are
-about to build.
+Since 1.12.0: Google AdMob. The IDs live in `android/ads.properties`: the
+AdMob **app ID** and one **rewarded ad unit ID** (Rewarded_admob, used for both
+placements). They are not secret (both end up inside the APK), so the file is
+committed. They apply to **release builds only**; debug builds always use
+Google's test IDs, so testing can't get the account suspended. A blank ad unit
+builds a release with no ads: no ad buttons, and Settings says "No ads". The
+pre-flight prints which you are about to build, and fails if the IDs are
+malformed, from different accounts, or Google's test IDs.
 
-AppLovin SDK is pinned at 13.6.3. Update it deliberately, and re-run a build.
+Google Mobile Ads SDK is pinned at 25.5.0, and UMP (consent) at 4.0.0. Update
+them deliberately, and re-run a build. No mediation networks yet: adding one is
+an adapter dependency plus AdMob console setup, with no code changes.
 
 Before an ads release reaches Play, all of these must match the build:
 store listing (`docs/store-listing.md`), Data safety and Ads declaration
@@ -109,7 +114,7 @@ refuses. The runner already has API 35 tools pre-installed and AGP 8.7.3 builds
 | targetSdk | 36 (Play's floor — this is the one that matters) |
 | AGP | 8.7.3 |
 | Gradle | 8.9 |
-| Kotlin | 2.2.21 — bumped from 2.0.21 because Firebase's `play-services-measurement-impl` ships metadata version 2.2.0, which older compilers can't read |
+| Kotlin | 2.0.21 |
 
 When Play raises the floor again: bump `targetSdk` first. If the build still
 passes with `compileSdk` one below, leave it there. Only bump `compileSdk` (and
@@ -143,7 +148,7 @@ problem, and points somewhere completely different.
 
 ## Plans
 
-`docs/ROADMAP.md` — daily tasks, the rewards box, AppLovin.
+`docs/ROADMAP.md` — daily tasks, the rewards box, ads.
 `docs/ANALYTICS.md` — every analytics event, and the one-time Firebase console setup.
 `docs/BELL-QUEST.md` — the Bell Quest event and how its prize was sized.
 `docs/LEVEL-DESIGN.md` — level pacing, Hard levels, face-down chips, and how to retune them with `tools/tune.mjs`.

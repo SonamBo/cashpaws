@@ -3,7 +3,7 @@
 
     <!-- Used for the small tap on banking and on an illegal move. -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- Ads (AppLovin MAX). The game itself still runs entirely from the APK. -->
+    <!-- Ads (Google AdMob). The game itself still runs entirely from the APK. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
@@ -21,6 +21,12 @@
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.CashPaws.Splash">
+
+        <!-- AdMob app ID, from build.gradle: the real one in release, Google's
+             test one in debug. The SDK crashes at launch without it. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
 
         <activity
             android:name=".MainActivity"

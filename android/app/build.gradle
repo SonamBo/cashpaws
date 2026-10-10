@@ -28,13 +28,9 @@ android {
         targetSdk 36
         // Play rejects an upload whose versionCode it has seen before. Bump
         // this every single time you publish, even for a one-line fix.
-        // AppLovin keys, from android/ads.properties. Blank means ads are off
-        // and the game shows no ad buttons at all.
-        buildConfigField 'String', 'ADS_SDK_KEY', "\"${adsProps.getProperty('sdkKey', '').trim()}\""
-        buildConfigField 'String', 'ADS_REWARDED_UNIT', "\"${adsProps.getProperty('rewardedAdUnit', '').trim()}\""
 
-        versionCode 16
-        versionName "1.11.0"
+        versionCode 19
+        versionName "1.13.0"
     }
 
     signingConfigs {
@@ -56,14 +52,31 @@ android {
         abi { enableSplit true }
     }
 
+    // AdMob. Release builds use the real IDs from android/ads.properties; debug
+    // builds always use Google's published test IDs. The manifest's app ID can
+    // never be blank: the SDK crashes at launch without one, so a release with
+    // no app ID falls back to the test ID (and, with no ad unit, shows no ads).
+    def TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713'
+    def TEST_REWARDED = 'ca-app-pub-3940256099942544/5224354917'
+    def TEST_INTERSTITIAL = 'ca-app-pub-3940256099942544/1033173712'
+    def realAppId = adsProps.getProperty('appId', '').trim()
+    def realRewarded = adsProps.getProperty('rewardedAdUnit', '').trim()
+    def realInterstitial = adsProps.getProperty('interstitialAdUnit', '').trim()
+
     buildTypes {
         release {
+            manifestPlaceholders = [admobAppId: realAppId ?: TEST_APP_ID]
+            buildConfigField 'String', 'ADS_REWARDED_UNIT', "\"${realRewarded}\""
+            buildConfigField 'String', 'ADS_INTERSTITIAL_UNIT', "\"${realInterstitial}\""
             signingConfig keystorePath ? signingConfigs.release : null
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
+            manifestPlaceholders = [admobAppId: TEST_APP_ID]
+            buildConfigField 'String', 'ADS_REWARDED_UNIT', "\"${TEST_REWARDED}\""
+            buildConfigField 'String', 'ADS_INTERSTITIAL_UNIT', "\"${TEST_INTERSTITIAL}\""
             applicationIdSuffix ".debug"
         }
     }
@@ -78,23 +91,13 @@ android {
     packaging {
         resources { excludes += ['META-INF/*.kotlin_module'] }
     }
-
-    // NullSafeMutableLiveData's detector (bundled in a Lifecycle lint.jar
-    // pulled in transitively, likely via Firebase) crashes lint on Kotlin
-    // 2.2.21: it hits Kotlin's Analysis API expecting a class where 2.2.x now
-    // has an interface (KaCallableMemberCall). Gradle's own crash message
-    // suggests this exact workaround. AGP 8.7.3's bundled Lint predates
-    // Kotlin 2.2 — revisit when AGP is next bumped.
-    lint {
-        disable "NullSafeMutableLiveData"
-    }
 }
 
 dependencies {
-    // Pinned, not '+': a new AppLovin release must not change the build unasked.
-    implementation 'com.applovin:applovin-sdk:13.6.3'
-    // The SDK reads the Advertising ID through this module.
-    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
+    // Google AdMob, and its consent SDK (UMP) for the US privacy message.
+    // Pinned, not '+': a new release must not change the build unasked.
+    implementation 'com.google.android.gms:play-services-ads:25.5.0'
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
     // Firebase, versions from the BoM. google-services.json covers both
     // com.pixelartgames.cashpaw and its .debug build, which report as
     // separate apps so testing never mixes with real players.
@@ -107,13 +110,6 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.activity:activity-ktx:1.9.3'
     implementation 'androidx.core:core-splashscreen:1.0.1'
-    // Not used directly (MainActivity is a bare ComponentActivity, no
-    // Fragments) — pinned only to force a modern version onto the resolved
-    // classpath. Without it some transitive dependency drags in a
-    // pre-1.3.0 Fragment, and lintVitalRelease hard-fails the release build
-    // over InvalidFragmentVersionForActivityResult even though nothing here
-    // actually hits the code path the check is protecting.
-    implementation 'androidx.fragment:fragment-ktx:1.9.1'
     // Reminders: WorkManager keeps scheduled notifications across restarts.
     implementation 'androidx.work:work-runtime:2.10.0'
 }

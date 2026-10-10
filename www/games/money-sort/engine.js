@@ -274,7 +274,7 @@ export class Game {
   /** Sorting only helps while some tube still holds more than one value. */
   get sortCanHelp() {
     return this.ice.length > 0
-      || this.columns.some((c) => c.length > 1 && c.some((v) => Math.abs(v) !== Math.abs(c[0])));
+      || this.columns.some((c, i) => !this.isLocked(i) && c.length > 1 && c.some((v) => Math.abs(v) !== Math.abs(c[0])));
   }
 
   /*
@@ -372,28 +372,45 @@ export class Game {
   /**
    * A new level brings its own modifiers onto the board as it stands (a level
    * up keeps the board): last level's lock opens and its ice melts, then this
-   * level's arrive. A lock needs an empty tube; with none free, it waits.
+   * level's arrive. Returns what actually landed, which is what the level-up
+   * card announces.
+   *
+   * The lock prefers an empty tube, keeping another empty one free. A real
+   * board often has only one empty tube at a level-up, so otherwise it locks
+   * the tube with the fewest coins, and they wait inside until it opens. It
+   * never locks a full tube, and never leaves the board without a move.
    */
   applyLevelModifiers() {
     const mods = this.modifiers;
     this.locked = null;
     this.ice = [];
-    if (mods.locked) {
-      for (let c = this.columnCount - 1; c >= 0; c--) {
-        if (this.columns[c].length === 0 && this.columns.some((col, k) => k !== c && col.length === 0)) {
-          this.locked = { column: c, need: this.cfg.lockNeed };
-          break;
-        }
-      }
-    }
+    if (mods.locked) this.lockOne();
     if (mods.frozen) this.freezeSome();
+    let lucky = false;
     if (mods.lucky && this.openSlots > 1) {
       // Somewhere it can't fill a tube on the spot: it's for the player to use.
       const room = this.columns.map((col, c) => c).filter((c) => !this.isLocked(c)
         && this.columns[c].length < this.cfg.capacity - 1);
-      if (room.length) this.columns[this.rng.pick(room)].push(WILD);
+      if (room.length) { this.columns[this.rng.pick(room)].push(WILD); lucky = true; }
     }
-    return mods;
+    return { locked: !!this.locked, frozen: this.ice.length > 0, lucky };
+  }
+
+  lockOne() {
+    const cap = this.cfg.capacity;
+    const empties = this.columns.map((c, i) => i).filter((i) => this.columns[i].length === 0);
+    const candidates = empties.length >= 2
+      ? [empties[empties.length - 1]]
+      : this.columns.map((c, i) => i)
+        .filter((i) => this.columns[i].length < cap - 1 && !empties.includes(i))
+        .sort((a, b) => this.columns[a].length - this.columns[b].length || b - a);
+    for (const c of candidates) {
+      this.locked = { column: c, need: this.cfg.lockNeed };
+      // Frozen coins can't sit in a locked tube: the two would fight.
+      if (!this.isDeadlocked() && this.openSlots > 1) return true;
+      this.locked = null;
+    }
+    return false;
   }
 
   /* ---------------- legality ---------------- */
@@ -663,8 +680,9 @@ export class Game {
         kind: levelKind(this.level, this.cfg),
         mysteryArrives: this.level === this.cfg.mysteryFrom,
         mods,
-        lockArrives: this.level === this.cfg.lockFrom,
-        frozenArrives: this.level === this.cfg.frozenFrom,
+        // Explained in full the first time it actually lands, named after that.
+        lockArrives: mods.locked && this.level < this.cfg.lockFrom + this.cfg.hardEvery,
+        frozenArrives: mods.frozen && this.level < this.cfg.frozenFrom + this.cfg.hardEvery,
         luckyArrives: mods.lucky && this.level < this.cfg.luckyFrom + this.cfg.hardEvery,
         unlocked: hadLock,
         poolGrew: poolForLevel(this.level, this.cfg).length >
@@ -784,7 +802,8 @@ export class Game {
 
     const counts = new Map();
     let wilds = 0;
-    for (const v of this.columns.flat().map(Math.abs)) {
+    // A locked tube's coins stay inside it, untouched.
+    for (const v of this.columns.filter((c, k) => !this.isLocked(k)).flat().map(Math.abs)) {
       if (v === WILD) { wilds++; continue; }
       counts.set(v, (counts.get(v) || 0) + 1);
     }
@@ -819,7 +838,7 @@ export class Game {
       if (best !== undefined) cols[best].push(WILD);
     }
 
-    const next = this.columns.map(() => []);
+    const next = this.columns.map((c, k) => (this.isLocked(k) ? c : []));
     open.forEach((k, j) => { next[k] = cols[j]; });
     this.columns = next;
     // Sorting shakes the ice loose.

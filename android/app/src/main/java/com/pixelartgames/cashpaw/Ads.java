@@ -1,43 +1,59 @@
 package com.pixelartgames.cashpaw;
 
 import android.app.Activity;
-import android.content.SharedPreferences;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
-import com.applovin.mediation.MaxAd;
-import com.applovin.mediation.MaxAdRevenueListener;
-import com.applovin.mediation.MaxError;
-import com.applovin.mediation.MaxReward;
-import com.applovin.mediation.MaxRewardedAdListener;
-import com.applovin.mediation.ads.MaxRewardedAd;
-import com.applovin.sdk.AppLovinMediationProvider;
-import com.applovin.sdk.AppLovinPrivacySettings;
-import com.applovin.sdk.AppLovinSdk;
-import com.applovin.sdk.AppLovinSdkInitializationConfiguration;
+import androidx.annotation.NonNull;
+
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.android.ump.ConsentInformation;
+import com.google.android.ump.ConsentRequestParameters;
+import com.google.android.ump.UserMessagingPlatform;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The bridge between the game and AppLovin MAX. The page sees it as
+ * The bridge between the game and Google AdMob. The page sees it as
  * window.CashPawsAds; shell/ads.js is the only code that talks to it.
  *
- * Written in Java on purpose: the MAX listener's parameters carry nullability
- * annotations that the published samples disagree about, and Kotlin refuses to
- * compile an override whose nullability does not match. Java does not care.
+ * SDK: com.google.android.gms:play-services-ads (Google Mobile Ads), with the
+ * User Messaging Platform (UMP) for consent: the US state privacy message
+ * ("do not sell or share") and, if the app ever ships to Europe, GDPR. AdMob's
+ * own Privacy & messaging settings decide which message anyone sees; this code
+ * only asks UMP and does what it says.
  *
- * With no SDK key or ad unit in android/ads.properties, nothing here starts:
- * isEnabled() reports false and the game shows no ad buttons at all.
+ * One rewarded ad unit serves every placement (Rescue Sort, Rewards Box);
+ * the placement name only travels to analytics. One interstitial unit is
+ * shown at natural breaks; when is the page's call (shell/ads.js): after
+ * level 10, at most once per 2.5 minutes of actual play.
  *
- * SDK: com.applovin:applovin-sdk 13.6.3. Uses MaxRewardedAd.getInstance(id),
- * the form without a Context; the Context-taking APIs are deprecated in 13.x.
+ * Debug builds always use Google's test app ID and test ad unit (set in
+ * build.gradle), so testing can never put the real account at risk.
+ * A release build with no ad unit in android/ads.properties has ads off.
+ *
+ * Mediation: none yet. To add a network later, add its adapter dependency and
+ * set it up in the AdMob console; nothing here changes.
  */
-public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
-
-    private static final String PREFS = "cashpaws.ads";
-    private static final String DO_NOT_SELL = "doNotSell";
+public final class Ads {
 
     private final Activity activity;
     private final WebView webView;
-    private MaxRewardedAd rewarded;
+    private final ConsentInformation consent;
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private RewardedAd rewarded;
+    private boolean loading;
+    private InterstitialAd interstitial;
+    private boolean loadingInterstitial;
+    private int interstitialRetry;
     private String pendingCallback;
     private boolean earned;
     private int retryAttempt;
@@ -45,30 +61,92 @@ public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
     public Ads(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        this.consent = UserMessagingPlatform.getConsentInformation(activity);
     }
 
     public boolean enabled() {
-        return !BuildConfig.ADS_SDK_KEY.isEmpty() && !BuildConfig.ADS_REWARDED_UNIT.isEmpty();
+        return !BuildConfig.ADS_REWARDED_UNIT.isEmpty();
     }
 
-    /** Call once from onCreate. The US opt-out must be set before the SDK starts. */
+    /**
+     * Call once from onCreate. Consent comes first: UMP shows its message if
+     * this user needs one, and ads start only once it says they may.
+     */
     public void start() {
         if (!enabled()) return;
-        AppLovinPrivacySettings.setDoNotSell(prefs().getBoolean(DO_NOT_SELL, false));
-        AppLovinSdkInitializationConfiguration config =
-            AppLovinSdkInitializationConfiguration.builder(BuildConfig.ADS_SDK_KEY)
-                .setMediationProvider(AppLovinMediationProvider.MAX)
-                .build();
-        AppLovinSdk.getInstance(activity).initialize(config, sdkConfig -> {
-            rewarded = MaxRewardedAd.getInstance(BuildConfig.ADS_REWARDED_UNIT);
-            rewarded.setListener(this);
-            rewarded.setRevenueListener(this);     // ad revenue into Firebase
-            rewarded.loadAd();
-        });
+        ConsentRequestParameters params = new ConsentRequestParameters.Builder()
+            .setTagForUnderAgeOfConsent(false)
+            .build();
+        consent.requestConsentInfoUpdate(
+            activity,
+            params,
+            () -> UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity, formError -> {
+                if (consent.canRequestAds()) initAds();
+            }),
+            requestError -> {
+                // Offline or a config problem: fall back on what was known before.
+                if (consent.canRequestAds()) initAds();
+            });
+        // A returning user who already answered can start straight away.
+        if (consent.canRequestAds()) initAds();
     }
 
-    private SharedPreferences prefs() {
-        return activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE);
+    private void initAds() {
+        if (!initialized.compareAndSet(false, true)) return;
+        // Off the main thread, as Google recommends; loading waits for it.
+        new Thread(() -> MobileAds.initialize(activity, status ->
+            activity.runOnUiThread(() -> { load(); loadInterstitial(); }))).start();
+    }
+
+    private boolean interstitialEnabled() {
+        return !BuildConfig.ADS_INTERSTITIAL_UNIT.isEmpty();
+    }
+
+    private void loadInterstitial() {
+        if (!interstitialEnabled() || interstitial != null || loadingInterstitial) return;
+        loadingInterstitial = true;
+        InterstitialAd.load(activity, BuildConfig.ADS_INTERSTITIAL_UNIT, new AdRequest.Builder().build(),
+            new InterstitialAdLoadCallback() {
+                @Override
+                public void onAdLoaded(@NonNull InterstitialAd ad) {
+                    loadingInterstitial = false;
+                    interstitialRetry = 0;
+                    interstitial = ad;
+                }
+
+                @Override
+                public void onAdFailedToLoad(@NonNull LoadAdError error) {
+                    loadingInterstitial = false;
+                    interstitial = null;
+                    interstitialRetry++;
+                    long delay = 1000L * (1L << Math.min(6, interstitialRetry));
+                    webView.postDelayed(Ads.this::loadInterstitial, delay);
+                }
+            });
+    }
+
+    private void load() {
+        if (rewarded != null || loading) return;
+        loading = true;
+        RewardedAd.load(activity, BuildConfig.ADS_REWARDED_UNIT, new AdRequest.Builder().build(),
+            new RewardedAdLoadCallback() {
+                @Override
+                public void onAdLoaded(@NonNull RewardedAd ad) {
+                    loading = false;
+                    retryAttempt = 0;
+                    rewarded = ad;
+                }
+
+                @Override
+                public void onAdFailedToLoad(@NonNull LoadAdError error) {
+                    loading = false;
+                    rewarded = null;
+                    // Back off: 2, 4, 8 … up to 64 seconds.
+                    retryAttempt++;
+                    long delay = 1000L * (1L << Math.min(6, retryAttempt));
+                    webView.postDelayed(Ads.this::load, delay);
+                }
+            });
     }
 
     /* ---------------- called from the page ---------------- */
@@ -80,8 +158,7 @@ public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
 
     @JavascriptInterface
     public boolean rewardedReady() {
-        MaxRewardedAd ad = rewarded;
-        return ad != null && ad.isReady();
+        return rewarded != null;
     }
 
     /**
@@ -91,28 +168,86 @@ public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
     @JavascriptInterface
     public void showRewarded(String placement, String callbackId) {
         activity.runOnUiThread(() -> {
-            MaxRewardedAd ad = rewarded;
-            if (ad == null || !ad.isReady() || pendingCallback != null) {
+            RewardedAd ad = rewarded;
+            if (ad == null || pendingCallback != null) {
                 reply(callbackId, false);
+                load();
                 return;
             }
+            rewarded = null;                 // an ad shows once
             pendingCallback = callbackId;
             earned = false;
-            ad.showAd(activity);
+            ad.setFullScreenContentCallback(new FullScreenContentCallback() {
+                @Override
+                public void onAdDismissedFullScreenContent() {
+                    finish(earned);
+                    load();
+                }
+
+                @Override
+                public void onAdFailedToShowFullScreenContent(@NonNull AdError error) {
+                    finish(false);
+                    load();
+                }
+            });
+            ad.show(activity, rewardItem -> earned = true);
         });
     }
 
-    /** The US "do not sell or share" choice from Settings. Remembered across launches. */
     @JavascriptInterface
-    public void setDoNotSell(boolean value) {
-        prefs().edit().putBoolean(DO_NOT_SELL, value).apply();
-        if (enabled()) AppLovinPrivacySettings.setDoNotSell(value);
-        Analytics.applyDoNotSell(activity, value);
+    public boolean interstitialReady() {
+        return interstitial != null;
     }
 
+    /**
+     * Show an interstitial. window.__adResult(callbackId, shown) answers once
+     * it closes (true) or if there was nothing to show (false), so the game
+     * waits for it before carrying on.
+     */
     @JavascriptInterface
-    public boolean getDoNotSell() {
-        return prefs().getBoolean(DO_NOT_SELL, false);
+    public void showInterstitial(String placement, String callbackId) {
+        activity.runOnUiThread(() -> {
+            InterstitialAd ad = interstitial;
+            if (ad == null || pendingCallback != null) {
+                reply(callbackId, false);
+                loadInterstitial();
+                return;
+            }
+            interstitial = null;
+            pendingCallback = callbackId;
+            ad.setFullScreenContentCallback(new FullScreenContentCallback() {
+                @Override
+                public void onAdDismissedFullScreenContent() {
+                    finish(true);
+                    loadInterstitial();
+                }
+
+                @Override
+                public void onAdFailedToShowFullScreenContent(@NonNull AdError error) {
+                    finish(false);
+                    loadInterstitial();
+                }
+            });
+            ad.show(activity);
+        });
+    }
+
+    /**
+     * True when UMP says this user must be able to revisit their privacy
+     * choice (for the US state message, that's the "do not sell or share"
+     * link). Settings shows the row only then.
+     */
+    @JavascriptInterface
+    public boolean privacyOptionsRequired() {
+        return consent.getPrivacyOptionsRequirementStatus()
+            == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
+    }
+
+    /** Google's own privacy form, from Settings. */
+    @JavascriptInterface
+    public void showPrivacyOptions() {
+        activity.runOnUiThread(() ->
+            UserMessagingPlatform.showPrivacyOptionsForm(activity, formError -> { }));
     }
 
     private void reply(String callbackId, boolean ok) {
@@ -125,46 +260,5 @@ public final class Ads implements MaxRewardedAdListener, MaxAdRevenueListener {
         String id = pendingCallback;
         pendingCallback = null;
         if (id != null) reply(id, ok);
-    }
-
-    /* ---------------- MAX callbacks ---------------- */
-    // No @Override on these: if a future SDK drops one, this still compiles.
-
-    public void onAdLoaded(MaxAd ad) {
-        retryAttempt = 0;
-    }
-
-    /** Retry with growing delays, capped at 64 seconds, as AppLovin recommends. */
-    public void onAdLoadFailed(String adUnitId, MaxError error) {
-        retryAttempt++;
-        long delay = 1000L * (1L << Math.min(6, retryAttempt));
-        webView.postDelayed(() -> {
-            if (rewarded != null) rewarded.loadAd();
-        }, delay);
-    }
-
-    public void onAdDisplayed(MaxAd ad) { }
-
-    public void onAdClicked(MaxAd ad) { }
-
-    public void onUserRewarded(MaxAd ad, MaxReward reward) {
-        earned = true;
-    }
-
-    /** Closed. Pay out only if the reward was earned, then load the next one. */
-    public void onAdHidden(MaxAd ad) {
-        finish(earned);
-        if (rewarded != null) rewarded.loadAd();
-    }
-
-    /** What the impression earned, reported as Firebase's ad_impression. */
-    public void onAdRevenuePaid(MaxAd ad) {
-        Analytics.adImpression(activity, ad.getNetworkName(), ad.getFormat().getLabel(),
-            ad.getAdUnitId(), ad.getPlacement(), ad.getRevenue());
-    }
-
-    public void onAdDisplayFailed(MaxAd ad, MaxError error) {
-        finish(false);
-        if (rewarded != null) rewarded.loadAd();
     }
 }

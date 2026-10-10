@@ -1295,3 +1295,24 @@ img.art { user-select: none; -webkit-user-drag: none; }
   60%, 100% { transform: none; opacity: 1; }
 }
 .bar-sub[hidden] { display: none; }
+
+/* Ad break: the bar fills while the cat says an ad is coming. */
+.ad-break { text-align: center; }
+.ad-break .ovl-h { font-size: 28px; }
+.ad-break-bar {
+  height: 8px;
+  margin: var(--s4) 0 var(--s1);
+  border-radius: var(--r-pill);
+  background: var(--bar-track);
+  overflow: hidden;
+}
+.ad-break-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transform-origin: left;
+  animation: ad-break-fill linear both;
+}
+@keyframes ad-break-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }

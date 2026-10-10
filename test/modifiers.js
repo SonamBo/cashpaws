@@ -113,6 +113,30 @@ const game = (level, cols, extra = {}) => {
   g.move(1, 0);
   ok('levelling up to 17 locks an empty tube', g.level === 17 && g.locked && ev.lockArrives === true);
 
+  // The reported bug: a real board at the level-up has one empty tube, not two.
+  const h = new Game({ seed: 11, level: 16, wallet: localWallet(0) });
+  h.columns = [[5, 5, 5], [10, 20], [20, 10, 1], [1], [50, 50], [10, 1, 20], [20, 50], [10, 5]];
+  h.netWorth = h.nextFloor - 1; h.turnsUntilDrop = 50;
+  let hev = null; h.on((e) => { if (e.type === 'levelup') hev = e; });
+  h.move(7, 0);                     // banks tube 0: the only empty tube is the one just banked
+  ok('with only one empty tube, level 17 still gets its lock', h.level === 17 && h.locked !== null);
+  ok('on the least-full tube, keeping its coins inside', h.columns[h.locked.column].length > 0
+    && h.columns[h.locked.column].length <= 2);
+  ok('the empty tube stays free', h.columns.some((c, i) => !h.isLocked(i) && c.length === 0));
+  ok('and the card announces it', hev.lockArrives === true && hev.mods.locked === true);
+  const insideBefore = [...h.columns[h.locked.column]];
+  h.freeSorts = 1; h.sort();
+  ok('Sort leaves the locked coins where they are', JSON.stringify(h.columns[h.locked.column]) === JSON.stringify(insideBefore));
+  ok('nothing moves out of it', h.columns.every((c, i) => i === h.locked.column || !h.canMove(h.locked.column, i)));
+
+  // A board too packed to lock anything: no lock, and the card doesn't claim one.
+  const p = new Game({ seed: 12, level: 16, wallet: localWallet(0) });
+  p.columns = [[5, 5, 5], [10, 20, 10], [20, 10, 1], [1, 5, 20], [50, 20, 50], [10, 1, 20], [20, 50, 10], [5]];
+  p.netWorth = p.nextFloor - 1; p.turnsUntilDrop = 50;
+  let pev = null; p.on((e) => { if (e.type === 'levelup') pev = e; });
+  p.move(7, 0);
+  ok('a packed board: the card only announces what landed', pev && pev.mods.locked === !!p.locked && pev.lockArrives === !!p.locked);
+
   // Saving and loading keep them.
   const back = Game.deserialize(JSON.parse(JSON.stringify(g.serialize())), { wallet: localWallet(0) });
   ok('a save keeps the lock', back.locked && back.locked.column === g.locked.column);

@@ -35,7 +35,7 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
       header.setProgress(p);
       if (Number.isFinite(p.level)) shell.stats.bestLevel = Math.max(shell.stats.bestLevel, p.level);
       shell.summaries[game.id] = p.summary || '';
-      onProgress();
+      onProgress(p);
     },
 
     /*
@@ -61,6 +61,7 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     confirm,
     cards: { show, dismiss, wait },
 
+    /** A natural break, such as a finished level. Awaitable; nothing is tied to it now. */
     moment: (kind) => ads.moment(kind),
     rewarded: ads.rewarded,
 

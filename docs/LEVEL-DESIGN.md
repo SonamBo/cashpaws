@@ -117,7 +117,13 @@ breather. A normal level gets at most one of the two harder ones.
 
 A level-up keeps the board, so a new level's modifiers arrive on the board
 as it stands: the previous level's lock opens and its ice melts first. The
-new lock takes an empty tube; if there's none spare, that level has no lock.
+new lock takes an empty tube if another stays free. A real board usually has
+only one empty tube at a level-up, so otherwise the lock goes on the tube with
+the fewest coins, and they wait inside until it opens (1.11.1; before that the
+lock was skipped on 23% of level-ups while the card still announced it). It
+never locks a full tube or leaves the board without a move; on the rare board
+too packed for that (under 1%), the level has no lock and the card doesn't
+mention one. The card only ever announces what actually landed.
 A fresh board (lost level, restart, cleared board) deals them in from the
 start, and still leaves one open empty tube.
 
@@ -132,7 +138,7 @@ they don't change how often a level is lost:
 | Hard, frozen | 85% | 84% |
 | Breather, Lucky Paw | 17% | 17% |
 
-Two weeks for a returning player: days losing a level go from 10.0% to 9.1%.
+Two weeks for a returning player: days losing a level go from 10.0% to 11.0%.
 The modifiers add variety, not difficulty. The high loss rates on late Hard
 levels are there with or without them: the late-game economy issue in
 `docs/BELL-QUEST.md`.

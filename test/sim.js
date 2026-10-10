@@ -54,7 +54,8 @@ function audit(g, where) {
   // Modifiers (1.11).
   check(g.level >= cfg.luckyFrom || !g.columns.flat().includes(WILD) || g.cfg.luckyFrom <= 1,
     'a Lucky Paw before level ' + cfg.luckyFrom, { where, level: g.level });
-  check(!g.locked || g.columns[g.locked.column].length === 0, 'a locked tube holds coins', { where, locked: g.locked });
+  check(!g.locked || g.columns[g.locked.column].length < cfg.capacity, 'a locked tube is full', { where, locked: g.locked });
+  check(!g.locked || !g.ice.some((f) => f.column === g.locked.column), 'ice inside a locked tube', { where });
   check(!g.locked || g.locked.need > 0, 'a lock that should have opened', { where, locked: g.locked });
   check(g.ice.every((f) => f.index < g.columns[f.column].length && g.columns[f.column][f.index] !== WILD && f.hits > 0),
     'ice on nothing, on a Lucky Paw, or already melted', { where, ice: g.ice, cols: g.columns });

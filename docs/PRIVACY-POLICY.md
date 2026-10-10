@@ -1,7 +1,7 @@
-# Privacy Policy — draft for Cash Paws 1.8.0
+# Privacy Policy — draft for Cash Paws 1.12.0
 
 > **Draft for review, not legal advice.** Replace every «placeholder», check the
-> AppLovin and Google links still resolve, and have it looked over if you can. Publish it
+> Google links still resolve, and have it looked over if you can. Publish it
 > at the address the app already links to:
 > https://pixelartgames000.github.io/privacy-policy/
 
@@ -28,7 +28,7 @@ They receive:
 
 - gameplay events, such as levels reached and lost, how long a level took,
   Sorts and Undos used, coins earned and spent in the game, daily tasks,
-  Rewards Boxes and Bell Quest progress, and which optional ads were watched;
+  Rewards Boxes and Bell Quest progress, and which ads were shown or watched;
 - an app-instance identifier that Firebase creates for this installation (it
   is not your name, email or phone number, and resets if you reinstall);
 - device information, such as model, operating system, language and app
@@ -49,12 +49,13 @@ Google Analytics property».
 
 ## Advertising
 
-Cash Paws is free and supported by ads. Every ad is optional: you only see one
-when you choose to watch it for an in-game reward, such as a free Sort or
-opening the Rewards Box early.
+Cash Paws is free and supported by ads. Some are optional: you watch one when
+you choose to, for an in-game reward such as a free Sort or opening the
+Rewards Box early. Past level 10, a short ad also plays every few minutes of
+play, announced first by an "Ad break" screen.
 
-Ads are provided by **AppLovin** (AppLovin MAX). When ads are loaded or shown,
-AppLovin may collect and process information from your device, such as:
+Ads are provided by **Google AdMob**. When ads are loaded or shown, Google may
+collect and process information from your device, such as:
 
 - your device's advertising identifier (Android Advertising ID);
 - device information, such as model, operating system and language;
@@ -62,16 +63,16 @@ AppLovin may collect and process information from your device, such as:
 - information about the ads you see and interact with;
 - technical and diagnostic information about ad performance.
 
-AppLovin uses this to deliver and measure ads, to prevent fraud, and, where
-permitted, to show ads based on your interests. AppLovin may share it with its
-advertising partners. How AppLovin handles this information is described in its
-own policies:
+Google uses this to deliver and measure ads, to prevent fraud, and, where
+permitted, to show ads based on your interests. How Google handles this
+information is described in its own policies:
 
-- AppLovin Privacy Policy: https://legal.applovin.com/privacy/
-- AppLovin U.S. Multistate Privacy Notice: https://legal.applovin.com/multistate-privacy-notice/
+- Google Privacy Policy: https://policies.google.com/privacy
+- How Google uses information from apps that use its services:
+  https://policies.google.com/technologies/partner-sites
 
 We do not sell your information for money. The advertising information above
-passes between your device and AppLovin. Google Analytics for Firebase also
+passes between your device and Google. Google Analytics for Firebase also
 records ad revenue per ad shown, so we can see which ads are worth offering.
 
 ## Your choices
@@ -82,8 +83,7 @@ records ad revenue per ad shown, so we can see which ads are worth offering.
 - **United States residents.** Some state laws treat sharing device data for
   interest-based advertising as a "sale" or "sharing" of personal information.
   You can opt out in the game: **Settings → Do not sell or share my personal
-  information.** The choice is remembered on your device, and it also tells
-  Google Firebase not to use your data for ad personalisation.
+  information**, which opens Google's privacy choices.
 - **Stop all ad data.** Not watching ads means no ad is requested.
 - **Stop everything.** Uninstalling the app stops all collection. To have
   statistics already sent deleted, contact us at «contact email» with the
@@ -104,7 +104,7 @@ the app and had data collected by our ad or analytics partners, contact us at
 
 ## Security
 
-Information exchanged with AppLovin and Google Firebase is encrypted in
+Information exchanged with Google AdMob and Google Firebase is encrypted in
 transit.
 
 ## Changes

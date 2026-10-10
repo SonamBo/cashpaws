@@ -97,7 +97,7 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
 {
   const man = readFileSync(join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
   if (man.includes('android.permission.INTERNET')) {
-    const claims = [/\bno ads\b/i, /no internet/i, /does not even request internet/i, /nothing you do[^.]*leaves/i];
+    const claims = [/AppLovin/, /\bno ads\b/i, /no internet/i, /does not even request internet/i, /nothing you do[^.]*leaves/i];
     for (const f of ['docs/store-listing.md', 'PLAY-STORE.md']) {
       if (!existsSync(join(ROOT, f))) continue;
       const text = readFileSync(join(ROOT, f), 'utf8');
@@ -106,19 +106,48 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
       }
     }
   }
+  // Google AdMob (1.12): pinned SDK, the app ID in the manifest, real IDs
+  // in release, Google's test IDs in debug.
   const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
-  const sdk = gradle.match(/com\.applovin:applovin-sdk:([^'"]+)/)?.[1];
-  if (!sdk) fails.push('CONTENT  build.gradle does not depend on the AppLovin SDK');
-  else if (sdk.includes('+')) fails.push(`CONTENT  AppLovin SDK version "${sdk}" is not pinned — a new release could change the build unasked`);
-  else notes.push(`AppLovin SDK ${sdk}`);
-  need('android/ads.properties', 'the AppLovin keys; blank values build with ads off');
+  const sdk = gradle.match(/play-services-ads:([^'"]+)/)?.[1];
+  if (!sdk) fails.push('CONTENT  build.gradle does not depend on the Google Mobile Ads SDK');
+  else if (sdk.includes('+')) fails.push(`CONTENT  Mobile Ads SDK version "${sdk}" is not pinned`);
+  else notes.push(`Google Mobile Ads SDK ${sdk}`);
+  if (/applovin/i.test(gradle)) fails.push('CONTENT  build.gradle still pulls in AppLovin');
+  if (!gradle.includes('ca-app-pub-3940256099942544~3347511713') || !gradle.includes('ca-app-pub-3940256099942544/5224354917')) {
+    fails.push('CONTENT  debug builds must use Google\'s test app ID and test rewarded unit');
+  }
+  needContains('android/app/src/main/AndroidManifest.xml', 'com.google.android.gms.ads.APPLICATION_ID',
+    'the SDK crashes at launch without the AdMob app ID in the manifest');
+  need('android/ads.properties', 'the AdMob IDs for release builds');
   need('android/app/src/main/java/com/pixelartgames/cashpaw/Ads.java', 'the native ad bridge');
   // The bridge's name has to match on both sides, or ads silently never appear.
   needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', '"CashPawsAds"', 'the Activity must expose the bridge');
   needContains('www/shell/ads.js', 'CashPawsAds', 'the shell must look for the same bridge name');
   const props = existsSync(join(ROOT, 'android/ads.properties')) ? readFileSync(join(ROOT, 'android/ads.properties'), 'utf8') : '';
-  const keyed = /^sdkKey=\S+/m.test(props) && /^rewardedAdUnit=\S+/m.test(props);
-  notes.push(keyed ? 'ads: keys present — this build serves real ads' : 'ads: no keys in android/ads.properties — this build shows no ads');
+  const appId = props.match(/^appId=(\S*)/m)?.[1] || '';
+  const unit = props.match(/^rewardedAdUnit=(\S*)/m)?.[1] || '';
+  if (appId && !/^ca-app-pub-\d{16}~\d{10}$/.test(appId)) fails.push(`CONTENT  ads.properties appId "${appId}" is not an AdMob app ID (ca-app-pub-…~…)`);
+  if (unit && !/^ca-app-pub-\d{16}\/\d{10}$/.test(unit)) fails.push(`CONTENT  ads.properties rewardedAdUnit "${unit}" is not an ad unit ID (ca-app-pub-…/…)`);
+  if (appId && unit && appId.split('~')[0] !== unit.split('/')[0]) fails.push('CONTENT  the app ID and ad unit ID belong to different AdMob accounts');
+  if (unit && !appId) fails.push('CONTENT  ads.properties has an ad unit but no appId: release ads would never serve');
+  if (/3940256099942544/.test(props)) fails.push('CONTENT  ads.properties holds Google\'s TEST IDs: release builds must use your own');
+  notes.push(unit ? `ads: release builds serve AdMob unit ${unit}` : 'ads: no ad unit in android/ads.properties — release builds show no ads');
+  // Interstitials (1.13): well-formed, same account, test unit in debug, and
+  // no listing or policy that still promises every ad is optional.
+  const inter = props.match(/^interstitialAdUnit=(\S*)/m)?.[1] || '';
+  if (inter && !/^ca-app-pub-\d{16}\/\d{10}$/.test(inter)) fails.push(`CONTENT  ads.properties interstitialAdUnit "${inter}" is not an ad unit ID`);
+  if (inter && appId && inter.split('/')[0] !== appId.split('~')[0]) fails.push('CONTENT  the interstitial unit belongs to a different AdMob account');
+  if (inter && inter === unit) fails.push('CONTENT  the interstitial and rewarded units are the same ID');
+  if (!gradle.includes('ca-app-pub-3940256099942544/1033173712')) fails.push('CONTENT  debug builds must use Google\'s test interstitial unit');
+  if (inter) {
+    const promises = [/only when you (want|choose)/i, /only if you want/i, /every ad[^.]*(optional|your choice)/i, /never see one/i];
+    for (const f of ['docs/store-listing.md', 'docs/PRIVACY-POLICY.md', 'PLAY-STORE.md']) {
+      const text = readFileSync(join(ROOT, f), 'utf8').replace(/Until 1\.12[^]*?gone\./, '');
+      for (const re of promises) if (re.test(text)) fails.push(`CLAIM    ${f} says "${text.match(re)[0]}", but interstitials are on`);
+    }
+    notes.push(`ads: interstitial ${inter}, after level 10, every 2.5 min of play`);
+  }
 }
 
 /* --- Firebase (1.8.0): the config must cover every build, and the privacy

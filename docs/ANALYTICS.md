@@ -81,7 +81,9 @@ to the background.
 |---|---|
 | `ad_rewarded_start` | placement (`rescue-sort`, `box-early`) |
 | `ad_rewarded_result` | placement, earned |
-| `ad_impression` | Sent natively from AppLovin's revenue callback: ad_platform, ad_source, ad_format, ad_unit_name, value, currency USD. This drives Firebase's ad revenue reports. |
+| `ad_interstitial_show` | placement `ad-break`, level, play_seconds (when the Ad break screen hands over to the ad) |
+| `ad_interstitial_result` | placement, shown (whether an ad actually played) |
+| `ad_impression` | Logged by the AdMob SDK itself once AdMob is linked to Firebase (AdMob → Settings → Linked services): ad revenue per impression. This drives Firebase's ad revenue reports. |
 
 **User properties** are attached to every event: `game`, `best_level`,
 `cat_worn`, `cats_owned`, `days_played` and `quest_wins`.

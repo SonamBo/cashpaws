@@ -27,12 +27,12 @@ Cat ball sort puzzle with real money stacks. Collect cats, stack cash, level up.
 ```
 
 79 characters. Leads with the two search terms. (Up to 1.4 it led with the app
-being ad-free and offline; that stopped being true when AppLovin arrived in 1.5.)
+being ad-free and offline; that stopped being true when ads arrived in 1.5.)
 
 Alternatives:
 
 ```
-Sort cash into tubes in this cosy cat puzzle. Ads only if you want them.  (73)
+Sort cash into tubes in this cosy cat puzzle. No timers, no purchases.  (70)
 A water sort puzzle made of money, run by cats. Daily tasks and rewards.  (72)
 ```
 
@@ -71,12 +71,13 @@ in a different direction: one halves the cost of an undo, one warns you an extra
 turn before the flow lands, one keeps the flow from ever speeding up. None of
 them is simply the best one, so which you wear is a real choice.
 
-ADS ONLY WHEN YOU WANT ONE
+FREE, WITH FAIR ADS
 
-Every ad in Cash Paws is your choice. Stuck and short of coins? Watch one for a
-free Sort. Can't wait four hours? Watch one to open your Rewards Box early.
-Otherwise you will never see one — no pop-ups between levels, no banners over
-the board. There are no in-app purchases of any kind, and no account to make.
+Stuck and short of coins? Watch an ad for a free Sort. Can't wait four hours?
+Watch one to open your Rewards Box early. Past level 10, a short ad also plays
+every few minutes, and the cat always tells you first with an Ad break, never
+in the middle of a move. No banners over the board, no in-app purchases of any
+kind, and no account to make.
 
 EVERY DAY SOMETHING NEW
 
@@ -94,7 +95,8 @@ WHAT YOU GET
 • Six cats to unlock, each bending the rules a different way
 • Chip sets to collect in the shop
 • Daily tasks, a Rewards Box every four hours, and Bell Quest
-• Ads only when you choose one; no purchases, no account
+• Fair ads: rewarded ads you choose, plus a short announced Ad break every few
+  minutes after level 10; no purchases, no account
 
 If you like ball sort puzzles, water sort games, or just cats sitting near large
 amounts of cash, this one is for you.
@@ -113,7 +115,8 @@ demoted or rejected, so the density here is deliberately low. The title does
 most of the work; a long description stuffed with "ball sort water sort cat
 sort puzzle game" ranks worse than this, not better.
 
-**The strongest line is still not a keyword.** "Ads only when you want one" is
-unusual in a genre full of forced interstitials. It is true of 1.5.0: every ad
-is a rewarded ad the player chooses. The day an interstitial ships, that line
-must go — `test/preflight.js` checks the listing for stale ad-free claims.
+**Ads, honestly.** Until 1.12 the listing promised "ads only when you want
+one". Since 1.13 there are interstitials (past level 10, every 2.5 minutes of
+play, announced by an Ad break screen), so that promise is gone. Say exactly
+what the player gets. `test/preflight.js` fails if the listing claims ads are
+only optional while an interstitial unit is configured.

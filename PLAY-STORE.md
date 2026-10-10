@@ -74,15 +74,16 @@ Still needed from you:
 - **Privacy policy URL.** Play requires one for every app, including those that
   collect nothing.
 
-## 4. Data safety — changed in 1.5.0
+## 4. Data safety: ads (Google AdMob since 1.12.0)
 
-Since 1.5.0 the app serves ads through AppLovin MAX, so the Data safety form
-changes from "no data collected". **The game's own data** — progress, coins,
-cats — still stays on the phone and is not collected.
+The app serves rewarded ads through Google AdMob, so the Data safety form is
+not "no data collected". **The game's own data** (progress, coins, cats)
+still stays on the phone and is not collected.
 
-**AppLovin collects and shares data for advertising.** AppLovin does not publish
-a definitive Data safety list, so confirm these against their current guidance
-and your dashboard configuration. Ad SDKs of this kind typically require:
+**The Google Mobile Ads SDK collects and shares data for advertising.** Google
+publishes the exact list in "Data disclosure for the Google Mobile Ads SDK"
+(search that title in the AdMob help centre); match the form to it. It
+currently comes down to:
 
 - **Device or other IDs** — the Advertising ID. Collected, shared.
 - **Location: approximate** — derived from the IP address. Collected, shared.
@@ -91,14 +92,15 @@ and your dashboard configuration. Ad SDKs of this kind typically require:
 
 Purposes: advertising or marketing, analytics, fraud prevention. Data is
 encrypted in transit. Users can opt out of interest-based ads through the
-Advertising ID settings on their phone, and US users through the in-app
-"Do not sell or share my personal information" switch.
+Advertising ID settings on their phone. US users get Google's "do not sell or
+share" choice, set up in AdMob under Privacy & messaging, and reachable any
+time from the game's Settings.
 
 Elsewhere in the Play Console:
 
 - **App content → Ads:** "Yes, my app contains ads."
-- **Target audience:** 13 and over. Apps aimed at children may not use AppLovin
-  at all, so do not include under-13 age groups.
+- **Target audience:** 13 and over. Do not include under-13 age groups: the
+  app isn't built for Google's Families ad rules.
 - **Advertising ID declaration:** yes, for advertising.
 
 ## 4b. Data safety — added in 1.8.0: Firebase
@@ -114,7 +116,7 @@ count as "sharing", so mark each one **collected, not shared**:
 - **App info and performance → Crash logs** and **Diagnostics.** Purpose:
   Analytics.
 - **Device or other IDs:** the Firebase app-instance ID. Purpose: Analytics.
-  This is already ticked for AppLovin, as collected and shared; keep that.
+  This is already ticked for ads, as collected and shared; keep that.
 
 Then answer:
 - Is data encrypted in transit? **Yes.**
@@ -126,8 +128,16 @@ Republish the privacy policy (`docs/PRIVACY-POLICY.md`) **before** releasing
 
 ## 4a. app-ads.txt
 
-AppLovin gives you the exact line under Account in their dashboard. It must be
-served from the root of the developer website on your Play listing. For
+AdMob shows the exact line under Apps → View all apps → app-ads.txt. For this
+account it should be:
+
+```
+google.com, pub-5379524261124242, DIRECT, f08c47fec0942fa0
+```
+
+Copy it from the console rather than from here, in case it differs. It must be
+served from the root of the developer website on your Play listing. Remove any
+line left over from an earlier ad network: it's no longer used. For
 `https://pixelartgames000.github.io`, that means a file named `app-ads.txt` at
 the top level of the `pixelartgames000.github.io` repository.
 

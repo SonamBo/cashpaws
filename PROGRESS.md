@@ -1095,3 +1095,59 @@ taller than the placeholder was.
 - Art from ChatGPT: padlock, ice, cracked ice, Lucky Paw. The piggy bank and
   mouse are still to come.
 
+## 1.11.1: the lock that didn't appear
+
+Reported: level 17 announced a locked tube, but none appeared. The lock
+needed two empty tubes at the level-up, and a real board usually has one, so
+23% of level-ups to 17 and 19 got no lock while the card still promised one.
+The lock now takes the least-full tube when no spare empty one exists, and
+its coins wait inside (Sort leaves them there). It lands on 99% of level-ups.
+The card only announces modifiers that actually landed. Regression tests
+cover the busy-board case in `test/modifiers.js` and `test/modifiers.mjs`.
+Balance: days losing a level are 11.0% (10.0% without modifiers).
+
+## 1.12.0: Google AdMob instead of AppLovin MAX
+
+- AppLovin MAX was never live: its keys were always blank, so every build
+  until now shipped with ads off.
+- `Ads.java` now uses the Google Mobile Ads SDK 25.5.0, with UMP 4.0.0 for
+  consent. The JS bridge (`window.CashPawsAds`) keeps its shape, so the game,
+  the stuck card, the Rewards Box and analytics are unchanged.
+- One rewarded unit, Rewarded_admob, serves both placements; the placement
+  name only goes to analytics. IDs are in `android/ads.properties` (app
+  `ca-app-pub-5379524261124242~4778314769`, unit `…/4914046139`) and apply to
+  release builds. Debug builds always use Google's test IDs.
+- Consent: UMP runs at launch and shows AdMob's Privacy & messaging message if
+  this user needs one; ads start only when it allows. Settings' "Do not sell
+  or share" row now opens Google's privacy form, shown only when UMP says it's
+  required. It replaces the old switch.
+- Ad revenue: AdMob logs `ad_impression` to Firebase itself once linked; the
+  manual AppLovin revenue event is gone.
+- Chose the established SDK over Google's Next-Gen SDK: its API is fully
+  documented, and this code can't be compiled here. Migrating later is
+  confined to `Ads.java`.
+- No mediation yet (no AppLovin contract). Adding a network later is an
+  adapter dependency plus AdMob console setup.
+- Pre-flight checks: the SDK is pinned; the manifest has the app ID; the IDs
+  are well-formed and from the same account; release builds don't use test
+  IDs; debug builds do; no AppLovin anywhere. Docs updated: privacy policy,
+  Data safety, app-ads.txt, store listing, releasing.
+
+## 1.13.0: interstitial ads, with an Ad break screen
+
+- Unit `ca-app-pub-5379524261124242/7986846311` (`interstitialAdUnit` in
+  `android/ads.properties`); debug builds use Google's test interstitial.
+- **When:** past level 10, once per 2.5 minutes of actual play. The clock runs
+  only with the board on screen, nothing over it, and the app in the
+  foreground. Watching a rewarded ad restarts it too, so ads never come back
+  to back.
+- **How:** an "Ad break" screen (the worn cat, "Ad break", a 2-second bar),
+  then the ad, then straight back to the board. It starts only between moves,
+  never during a move or bank animation, or under a card or the tutorial
+  spotlight. The game is paused throughout. If an ad fails to show, it tries
+  again after 30 more seconds of play.
+- Settings, privacy policy and store listing now say so: the "ads only when
+  you want one" promise is gone. Pre-flight fails if it comes back while an
+  interstitial unit is configured.
+- Tests: `test/interstitial.mjs` (15 checks).
+

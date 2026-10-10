@@ -110,6 +110,25 @@ export function ask({ kicker, title, line, ok, cancel }) {
   });
 }
 
+/**
+ * "Ad break": the worn cat, a title, and a bar that fills over `ms`. It says
+ * an ad is coming before it comes. Returns { done, close }: `done` resolves
+ * when the bar is full; `close` takes the card down after the ad.
+ */
+export function adBreak(ms = 2000) {
+  const card = show(`
+    <div class="ovl-stack">
+      ${cat('cheer', 210, 'ovl-cheer')}
+      <div class="ovl-card ad-break" role="status" aria-live="assertive">
+        <p class="ovl-kicker">Thanks for playing</p>
+        <h2 class="ovl-h">Ad break</h2>
+        <p class="ovl-sub">A short ad, then straight back to your board.</p>
+        <div class="ad-break-bar"><i style="animation-duration:${ms}ms"></i></div>
+      </div>
+    </div>`, 'milestone');
+  return { done: wait(ms), close: () => dismiss(card) };
+}
+
 function pickMenu(kicker, title, items, note = '') {
   return new Promise((resolve) => {
     const card = show(`
@@ -147,17 +166,15 @@ export function pauseMenu({ canRestart, title }) {
  * opens a tab, and the Android shell hands any outside address to the phone's
  * browser, since the app itself has no internet permission.
  */
-export function settings({ title, note, doNotSell = null, reminders = null }) {
-  // doNotSell is null when there are no ads, so there is nothing to opt out of.
+export function settings({ title, note, privacy = false, reminders = null }) {
+  // `privacy` only when Google's consent SDK says this player must be offered
+  // their choices (the US "do not sell or share" link). The form is Google's.
   return pickMenu('Settings', title, [
     `<a class="menu-link" href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
        ${icons.lock(20)}<span>Privacy Policy</span>${icons.external(16)}
      </a>`,
-    doNotSell === null ? '' : `
-     <button class="menu-toggle" data-pick="dns" role="switch" aria-checked="${doNotSell}">
-       ${icons.lock(20)}<span>Do not sell or share my personal information</span>
-       <i class="switch ${doNotSell ? 'on' : ''}"></i>
-     </button>`,
+    !privacy ? '' : `
+     <button data-pick="privacy">${icons.lock(20)}<span>Do not sell or share my personal information</span></button>`,
     reminders === null ? '' : `
      <button class="menu-toggle" data-pick="reminders" role="switch" aria-checked="${reminders}">
        ${icons.daily(20)}<span>Reminders: Rewards Box and Bell Quest</span>

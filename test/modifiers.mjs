@@ -70,6 +70,22 @@ for (let k = 0; k < 2; k++) {
 await p.waitForTimeout(700);
 check('two: the padlock opens and goes', await p.locator('.lock').count() === 0 && await p.evaluate(() => game.locked === null));
 
+/* ---- the reported bug: a real, busy board at the level-up ---- */
+await p.evaluate(() => {
+  game.level = 16; game.netWorth = game.nextFloor - 1; game.locked = null; game.ice = [];
+  game.columns = [[5, 5, 5], [10, 20], [20, 10, 1], [1], [50, 50], [10, 1, 20], [20, 50], [10, 5]];
+  game.turnsUntilDrop = 9; game.status = 'playing'; game.selected = null; view.update();
+});
+await p.click('.tube[data-col="7"]'); await p.waitForTimeout(150);
+await p.click('.tube[data-col="0"]'); await p.waitForTimeout(1500);
+card = (await p.locator('.ovl-milestone.in').textContent()).replace(/\s+/g, ' ');
+await p.locator('.ovl-milestone.in [data-go]').click(); await p.waitForTimeout(700);
+const busyLock = await p.evaluate(() => game.locked);
+check('a busy board at 17 still gets its lock', busyLock !== null && /locked tube/.test(card), JSON.stringify(busyLock));
+check('the padlock shows on that tube', await p.locator(`.tube[data-col="${busyLock?.column}"] .lock`).count() === 1);
+check('with its coins waiting inside', await p.locator(`.tube[data-col="${busyLock?.column}"] .chip`).count() > 0);
+await p.screenshot({ path: '/tmp/mod-lock-busy.png' });
+
 /* ---- frozen coins ---- */
 card = await levelUpTo(25);
 check('level 25 announces frozen coins', /New: frozen coins/.test(card));

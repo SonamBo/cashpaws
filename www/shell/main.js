@@ -20,7 +20,7 @@ import { Panels } from './tabs.js';
 import { CATS, catById, unlockProgress, perkIn } from './cats.js';
 import { setWornCat, icons } from './art.js';
 import {
-  mountOverlays, anyCardOpen, confirm, ask, pauseMenu, settings, toast, boxCard, celebrate,
+  mountOverlays, anyCardOpen, confirm, ask, pauseMenu, settings, toast, boxCard, celebrate, adBreak,
 } from './overlays.js';
 import { localDay, ensureDay, claimable, claimTask, claimBonus, newlyDone } from './daily.js';
 import { isReady, msUntil, formatWait, openBox, adOpensLeft, DEFAULT_VALUE } from './rewards.js';
@@ -28,7 +28,7 @@ import * as Q from './quest.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.13.0';
 
 // Game folders are named after their id; assets and styles resolve from here.
 game.path = `games/${game.id}/`;
@@ -37,6 +37,8 @@ let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
 let wallet, header, lobby, panels, instance, ads, analytics, notify;
 let screen = 'lobby';
+let currentLevel = 0;      // the installed game's level, from host.progress()
+let adBreakOn = false;
 
 /* ---------------------------------------------------------------- *
  * Save
@@ -328,6 +330,37 @@ async function confirmLevelLoss() {
 // The timer on the icon counts down while the lobby is on screen.
 setInterval(refreshQuest, 30000);
 
+/*
+ * Interstitials. A clock counts actual play: the board on screen, nothing
+ * over it, the app in the foreground. Past level 10, every 2.5 minutes of it,
+ * an "Ad break" screen shows the cat for 2 seconds and then the ad plays.
+ * It starts only between moves (never while a move or a bank is animating,
+ * or a card or tutorial spotlight is up), and the game is paused throughout.
+ */
+const boardIdle = () => screen === 'game' && document.visibilityState === 'visible'
+  && !panels.open && !anyCardOpen() && !adBreakOn
+  && !document.body.classList.contains('busy') && !document.querySelector('.coach.blocking');
+
+setInterval(() => {
+  if (!ads || !boardIdle()) return;
+  ads.played(1000);
+  if (ads.interstitialDue(currentLevel)) runAdBreak();
+}, 1000);
+
+async function runAdBreak() {
+  adBreakOn = true;
+  instance.pause?.();
+  try {
+    const card = adBreak(2000);
+    await card.done;
+    await ads.showInterstitial('ad-break', { level: currentLevel });
+    await card.close();
+  } finally {
+    adBreakOn = false;
+    if (screen === 'game' && !panels.open) instance.resume?.();
+  }
+}
+
 /* ---------------------------------------------------------------- *
  * Reminders — the wording and timing live in notify.js
  *
@@ -478,7 +511,10 @@ async function boot() {
   ads = createAds({ dev: DEV, confirm, track });
   const host = createHost({
     game, shell, wallet, header, ads,
-    onProgress: () => lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] }),
+    onProgress: (p) => {
+      if (Number.isFinite(p?.level)) currentLevel = p.level;
+      lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
+    },
     onStat,
     save,
     exit: () => showScreen('lobby'),
@@ -604,8 +640,9 @@ async function onPause() {
  * With ads on, the note says so and the US opt-out appears; without keys, the
  * app shows no ads and sends nothing, and says that instead.
  */
-const SETTINGS_NOTE_ADS = 'Free to play, with optional ads that earn rewards. No purchases. '
-  + 'Ads are served by AppLovin; see the Privacy Policy for what they collect.';
+const SETTINGS_NOTE_ADS = 'Free to play, with ads. Some are optional and earn rewards; past level 10, '
+  + 'a short ad also plays every few minutes, announced by an Ad break screen. No purchases. '
+  + 'Ads are served by Google AdMob; see the Privacy Policy for what they collect.';
 const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress stays on this phone.';
 // Only said where it is true: the Android app, where Firebase is built in.
 const SETTINGS_NOTE_ANALYTICS = ' Gameplay statistics and crash reports are sent to Google Firebase '
@@ -617,20 +654,17 @@ async function onSettings() {
     title: 'Cash Paws',
     note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
       + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
-    doNotSell: ads.enabled || DEV ? ads.getDoNotSell() || !!shell.privacy?.doNotSell : null,
+    privacy: ads.enabled && ads.privacyRequired(),
     reminders: notify.available ? remindersOn() : null,
   });
   if (pick === 'reminders') {
     await toggleReminders();
     return onSettings();
   }
-  if (pick === 'dns') {
-    const next = !(ads.getDoNotSell() || !!shell.privacy?.doNotSell);
-    shell.privacy = { ...(shell.privacy || {}), doNotSell: next };
-    ads.setDoNotSell(next);
-    track('do_not_sell', { on: next });
-    save();
-    return onSettings();          // reopen, showing the new state
+  if (pick === 'privacy') {
+    track('privacy_choices_open', {});
+    ads.showPrivacy();            // Google's own form, over the app
+    return;
   }
   if (pick !== 'erase') return;
   const yes = await confirm({
@@ -717,6 +751,7 @@ function wireDev() {
   document.body.classList.add('dev');
   window.shell = shell;
   window.wallet = wallet;
+  window.__ads = ads;
   window.stats = shell.stats;
   window.gameStats = shell.gameStats[game.id] ||= {};
   window.CATS = CATS;
