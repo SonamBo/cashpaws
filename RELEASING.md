@@ -20,7 +20,7 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 19, versionName 1.13.0**, ready for your next
+Currently set to **versionCode 20, versionName 1.13.1**, ready for your next
 upload. Skipping a number is harmless; reusing one is not.
 
 **`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in
@@ -43,7 +43,7 @@ the Play Console.
 |---|---|
 | Package | `com.pixelartgames.cashpaw` — permanent, never change it |
 | Target API | 36 (Play's floor; raise when Google raises it) |
-| Toolchain | AGP 8.9.2, Gradle 8.11.1, Kotlin 2.0.21 |
+| Toolchain | AGP 8.7.3, Gradle 8.9, Kotlin 2.3.21 |
 | Signing | four repo secrets, see `PLAY-STORE.md` |
 | Privacy policy | https://pixelartgames000.github.io/privacy-policy/ — lobby gear, Settings |
 
@@ -114,7 +114,17 @@ refuses. The runner already has API 35 tools pre-installed and AGP 8.7.3 builds
 | targetSdk | 36 (Play's floor — this is the one that matters) |
 | AGP | 8.7.3 |
 | Gradle | 8.9 |
-| Kotlin | 2.0.21 |
+| Kotlin | 2.3.21 (since 1.13.1) |
+
+**Kotlin must stay at least as new as the libraries.** Kotlin can read library
+metadata only up to one version ahead of itself. In 1.13.0 the debug build
+failed in `compileDebugKotlin` with "Module was compiled with an incompatible
+version of Kotlin. The binary version of its metadata is 2.3.0, expected
+version is 2.0.0": Google's ad SDK 25.5.0 ships Kotlin 2.3 metadata, and
+Firebase 2.2. When a library update brings that message back, raise the
+`org.jetbrains.kotlin.android` version in `android/build.gradle`, checking
+Kotlin's AGP and Gradle compatibility table first. Pre-flight checks the
+floor.
 
 When Play raises the floor again: bump `targetSdk` first. If the build still
 passes with `compileSdk` one below, leave it there. Only bump `compileSdk` (and

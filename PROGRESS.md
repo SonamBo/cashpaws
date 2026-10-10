@@ -1151,3 +1151,22 @@ Balance: days losing a level are 11.0% (10.0% without modifiers).
   interstitial unit is configured.
 - Tests: `test/interstitial.mjs` (15 checks).
 
+## 1.13.1: Kotlin 2.0.21 → 2.3.21 (CI build fix)
+
+The 1.13.0 debug build failed in `:app:compileDebugKotlin` with 25 errors
+like "Module was compiled with an incompatible version of Kotlin. The binary
+version of its metadata is 2.3.0, expected version is 2.0.0". Google's ad SDK
+25.5.0 ships Kotlin 2.3 metadata and Firebase 2.2, and a Kotlin compiler only
+reads one version ahead. The engine job had passed; nothing in the game code
+was wrong.
+
+- Kotlin plugin raised to 2.3.21: it reads up to 2.4, and supports this
+  project's AGP 8.7.3 and Gradle 8.9 (2.3.20–2.3.21 cover AGP 8.2.2–9.0 and
+  Gradle 7.6.3–9.3), so nothing else moves.
+- `kotlinOptions { jvmTarget = '17' }` (an error since Kotlin 2.2) becomes
+  `kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }`.
+- Pre-flight now fails on a Kotlin plugin older than 2.2, or on any
+  `kotlinOptions {}`.
+- The RELEASING.md toolchain table was corrected: AGP 8.7.3 and Gradle 8.9,
+  not 8.9.2 and 8.11.1.
+

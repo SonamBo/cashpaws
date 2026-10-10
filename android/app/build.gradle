@@ -29,8 +29,8 @@ android {
         // Play rejects an upload whose versionCode it has seen before. Bump
         // this every single time you publish, even for a one-line fix.
 
-        versionCode 19
-        versionName "1.13.0"
+        versionCode 20
+        versionName "1.13.1"
     }
 
     signingConfigs {
@@ -86,10 +86,16 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    kotlinOptions { jvmTarget = '17' }
 
     packaging {
         resources { excludes += ['META-INF/*.kotlin_module'] }
+    }
+}
+
+// Kotlin 2.2 made the old `kotlinOptions {}` block an error; this is its replacement.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

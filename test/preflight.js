@@ -78,12 +78,24 @@ for (const f of [
 /* --- the game --- */
 need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
 
-/* --- Kotlin syntax this project's compiler (2.0.x) does not accept --- */
+/* --- Kotlin: new enough for the libraries, and syntax it accepts --- */
 {
+  // The ad SDK (25.x) and Firebase ship Kotlin 2.2/2.3 metadata; a compiler
+  // reads one version ahead at most, so it must be 2.2 or newer (1.13.0 failed
+  // on 2.0.21). And 2.2 made `kotlinOptions {}` an error.
+  const root = readFileSync(join(ROOT, 'android/build.gradle'), 'utf8');
+  const kv = root.match(/org\.jetbrains\.kotlin\.android'\s+version\s+'(\d+)\.(\d+)\.?(\d*)'/);
+  if (!kv) fails.push('CONTENT  android/build.gradle does not pin the Kotlin plugin version');
+  else if (+kv[1] < 2 || (+kv[1] === 2 && +kv[2] < 2)) {
+    fails.push(`CONTENT  Kotlin ${kv[1]}.${kv[2]} can't read the ad SDK's Kotlin 2.3 metadata — use 2.2 or newer`);
+  } else notes.push(`Kotlin ${kv[1]}.${kv[2]}.${kv[3]}`);
+  const app = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8').replace(/\/\/.*$/gm, '');
+  if (/kotlinOptions\s*\{/.test(app)) fails.push('CONTENT  app/build.gradle uses kotlinOptions {}, an error since Kotlin 2.2 — use kotlin { compilerOptions {} }');
+
   const kt = readFileSync(join(ROOT, 'android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt'), 'utf8');
-  // An underscore catch parameter is newer syntax; on 2.0 "_" is a reserved name.
+  // An underscore catch parameter: keep parameters named, as older compilers reject "_".
   if (/catch\s*\(\s*_\s*:/.test(kt)) {
-    fails.push('CONTENT  MainActivity.kt uses catch (_: ...), which Kotlin 2.0 rejects — name the parameter');
+    fails.push('CONTENT  MainActivity.kt uses catch (_: ...) — name the parameter');
   }
 }
 
