@@ -29,8 +29,8 @@ android {
         // Play rejects an upload whose versionCode it has seen before. Bump
         // this every single time you publish, even for a one-line fix.
 
-        versionCode 20
-        versionName "1.13.1"
+        versionCode 21
+        versionName "1.13.2"
     }
 
     signingConfigs {
@@ -115,6 +115,10 @@ dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.activity:activity-ktx:1.9.3'
+    // The ad SDK pulls in an old androidx.fragment (pre-1.3) whose
+    // FragmentActivity breaks registerForActivityResult (the notification
+    // permission ask). Release lint stops the build on it, so pin a modern one.
+    implementation 'androidx.fragment:fragment-ktx:1.8.5'
     implementation 'androidx.core:core-splashscreen:1.0.1'
     // Reminders: WorkManager keeps scheduled notifications across restarts.
     implementation 'androidx.work:work-runtime:2.10.0'

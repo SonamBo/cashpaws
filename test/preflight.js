@@ -90,6 +90,10 @@ need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
     fails.push(`CONTENT  Kotlin ${kv[1]}.${kv[2]} can't read the ad SDK's Kotlin 2.3 metadata — use 2.2 or newer`);
   } else notes.push(`Kotlin ${kv[1]}.${kv[2]}.${kv[3]}`);
   const app = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8').replace(/\/\/.*$/gm, '');
+  // registerForActivityResult needs androidx.fragment 1.3+; the ad SDK brings an
+  // older one, and release lint (InvalidFragmentVersionForActivityResult) fails.
+  const fr = app.match(/androidx\.fragment:fragment(?:-ktx)?:(\d+)\.(\d+)/);
+  if (!fr || +fr[1] < 1 || (+fr[1] === 1 && +fr[2] < 3)) fails.push('CONTENT  app/build.gradle must pin androidx.fragment 1.3+ (release lint fails on the ad SDK\'s old one)');
   if (/kotlinOptions\s*\{/.test(app)) fails.push('CONTENT  app/build.gradle uses kotlinOptions {}, an error since Kotlin 2.2 — use kotlin { compilerOptions {} }');
 
   const kt = readFileSync(join(ROOT, 'android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt'), 'utf8');
@@ -336,6 +340,19 @@ for (const v of [1, 5, 10, 20, 50]) {
   if (main !== gradle) {
     fails.push(`CONTENT  shell/main.js says version ${main} but build.gradle says ${gradle} — keep them equal`);
   }
+}
+
+/* --- leftover source from old package names still gets compiled --- */
+{
+  const base = join(ROOT, 'android/app/src/main/java');
+  const walk = (d) => readdirSync(d).flatMap((n) => {
+    const f = join(d, n);
+    return statSync(f).isDirectory() ? walk(f) : [f.slice(base.length + 1)];
+  });
+  const stray = existsSync(base)
+    ? walk(base).filter((f) => /\.(kt|java)$/.test(f) && !f.startsWith('com/pixelartgames/cashpaw/'))
+    : [];
+  stray.forEach((f) => notes.push(`WARNING  stray source file android/app/src/main/java/${f}, left from an old package name. Delete it (git rm).`));
 }
 
 /* --- nothing the build needs may be gitignored --- */

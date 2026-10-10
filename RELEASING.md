@@ -20,7 +20,7 @@ was rejected. Just add one each time: 2, 3, 4.
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
 
-Currently set to **versionCode 20, versionName 1.13.1**, ready for your next
+Currently set to **versionCode 21, versionName 1.13.2**, ready for your next
 upload. Skipping a number is harmless; reusing one is not.
 
 **`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in

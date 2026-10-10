@@ -28,7 +28,7 @@ import * as Q from './quest.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
-const APP_VERSION = '1.13.1';
+const APP_VERSION = '1.13.2';
 
 // Game folders are named after their id; assets and styles resolve from here.
 game.path = `games/${game.id}/`;

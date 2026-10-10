@@ -1170,3 +1170,15 @@ was wrong.
 - The RELEASING.md toolchain table was corrected: AGP 8.7.3 and Gradle 8.9,
   not 8.9.2 and 8.11.1.
 
+
+## 1.13.2: release lint fix (CI build fix)
+
+- The debug build now compiles. The release build stopped at `lintVitalRelease`:
+  `InvalidFragmentVersionForActivityResult`. The ad SDK pulls in an old
+  `androidx.fragment` (before 1.3), and the notification permission ask uses
+  `registerForActivityResult`, which needs 1.3 or newer.
+- Fix: `androidx.fragment:fragment-ktx:1.8.5` pinned in `app/build.gradle`.
+- Pre-flight now fails if fragment isn't pinned at 1.3+, and warns about any
+  `.kt`/`.java` file outside `com/pixelartgames/cashpaw/`. The CI log showed a
+  leftover `MainActivity.kt` from an old package name still being compiled.
+- versionCode 21, versionName 1.13.2.
