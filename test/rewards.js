@@ -5,7 +5,6 @@ import {
   emptyBox, isReady, msUntil, openBox, adOpensLeft, formatWait, PRIZES,
   REFILL_MS, AD_OPENS_PER_DAY, DEFAULT_VALUE,
 } from '../www/shell/rewards.js';
-import moneySort from '../www/games/money-sort/index.js';
 
 let pass = 0;
 const fails = [];
@@ -66,13 +65,6 @@ const T0 = Date.UTC(2026, 8, 26, 10);
   ok('an ad open does not reset the free timer', msUntil(box, T0) === REFILL_MS);
   ok('the ad allowance renews the next day', adOpensLeft(box, 'd2') === AD_OPENS_PER_DAY
      && openBox(box, { now: T0, day: 'd2', viaAd: true }) !== null);
-}
-
-/* ---- Money Sort reports its Sort price as the reward value ---- */
-{
-  const root = { classList: { add() {} } };
-  const inst = moneySort.create({ wallet: { coins: 0 }, stat() {}, stats: {}, progress() {}, dev: false, art: {}, asset: (x) => x }, root);
-  ok('money sort declares a reward value', typeof inst.rewardValue === 'function');
 }
 
 console.log(`Rewards box tests: ${pass}/${pass + fails.length} passed`);

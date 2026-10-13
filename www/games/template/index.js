@@ -76,6 +76,7 @@ export default {
       running = false;
       clearTimeout(timer);
       host.haptic(30);
+      host.sound('error');
       const lost = streak;
       streak = 0;
       report();
@@ -100,6 +101,7 @@ export default {
       host.stat('catches');
       if (streak === 10) host.stat('streaks10');
       host.wallet.earn(streak % 5 === 0 ? 10 : 1, 'catch');
+      host.sound('coin');
       host.haptic(8);
       report();
       if (streak % 10 === 0) {

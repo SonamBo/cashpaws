@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#fcf5e6">
+<title>Game</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="web/pc.css">
+<link rel="stylesheet" href="web/game.css">
+<!-- CrazyGames SDK v3. Blocked (an ad blocker, or offline)? The game still runs. -->
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script>window.__CG_CONFIG = /*CG_CONFIG*/ { "ads": false } /*END*/;
+window.__WEB_GAME = /*WEB_GAME*/ {} /*END*/;</script>
+<script src="web/adapter.js"></script>
+<script src="web/pc.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<!-- The shell starts once the SDK has restored any cloud save (or given up). -->
+<script type="module">
+  await window.__cg.ready;
+  await import('./shell/main.js');
+  // The shell starts on DOMContentLoaded, which fired while we waited for the
+  // SDK: send it again for the shell's listener.
+  if (document.readyState !== 'loading') document.dispatchEvent(new Event('DOMContentLoaded'));
+  await new Promise((r) => setTimeout(r, 0));
+  window.__cg.booted();
+</script>
+</body>
+</html>

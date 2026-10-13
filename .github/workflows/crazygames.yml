@@ -1,0 +1,44 @@
+name: CrazyGames
+
+# The web build for CrazyGames (platforms/crazygames), separate from the
+# Android build: nothing here can stop an APK or AAB. Builds both zips, tests
+# them in a real browser against a stand-in for the CrazyGames SDK, and
+# attaches them to the run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Install the test browser
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install --with-deps chromium
+
+      - name: Build
+        run: node platforms/crazygames/build.mjs
+
+      - name: Test the shell on the web
+        run: node platforms/crazygames/test/crazygames.mjs
+
+      # The installed game's own web checks, if it has any.
+      - name: Test the game on the web
+        run: |
+          GAME=$(sed -nE "s/.*from ['\"]\.\/([^/]+)\/.*/\1/p" www/games/active.js)
+          if [ -f "test/games/$GAME/crazygames.mjs" ]; then node "test/games/$GAME/crazygames.mjs"; else echo "No test/games/$GAME/crazygames.mjs"; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crazygames-zips
+          path: dist/crazygames/*.zip

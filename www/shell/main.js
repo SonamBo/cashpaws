@@ -7,12 +7,14 @@
  */
 
 import game from '../games/active.js';
+import APP from '../app.config.js';
 import * as store from './save.js';
 import { Wallet } from './wallet.js';
-import { createAds } from './ads.js';
+import { createAds, INTERSTITIAL_EVERY_MS, INTERSTITIAL_FROM_LEVEL } from './ads.js';
 import { createAnalytics } from './analytics.js';
 import { createCoach } from './coach.js';
 import { createNotify, boxReminder, questReminder } from './notify.js';
+import { createSound } from './sound.js';
 import { createHost, loadStyles } from './host.js';
 import { Header } from './header.js';
 import { LobbyView } from './lobby.js';
@@ -28,14 +30,15 @@ import * as Q from './quest.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
-const APP_VERSION = '1.13.2';
+const APP_VERSION = APP.versionName;     // from www/app.config.js
+document.title = APP.name;
 
 // Game folders are named after their id; assets and styles resolve from here.
 game.path = `games/${game.id}/`;
 
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
-let wallet, header, lobby, panels, instance, ads, analytics, notify;
+let wallet, header, lobby, panels, instance, ads, analytics, notify, sound;
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
@@ -410,7 +413,7 @@ async function toggleReminders() {
     const perm = notify.permission();
     if (perm === 'ask') shell.reminders.on = await notify.request();
     else if (perm === 'granted') shell.reminders.on = true;
-    else toast('Turn on notifications for Cash Paws in your phone\'s settings first.', 3600);
+    else toast(`Turn on notifications for ${APP.name} in your phone's settings first.`, 3600);
   }
   track('reminders_toggle', { on: remindersOn() });
   save();
@@ -432,6 +435,7 @@ const pendingCoins = new Map();          // 'earn:bank' -> total since last flus
 
 function onCoins(delta, reason) {
   if (!delta || !reason || reason === 'set') return;
+  if (delta > 0 && ['daily', 'box', 'quest', 'safety-net'].includes(reason)) sound?.play('coin');
   const dir = delta > 0 ? 'earn' : 'spend';
   if ((game.analytics?.batch || []).includes(reason)) {
     const k = `${dir}:${reason}`;
@@ -484,6 +488,11 @@ async function boot() {
   wallet = new Wallet(shell.coins, shell.stats);
   analytics = createAnalytics({ dev: DEV });
   notify = createNotify({ dev: DEV });
+  sound = createSound(shell.audio);
+  // A soft tick on the shell's buttons (a game's own pieces make their own sounds).
+  root.addEventListener('click', (e) => {
+    if (e.target.closest('button, [data-pick], .menu-link, [data-tap]') && !e.target.closest('[data-game-root] .tube, [data-game-root] [data-col]')) sound.play('tap');
+  }, true);
   lobby = new LobbyView(root.querySelector('[data-screen="lobby"]'));
   header = new Header(root.querySelector('[data-header]'), { onPause });
   mountOverlays(root);
@@ -509,8 +518,17 @@ async function boot() {
   await loadStyles(game);
 
   ads = createAds({ dev: DEV, confirm, track });
+  // Silence while an ad plays. On Android the full-screen ad sits over a
+  // WebView that would otherwise keep playing; a bridge that knows exactly
+  // when its ad starts (CrazyGames) does this itself.
+  if (!ads.handlesAudio) {
+    const showRewarded = ads.rewarded.show;
+    ads.rewarded.show = async (where) => { sound.hold('ad'); try { return await showRewarded(where); } finally { sound.release('ad'); } };
+    const showInterstitial = ads.showInterstitial.bind(ads);
+    ads.showInterstitial = async (...a) => { sound.hold('ad'); try { return await showInterstitial(...a); } finally { sound.release('ad'); } };
+  }
   const host = createHost({
-    game, shell, wallet, header, ads,
+    game, shell, wallet, header, ads, sound,
     onProgress: (p) => {
       if (Number.isFinite(p?.level)) currentLevel = p.level;
       lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
@@ -626,7 +644,7 @@ function onLobbyTab(tab) {
 async function onPause() {
   if (panels.open || anyCardOpen()) return;
   instance.pause?.();
-  const pick = await pauseMenu({ canRestart: !!instance.restart, title: game.name });
+  const pick = await pauseMenu({ canRestart: !!instance.restart, title: APP.name });
   if (pick === 'lobby') return showScreen('lobby');
   if (pick === 'progress' || pick === 'cats' || pick === 'shop') {
     return panels.show(pick, panelContext());   // resumed when the sheet closes
@@ -648,15 +666,62 @@ const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress stays on th
 const SETTINGS_NOTE_ANALYTICS = ' Gameplay statistics and crash reports are sent to Google Firebase '
   + 'to help improve the game.';
 
+/**
+ * Ad status: for testing on a phone. Says what AdMob last answered, in plain
+ * words, so "no ads" can be told apart: no fill, a wrong ID, consent, offline.
+ */
+const AD_CODES = {
+  0: 'AdMob had an internal problem. Usually passes; try again later.',
+  1: 'Invalid request: the ad unit or app ID is wrong, or the app ID and ad unit are from different AdMob apps.',
+  2: 'Network error: the phone could not reach AdMob.',
+  3: 'No fill: AdMob had no ad to give. Normal for a new AdMob app until it is approved and linked to its Play listing; on your own phone, register it as a test device.',
+  8: 'The app ID is wrong or the app is missing in AdMob.',
+  9: 'No fill from any source (mediation).',
+};
+function explainAd(state) {
+  if (!state || ['ready', 'loading', 'idle'].includes(state)) return state || 'unknown';
+  const code = /error (\d+)/.exec(state)?.[1];
+  return `${state}<br><small>${AD_CODES[code] || ''}</small>`;
+}
+async function adStatus() {
+  for (;;) {
+    const s = ads.status();
+    const tail = (id) => (id ? '…' + String(id).slice(-10) : 'none');
+    const line = !s
+      ? 'No ad SDK in this build (a browser, or an app built without ad units).'
+      : [
+        `<b>Build</b>: ${s.build}`,
+        `<b>Consent</b>: ${s.consent}${s.canRequestAds ? '' : ' (ads blocked until consent)'}${s.consentError ? `<br><small>${s.consentError}</small>` : ''}`,
+        `<b>SDK started</b>: ${s.started ? 'yes' : 'no'}`,
+        `<b>Rewarded</b> ${tail(s.rewardedUnit)}: ${explainAd(s.rewarded)}`,
+        `<b>Interstitial</b> ${tail(s.interstitialUnit)}: ${explainAd(s.interstitial)}`,
+        `<b>Ad break</b>: level ${currentLevel} (from ${INTERSTITIAL_FROM_LEVEL}), ${ads.playSeconds} s of play counted (needs ${INTERSTITIAL_EVERY_MS / 1000})`,
+      ].join('<br>');
+    const again = await confirm({ kicker: 'Testing', title: 'Ad status', line, ok: 'Refresh', cancel: 'Close' });
+    if (!again) return;
+  }
+}
+
 async function onSettings() {
   if (panels.open) return;
   const pick = await settings({
-    title: 'Cash Paws',
+    title: APP.name,
     note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
       + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
     privacy: ads.enabled && ads.privacyRequired(),
     reminders: notify.available ? remindersOn() : null,
+    audio: { sfx: sound.sfx, music: sound.music },
+    version: APP_VERSION,
   });
+  if (pick === 'sfx' || pick === 'music') {
+    const on = !shell.audio[pick];
+    shell.audio[pick] = on;
+    if (pick === 'sfx') sound.setSfx(on); else sound.setMusic(on);
+    track('audio_toggle', { kind: pick, on });
+    save();
+    return onSettings();
+  }
+  if (pick === 'adstatus') return adStatus();
   if (pick === 'reminders') {
     await toggleReminders();
     return onSettings();
@@ -727,6 +792,8 @@ function buy(kind, id) {
 
 function installBridge() {
   window.CashPaws = {
+    /** For platform layers (the CrazyGames adapter): hold('ad') / release('ad'). */
+    sound: { hold: (r) => sound.hold(r), release: (r) => sound.release(r) },
     /** True if the app consumed the back press. */
     onBack() {
       if (anyCardOpen()) return true;          // a card is a decision; back must not skip it
@@ -752,6 +819,7 @@ function wireDev() {
   window.shell = shell;
   window.wallet = wallet;
   window.__ads = ads;
+  window.__sound = sound;
   window.stats = shell.stats;
   window.gameStats = shell.gameStats[game.id] ||= {};
   window.CATS = CATS;

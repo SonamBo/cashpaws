@@ -7,6 +7,7 @@
 
 import { catById } from './cats.js';
 import { asset } from './assets.js';
+import APP from '../app.config.js';
 
 const img = (path, w, cls = '', alt = '') =>
   `<img class="art ${cls}" src="${asset(path)}" width="${w}" alt="${alt}" draggable="false">`;
@@ -24,7 +25,7 @@ export function cat(pose, w, cls = '', want = worn) {
 export const catFace = (w = 36, id) => cat('face', w, 'cat-avatar', id);
 export const catHero = (w = 252) => img('img/cat-hero.png', w, 'lobby-hero');
 export const coinIcon = (s = 22) => img('img/coin.png', s, 'coin-art');
-export const logo = (w = 222) => img('img/logo.png', w, 'logo', 'Cash Paws');
+export const logo = (w = 222) => img('img/logo.png', w, 'logo', APP.name);
 export const tagline = (w = 190) => img('img/tagline.png', w, 'tagline', '');
 
 const stroke = (d, size = 22) => `
@@ -37,6 +38,8 @@ export const icons = {
   external: (s) => stroke('<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', s),
   pause:    (s) => stroke('<path d="M9.5 5v14"/><path d="M14.5 5v14"/>', s),
   play:     (s) => stroke('<path d="M7 4.8 19 12 7 19.2Z"/>', s),
+  speaker:  (s) => stroke('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>', s),
+  music:    (s) => stroke('<path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', s),
   undo:     (s) => stroke('<path d="M4.6 12a7.4 7.4 0 1 1 2.6 5.6"/><path d="M4.4 5.2v5.1h5.1"/>', s),
   restart:  (s) => stroke('<path d="M4.6 12a7.4 7.4 0 1 1 2.6 5.6"/><path d="M4.4 5.2v5.1h5.1"/>', s),
   check:    (s) => stroke('<path d="M4 12.5 9.5 18 20 6.5"/>', s),

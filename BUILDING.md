@@ -8,7 +8,7 @@ Push the repo to GitHub. `.github/workflows/android.yml` runs on every push and
 can also be triggered by hand from the Actions tab.
 
 It runs the engine's rule tests first and fails fast if they break, then builds
-the APK. When it finishes, the `cashpaws-debug` artifact on the run page is your
+the APK. When it finishes, the `app-debug` artifact on the run page is your
 installable APK. Roughly four minutes cold, under two once Gradle's cache warms.
 
 No signing setup is needed for the debug build, and a fresh clone or a fork
@@ -43,8 +43,8 @@ need your own keystore. Generate it once and keep it somewhere safe — losing i
 means you can never update the app on Play again:
 
 ```bash
-keytool -genkeypair -v -keystore cashpaws-release.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 -alias cashpaws
+keytool -genkeypair -v -keystore release.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias release
 ```
 
 ### Signing in CI
@@ -52,7 +52,7 @@ keytool -genkeypair -v -keystore cashpaws-release.jks \
 Never commit the keystore. Base64 it and store it as a secret:
 
 ```bash
-base64 -w0 cashpaws-release.jks     # macOS: base64 -i cashpaws-release.jks
+base64 -w0 release.jks     # macOS: base64 -i release.jks
 ```
 
 In the repo, Settings > Secrets and variables > Actions, add four secrets:
@@ -61,11 +61,11 @@ In the repo, Settings > Secrets and variables > Actions, add four secrets:
 |---|---|
 | `KEYSTORE_BASE64` | the base64 string above |
 | `KEYSTORE_PASSWORD` | the keystore password |
-| `KEY_ALIAS` | `cashpaws` |
+| `KEY_ALIAS` | the alias you chose (`release` above) |
 | `KEY_PASSWORD` | the key password |
 
 With `KEYSTORE_BASE64` present the workflow also builds and uploads
-`cashpaws-release`. With it absent those steps are skipped, so nothing breaks.
+`app-release-apk` and `app-release-aab`. With it absent those steps are skipped, so nothing breaks.
 
 ### Signing locally
 
@@ -73,8 +73,8 @@ The build reads the same four values from the environment:
 
 ```bash
 cd android
-KEYSTORE_FILE=/absolute/path/cashpaws-release.jks \
-KEYSTORE_PASSWORD=... KEY_ALIAS=cashpaws KEY_PASSWORD=... \
+KEYSTORE_FILE=/absolute/path/release.jks \
+KEYSTORE_PASSWORD=... KEY_ALIAS=release KEY_PASSWORD=... \
 ./gradlew assembleRelease
 ```
 

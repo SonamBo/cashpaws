@@ -1,0 +1,5 @@
+/* Coin Catch on PC (web build only). */
+@media (hover: hover) and (pointer: fine) {
+  .cc-cell { cursor: pointer; }
+  .cc-cell:hover { filter: brightness(1.04); }
+}

@@ -1316,3 +1316,17 @@ img.art { user-select: none; -webkit-user-drag: none; }
   animation: ad-break-fill linear both;
 }
 @keyframes ad-break-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Version line under the Settings note. Five taps open the Ad status card. */
+.settings-version { margin-top: var(--s2); text-align: center; font-size: 12px; opacity: .55; user-select: none; -webkit-user-select: none; cursor: default; }
+
+/* Tutorial: a quiet way out, inside the bubble. The coach layer lets taps
+   through to the board; this one button takes them. */
+.coach-skip {
+  display: block; margin: 8px auto 0; padding: 4px 10px;
+  background: none; border: 0; border-radius: 8px;
+  font: 700 12px/1.2 var(--font); color: rgba(255, 255, 255, .72);
+  text-decoration: underline; text-underline-offset: 2px;
+  pointer-events: auto; cursor: pointer;
+}
+.coach-skip:hover { color: #fff; }

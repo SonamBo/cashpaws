@@ -33,3 +33,12 @@ node test/pace.js 400  # progression and board-pressure curves
 - `docs/GAME-MODULE.md` — the contract between the two.
 
 Needs Node 18+. No dependencies, no install step.
+
+## The starter: this shell for other games
+
+Everything except Money Sort can be reused for another game: analytics, ads,
+cats, daily tasks, Rewards Box, Bell Quest, reminders, Android and CI.
+`tools/export-starter.mjs` builds that starter, and
+`.github/workflows/starter.yml` pushes it to its own repo after every green
+build, so shell fixes made here reach every app built from it. How it fits
+together: `CLAUDE.md`. Setting up an app from it: `SETUP.md`.

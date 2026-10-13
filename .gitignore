@@ -4,3 +4,6 @@ node_modules/
 # Never commit a signing key.
 *.jks
 *.keystore
+dist/
+# Generated store videos (tools/marketing/record-preview.mjs).
+marketing/out/

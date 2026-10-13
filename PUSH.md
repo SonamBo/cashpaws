@@ -35,7 +35,7 @@ The push starts the build. Open the **Actions** tab, click the running job, and
 wait — about four minutes the first time, under two after that.
 
 When it finishes, scroll to **Artifacts** at the bottom of the run page and
-download **cashpaws-debug**. Unzip it and you have `app-debug.apk`.
+download **app-debug**. Unzip it and you have `app-debug.apk`.
 
 ## 4. Install it
 

@@ -1,8 +1,24 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id 'com.google.gms.google-services'      // needs app/google-services.json
-    id 'com.google.firebase.crashlytics'
+}
+
+/**
+ * The app's identity (name, package, version, privacy URL) lives in one file,
+ * www/app.config.js, which the shell reads too. Strict JSON after the
+ * "export default".
+ */
+def appConfig = new groovy.json.JsonSlurper().parseText(
+    rootProject.file('../www/app.config.js').text
+        .replaceAll(/(?m)^\s*\/\/.*$/, '')
+        .replaceFirst(/(?s)^.*?export default/, '')
+        .replaceFirst(/;\s*$/, ''))
+
+// Firebase (Analytics and Crashlytics) switches on when app/google-services.json
+// is present. Without it the app builds and runs, and sends no events.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
 }
 
 /**
@@ -17,20 +33,23 @@ def adsFile = rootProject.file('ads.properties')
 if (adsFile.exists()) adsFile.withInputStream { adsProps.load(it) }
 
 android {
+    // The code's own package. Internal: it never changes, whatever the app is
+    // published as (applicationId, below), so shell updates merge cleanly.
     namespace 'com.pixelartgames.cashpaw'
     compileSdk 35
 
     buildFeatures { buildConfig true }   // carries the ad keys in
 
     defaultConfig {
-        applicationId "com.pixelartgames.cashpaw"
+        applicationId appConfig.applicationId
         minSdk 24
         targetSdk 36
-        // Play rejects an upload whose versionCode it has seen before. Bump
-        // this every single time you publish, even for a one-line fix.
-
-        versionCode 21
-        versionName "1.13.2"
+        // From www/app.config.js. Play rejects a versionCode it has seen
+        // before: bump it there for every upload.
+        versionCode appConfig.versionCode as int
+        versionName appConfig.versionName
+        // Android resource strings need apostrophes escaped ("Sam's Game").
+        resValue 'string', 'app_name', appConfig.name.replace("'", "\\'")
     }
 
     signingConfigs {

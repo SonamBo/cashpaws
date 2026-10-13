@@ -3,7 +3,8 @@
  * may point at the shell's own header (the progress bar) as well as at the
  * game's board. A game drives them through host.coach.
  *
- *   tip({ at, text, hand })        a bubble by an element, never blocking play;
+ *   tip({ at, text, hand, onSkip })  a bubble by an element, never blocking play;
+ *                                  with onSkip, a "Skip tutorial" button in it;
  *                                  `hand` is one element or [from, to] to tap
  *   spotlight({ at, text, ok })    dims everything but one element, waits for
  *                                  the button; resolves when dismissed
@@ -31,10 +32,13 @@ export function createCoach(app) {
   /** Where an element sits within the app, in pixels. */
   function box(el) {
     const a = app.getBoundingClientRect();
+    // On screen sizes vs. the app's own pixels: they differ when the page
+    // scales the app up (the web build on a large window). 1 on a phone.
+    const s = a.width / (app.offsetWidth || a.width) || 1;
     const rs = [].concat(el).map((e) => e.getBoundingClientRect());
     const l = Math.min(...rs.map((r) => r.left)), t = Math.min(...rs.map((r) => r.top));
     const r = Math.max(...rs.map((q) => q.right)), b = Math.max(...rs.map((q) => q.bottom));
-    return { x: l - a.left, y: t - a.top, w: r - l, h: b - t };
+    return { x: (l - a.left) / s, y: (t - a.top) / s, w: (r - l) / s, h: (b - t) / s };
   }
 
   function clear() {
@@ -44,25 +48,61 @@ export function createCoach(app) {
     layer.classList.remove('blocking');
   }
 
-  /** Bubble above or below the target, whichever side has room, kept on screen. */
+  /**
+   * Bubble below the target, else above, else beside it: the first place that
+   * fits on screen and covers none of the app's buttons (Undo, Sort, the
+   * header). In a wide window that is usually beside the board.
+   */
   function place(bubble, target) {
-    const t = box(target);
+    // Measure what's drawn, not the container: a full-width row of tubes is
+    // only as wide as its tubes.
+    const kids = [...(target.children || [])].filter((el) => el.offsetParent !== null).map((el) => box(el));
+    const t = kids.length ? kids.reduce((u, r) => {
+      const x = Math.min(u.x, r.x), y = Math.min(u.y, r.y);
+      return { x, y, w: Math.max(u.x + u.w, r.x + r.w) - x, h: Math.max(u.y + u.h, r.y + r.h) - y };
+    }) : box(target);
     const H = app.clientHeight;
     const W = app.clientWidth;
-    const bw = Math.min(300, W - 32);
-    bubble.style.width = `${bw}px`;
-    bubble.style.left = `${Math.max(16, Math.min(W - bw - 16, t.x + t.w / 2 - bw / 2))}px`;
-    const below = t.y + t.h + 14;
-    const bh = bubble.offsetHeight;
-    if (below + bh < H - 16) { bubble.style.top = `${below}px`; bubble.dataset.side = 'below'; }
-    else { bubble.style.top = `${Math.max(16, t.y - bh - 14)}px`; bubble.dataset.side = 'above'; }
+    const visible = (sel) => [...app.querySelectorAll(sel)]
+      .filter((el) => el.offsetParent !== null && !layer.contains(el) && !(target.contains && target.contains(el)))
+      .map((el) => box(el));
+    const buttons = visible('button, [data-menu]');                    // never cover these if avoidable
+    const header = visible('[data-title], [data-bar], [data-figure]'); // nor these, if there's a better spot
+    // Each spot sets its own width (beside the board the gap may be
+    // narrower), measures the bubble's height at that width, and scores it.
+    const fullW = Math.min(300, W - 32);
+    const candidates = [];
+    const tryAt = (side, width) => {
+      if (width < 180) return;
+      bubble.style.width = `${width}px`;
+      const bh = bubble.offsetHeight;
+      const midX = Math.max(16, Math.min(W - width - 16, t.x + t.w / 2 - width / 2));
+      const midY = Math.max(16, Math.min(H - bh - 16, t.y + t.h / 2 - bh / 2));
+      const [x, y] = { below: [midX, t.y + t.h + 14], above: [midX, t.y - bh - 14],
+        right: [t.x + t.w + 18, midY], left: [t.x - width - 18, midY] }[side];
+      if (x < 8 || y < 8 || x + width > W - 8 || y + bh > H - 8) return;
+      const hits = (rs) => rs.filter((r) => x < r.x + r.w && x + width > r.x && y < r.y + r.h && y + bh > r.y).length;
+      candidates.push({ side, x, y, width, cost: hits(buttons) * 10 + hits(header) });
+    };
+    tryAt('below', fullW);
+    tryAt('right', Math.min(fullW, W - (t.x + t.w) - 26));
+    tryAt('left', Math.min(fullW, t.x - 26));
+    tryAt('above', fullW);
+    const best = candidates.reduce((a, c) => (!a || c.cost < a.cost ? c : a), null)
+      || { side: 'above', x: Math.max(16, t.x + t.w / 2 - fullW / 2), y: 16, width: fullW };
+    const { side, x, y } = best;
+    bubble.style.width = `${best.width}px`;
+    bubble.style.left = `${x}px`;
+    bubble.style.top = `${y}px`;
+    bubble.dataset.side = side;
   }
 
-  function tip({ at, text, hand = null }) {
+  function tip({ at, text, hand = null, onSkip = null }) {
     clear();
     const target = resolveAt(at);
     if (!target) return;
-    layer.innerHTML = `<div class="coach-bubble">${text}</div>`;
+    layer.innerHTML = `<div class="coach-bubble">${text}${onSkip ? '<button class="coach-skip" type="button">Skip tutorial</button>' : ''}</div>`;
+    if (onSkip) layer.querySelector('.coach-skip').addEventListener('click', () => { clear(); onSkip(); }, { once: true });
     place(layer.firstElementChild, target);
     if (hand) {
       const stops = [].concat(hand).filter(Boolean);

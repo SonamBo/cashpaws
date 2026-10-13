@@ -1,10 +1,10 @@
 # Analytics
 
-Firebase Analytics and Crashlytics, added in 1.8.0. Project **cash-paws-prod**,
-with two Android apps:
+Firebase Analytics and Crashlytics, on whenever `android/app/google-services.json`
+is present. The Firebase project needs two Android apps:
 
-- `com.pixelartgames.cashpaw`: real players (release builds).
-- `com.pixelartgames.cashpaw.debug`: your testing (debug builds).
+- the `applicationId` from `www/app.config.js`: real players (release builds);
+- the same with `.debug` on the end: your testing (debug builds).
 
 In the console, filter by app so testing never mixes with real data.
 
@@ -24,6 +24,10 @@ non-fatal reports. Every event is also a Crashlytics breadcrumb, so a crash
 report shows what the player was doing just before.
 
 ## Events
+
+Most events below come from the shell and work for any game. `board_stuck`,
+`stuck_choice`, `sort_used` and `undo_used` are Money Sort's own, sent with
+`host.track()`; a new game defines its own the same way and lists them here.
 
 Firebase collects some events itself: `first_open`, `session_start`,
 `user_engagement` and `app_update`. Ours:
@@ -82,6 +86,7 @@ to the background.
 | `ad_rewarded_start` | placement (`rescue-sort`, `box-early`) |
 | `ad_rewarded_result` | placement, earned |
 | `ad_interstitial_show` | placement `ad-break`, level, play_seconds (when the Ad break screen hands over to the ad) |
+| `ad_load_failed` | format (`rewarded`/`interstitial`), code (AdMob's error code: 3 = no fill, 1 = bad request/ID, 2 = network, 0 = internal), message. Once per format and code per session. |
 | `ad_interstitial_result` | placement, shown (whether an ad actually played) |
 | `ad_impression` | Logged by the AdMob SDK itself once AdMob is linked to Firebase (AdMob → Settings → Linked services): ad revenue per impression. This drives Firebase's ad revenue reports. |
 
@@ -108,7 +113,7 @@ to the background.
 With a debug build on a phone connected by USB:
 
 ```
-adb shell setprop debug.firebase.analytics.app com.pixelartgames.cashpaw.debug
+adb shell setprop debug.firebase.analytics.app <your applicationId>.debug
 ```
 
 Then open Analytics → DebugView. Events appear within seconds, instead of the

@@ -95,6 +95,8 @@ export function createAds({ dev, confirm, track = () => {} }) {
   return {
     /** True when real ads can be served; the privacy controls and wording follow it. */
     enabled: !!native,
+    /** The ad bridge pauses the game's audio itself (CrazyGames: only once an ad really starts). */
+    handlesAudio: !!native?.handlesAudio,
     rewarded,
 
     /** Seconds of actual play, fed by the shell while the board is on screen. */
@@ -123,6 +125,9 @@ export function createAds({ dev, confirm, track = () => {} }) {
      * needed). Google's consent SDK decides who must be offered them and owns
      * the form; Settings shows the row only when it says so.
      */
+    /** What the native side knows (consent, loads, errors), for the Ad status card. */
+    status() { try { return native ? JSON.parse(native.status?.() || '{}') : null; } catch { return null; } },
+
     privacyRequired() { try { return !!native?.privacyOptionsRequired(); } catch { return false; } },
     showPrivacy() { try { native?.showPrivacyOptions(); } catch { /* no bridge */ } },
   };

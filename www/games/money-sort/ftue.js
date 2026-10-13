@@ -16,8 +16,8 @@
  */
 
 const TEXT = {
-  move: 'Tap a tube to lift its top coin, then tap another tube to drop it there.',
-  stack: 'Put <b>4 of the same coin</b> in one tube to cash it in.',
+  move: 'Tap a tube to lift its top coin, then tap another to drop it.',
+  stack: '<b>4 of the same</b> in one tube cash in!',
   bank: 'Cashed in! Every tube you cash in grows your <b>net worth</b>.<br>Fill this bar to <b>level up</b>.',
 };
 
@@ -48,7 +48,13 @@ export function createTutorial({ host, getGame, getView, suggest }) {
       : game.selected === m[0] ? tube(m[1])
         : game.selected !== null ? tube(game.selected)     // put it back down first
           : [tube(m[0]), tube(m[1])];
-    host.coach.tip({ at: getView().el.rows, text: TEXT[step], hand });
+    host.coach.tip({ at: getView().el.rows, text: TEXT[step], hand, onSkip: skip });
+  }
+
+  function skip() {
+    host.track('ftue_skip', { step });
+    step = null;
+    host.setFlag('ftue');
   }
 
   async function finish() {

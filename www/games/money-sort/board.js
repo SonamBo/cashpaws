@@ -106,9 +106,9 @@ export class BoardView {
     const coin = host.art.coin(18);
     this.root.innerHTML = `
       <div class="flow" data-flow>
-        <span class="flow-label">FLOW</span>
+        <span class="flow-label">NEW COINS</span>
         <span class="pips" data-pips></span>
-        <span class="turn" data-turn>T000</span>
+        <span class="turn" data-turn></span>
       </div>
 
       <main class="board" data-board>
@@ -266,8 +266,21 @@ export class BoardView {
     }
   }
 
+  /** In the selected tube, raise the coins that will move: the top run of one value. */
+  markLifted(tube, values, cap, selected) {
+    let run = 0;
+    if (selected && values.length) {
+      const top = values[values.length - 1];
+      for (let k = values.length - 1; k >= 0 && values[k] === top; k--) run++;
+    }
+    const cells = tube.querySelector('.glass').children;
+    for (let c = 0; c < cap; c++) {
+      const idx = cap - 1 - c;                       // cells run top to bottom
+      cells[c].firstElementChild?.classList.toggle('lifted', idx < values.length && idx >= values.length - run);
+    }
+  }
+
   update(vm = vmOf(this.game)) {
-    this.el.turn.textContent = 'T' + String(vm.turn).padStart(3, '0');
 
     if (this.el.pips.children.length !== vm.currentInterval) {
       this.el.pips.innerHTML = '';
@@ -278,6 +291,8 @@ export class BoardView {
       }
     }
     const left = Math.max(0, vm.turnsUntilDrop);
+    // How many moves until new coins drop in: plain words, not a turn counter.
+    this.el.turn.textContent = left <= 1 ? 'next move' : `in ${left} moves`;
     [...this.el.pips.children].forEach((p, i) => p.classList.toggle('on', i < left));
     this.el.flow.classList.toggle('warn', vm.telegraphing);
     this.el.board.classList.toggle('telegraph', vm.telegraphing);
@@ -288,6 +303,7 @@ export class BoardView {
       this.syncLock(tube, vm.locked && vm.locked.column === i ? vm.locked.need : 0);
       tube.classList.toggle('selected', vm.selected === i);
       tube.classList.toggle('full', (vm.columns[i] || []).length >= vm.capacity);
+      this.markLifted(tube, vm.columns[i] || [], vm.capacity, vm.selected === i);
     });
 
     this.el.sortCost.textContent = vm.freeSorts > 0 ? 'Free' : vm.sortPrice;   // rises with the level
@@ -379,10 +395,14 @@ export class BoardView {
       if (chips.length === count) break;
     }
 
+    // Screen pixels per board pixel: more than 1 when the page scales the
+    // game up (the web build on a large window).
+    const rootBox = this.root.getBoundingClientRect();
+    const s = rootBox.width / (this.root.offsetWidth || rootBox.width) || 1;
     chips.forEach((chip, i) => {
       const now = chip.getBoundingClientRect();
-      const dx = from.left - now.left;
-      const dy = from.top - now.top;
+      const dx = (from.left - now.left) / s;
+      const dy = (from.top - now.top) / s;
       if (!dx && !dy) return;
       const delay = (chips.length - 1 - i) * 45;   // bottom chip leaves first
       chip.style.animation = 'none';

@@ -30,6 +30,7 @@ export function freshShell() {
     quest: emptyQuest(),  // Bell Quest; offered once the game's unlock level is reached
     flags: {},            // [gameId]: { ftue: true, ... } via host.flag()
     reminders: { on: true, asked: false },   // local notifications; Android still asks
+    audio: { sfx: true, music: true },       // Settings switches (1.15.0)
   };
 }
 
@@ -69,6 +70,7 @@ function normalise(rec) {
   shell.quest = { ...base.quest, ...(shell.quest || {}) };   // absent before 1.7.0
   shell.flags = { ...(shell.flags || {}) };                  // absent before 1.9.0
   shell.reminders = { ...base.reminders, ...(shell.reminders || {}) };   // absent before 1.10.0
+  shell.audio = { ...base.audio, ...(shell.audio || {}) };               // absent before 1.15.0
   return { v: 2, shell, games: rec.games || {} };
 }
 

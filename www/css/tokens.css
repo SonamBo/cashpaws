@@ -1,5 +1,14 @@
-/* Cash Paws — design tokens.
+/* Design tokens.
    Colours sampled directly from the source mockup, not invented. */
+
+/* Nunito, variable weight 200–1000, Latin subset (www/fonts/OFL-Nunito.txt). */
+@font-face {
+  font-family: "Nunito";
+  src: url("../fonts/nunito.woff") format("woff");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   /* ground and surfaces — retuned to the reference room */
@@ -43,9 +52,9 @@
   --chip-100:      #8a6fd4;  --chip-100-ink: #ffffff;
 
   /* type — one family, personality carried by weight and tracking.
-     No webfont: the build has no network, so this is the system rounded
-     stack. Stage 6 swaps in a bundled face (see PROGRESS.md). */
-  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system,
+     Nunito is bundled (fonts/, SIL Open Font License), so the game looks the
+     same on Android, Windows and Apple: the system stack is only a fallback. */
+  --font: "Nunito", ui-rounded, "SF Pro Rounded", system-ui, -apple-system,
           "Segoe UI Variable Display", Roboto, "Helvetica Neue", sans-serif;
   --num: 800 var(--fs-money)/0.95 var(--font);
 

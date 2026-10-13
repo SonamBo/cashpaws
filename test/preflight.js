@@ -19,6 +19,46 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fails = [];
 const notes = [];
 
+/* --- the app's identity: www/app.config.js, read by Gradle and the shell --- */
+// Cash Paws' own values: any other app must replace every one of them.
+const CASH_PAWS = {
+  applicationId: 'com.pixelartgames.cashpaw',
+  name: 'Cash Paws',
+  privacyHost: 'pixelartgames000.github.io',
+  firebaseProject: 'cash-paws-prod',
+  admobPublisher: '5379524261124242',
+};
+let APP = {};
+{
+  const path = join(ROOT, 'www/app.config.js');
+  if (!existsSync(path)) fails.push('MISSING  www/app.config.js  — the app\'s name, package and version');
+  else {
+    try {
+      // Exactly what Gradle does: drop comment lines, take what follows "export default".
+      const body = readFileSync(path, 'utf8').replace(/^\s*\/\/.*$/gm, '').replace(/^[\s\S]*?export default/, '').replace(/;\s*$/, '');
+      APP = JSON.parse(body);
+    } catch (e) {
+      fails.push(`CONTENT  www/app.config.js is not strict JSON after "export default" (Gradle can't read it): ${e.message}`);
+    }
+    for (const k of ['name', 'applicationId', 'versionCode', 'versionName', 'privacyUrl']) {
+      if (APP[k] === undefined || APP[k] === '') fails.push(`CONTENT  www/app.config.js has no "${k}"`);
+    }
+    if (APP.applicationId && !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(APP.applicationId)) fails.push(`CONTENT  applicationId "${APP.applicationId}" is not a valid Android package name`);
+    if (APP.versionCode !== undefined && !(Number.isInteger(APP.versionCode) && APP.versionCode > 0)) fails.push('CONTENT  versionCode must be a whole number above 0');
+    if (/[&<>"\\]/.test(APP.name || '')) fails.push('CONTENT  the app name can\'t contain & < > " or \\ (Android resource rules)');
+    if (APP.privacyUrl && !/^https:\/\//.test(APP.privacyUrl)) fails.push('CONTENT  privacyUrl must be an https:// address');
+    notes.push(`${APP.name}: ${APP.applicationId}, versionCode ${APP.versionCode}, versionName ${APP.versionName} — Play rejects a repeated versionCode`);
+    if (/^com\.example\./.test(APP.applicationId || '')) notes.push('WARNING  applicationId is still com.example.…: Play refuses it. Set your own in www/app.config.js before uploading.');
+  }
+}
+// An app built from this shell that isn't Cash Paws must not ship anything of Cash Paws'.
+const IS_CASH_PAWS = APP.applicationId === CASH_PAWS.applicationId;
+if (APP.applicationId && !IS_CASH_PAWS) {
+  if (APP.name === CASH_PAWS.name) fails.push('IDENTITY www/app.config.js still names the app "Cash Paws"');
+  if ((APP.privacyUrl || '').includes(CASH_PAWS.privacyHost)) fails.push('IDENTITY privacyUrl points at Cash Paws\' privacy policy — publish your own');
+  if ((APP.contactEmail || '').includes('pixelartgames000')) fails.push('IDENTITY contactEmail is Cash Paws\' address');
+}
+
 function need(rel, why) {
   if (!existsSync(join(ROOT, rel))) fails.push(`MISSING  ${rel}  — ${why}`);
 }
@@ -42,16 +82,16 @@ needContains('android/app/build.gradle', 'copyWebApp', 'the web app must be sync
 
 /* --- the Android app itself --- */
 need('android/app/src/main/AndroidManifest.xml', 'no manifest, no app');
-need('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'the only Activity');
+need('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'the only Activity (its package is internal and never changes)');
 
 /* --- namespace, applicationId and the Kotlin package must agree --- */
 {
   const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
   const ns = gradle.match(/namespace\s+'([\w.]+)'/)?.[1];
-  const appId = gradle.match(/applicationId\s+"([\w.]+)"/)?.[1];
+  const appId = /applicationId\s+appConfig\.applicationId/.test(gradle) ? APP.applicationId : null;
   const ktPath = `android/app/src/main/java/${(ns || '').replace(/\./g, '/')}/MainActivity.kt`;
   if (!ns || !appId) {
-    fails.push('CONTENT  build.gradle is missing a namespace or applicationId');
+    fails.push('CONTENT  build.gradle is missing a namespace, or does not take applicationId from www/app.config.js');
   } else {
     if (!existsSync(join(ROOT, ktPath))) {
       fails.push(`MISSING  ${ktPath}  — the Activity must sit in the namespace's folder`);
@@ -61,10 +101,12 @@ need('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', 'the
         fails.push(`CONTENT  MainActivity declares package "${pkg}" but the namespace is "${ns}"`);
       }
     }
-      const vc = gradle.match(/versionCode\s+(\d+)/)?.[1];
-    const vn = gradle.match(/versionName\s+"([^"]+)"/)?.[1];
-    notes.push(`package ${ns}, published as ${appId}`);
-    notes.push(`versionCode ${vc}, versionName ${vn} — Play rejects a repeated versionCode`);
+    for (const k of ['versionCode appConfig.versionCode', 'versionName appConfig.versionName', "resValue 'string', 'app_name', appConfig.name"]) {
+      if (!gradle.includes(k)) fails.push(`CONTENT  build.gradle must take ${k.split(' ')[0] === 'resValue' ? 'the app name' : k.split(' ')[0]} from www/app.config.js`);
+    }
+    if (/<string name="app_name">/.test(readFileSync(join(ROOT, 'android/app/src/main/res/values/strings.xml'), 'utf8'))) {
+      fails.push('CONTENT  strings.xml defines app_name too; it comes from www/app.config.js (a duplicate fails the build)');
+    }
   }
 }
 need('android/app/proguard-rules.pro', 'referenced by the release build type');
@@ -94,6 +136,12 @@ need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
   // older one, and release lint (InvalidFragmentVersionForActivityResult) fails.
   const fr = app.match(/androidx\.fragment:fragment(?:-ktx)?:(\d+)\.(\d+)/);
   if (!fr || +fr[1] < 1 || (+fr[1] === 1 && +fr[2] < 3)) fails.push('CONTENT  app/build.gradle must pin androidx.fragment 1.3+ (release lint fails on the ad SDK\'s old one)');
+  // Play requires AD_ID to be declared by any app with ads targeting Android 13+.
+  // The ad SDK merges it in, but a stated permission survives a tools:node="remove".
+  const mf = readFileSync(join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+  if (!/<uses-permission[^>]+com\.google\.android\.gms\.permission\.AD_ID"(?![^>]*tools:node="remove")/.test(mf)) {
+    fails.push('CONTENT  AndroidManifest.xml must declare com.google.android.gms.permission.AD_ID (Play rejects ad apps without it)');
+  }
   if (/kotlinOptions\s*\{/.test(app)) fails.push('CONTENT  app/build.gradle uses kotlinOptions {}, an error since Kotlin 2.2 — use kotlin { compilerOptions {} }');
 
   const kt = readFileSync(join(ROOT, 'android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt'), 'utf8');
@@ -135,7 +183,6 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   }
   needContains('android/app/src/main/AndroidManifest.xml', 'com.google.android.gms.ads.APPLICATION_ID',
     'the SDK crashes at launch without the AdMob app ID in the manifest');
-  need('android/ads.properties', 'the AdMob IDs for release builds');
   need('android/app/src/main/java/com/pixelartgames/cashpaw/Ads.java', 'the native ad bridge');
   // The bridge's name has to match on both sides, or ads silently never appear.
   needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', '"CashPawsAds"', 'the Activity must expose the bridge');
@@ -148,7 +195,8 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   if (appId && unit && appId.split('~')[0] !== unit.split('/')[0]) fails.push('CONTENT  the app ID and ad unit ID belong to different AdMob accounts');
   if (unit && !appId) fails.push('CONTENT  ads.properties has an ad unit but no appId: release ads would never serve');
   if (/3940256099942544/.test(props)) fails.push('CONTENT  ads.properties holds Google\'s TEST IDs: release builds must use your own');
-  notes.push(unit ? `ads: release builds serve AdMob unit ${unit}` : 'ads: no ad unit in android/ads.properties — release builds show no ads');
+  notes.push(unit ? `ads: release builds serve AdMob unit ${unit}` : 'ads: no android/ads.properties or no ad unit in it — release builds show no ads (debug uses Google\'s test ads)');
+  if (!IS_CASH_PAWS && props.includes(CASH_PAWS.admobPublisher)) fails.push('IDENTITY android/ads.properties holds Cash Paws\' AdMob IDs — use your own account\'s');
   // Interstitials (1.13): well-formed, same account, test unit in debug, and
   // no listing or policy that still promises every ad is optional.
   const inter = props.match(/^interstitialAdUnit=(\S*)/m)?.[1] || '';
@@ -159,6 +207,7 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   if (inter) {
     const promises = [/only when you (want|choose)/i, /only if you want/i, /every ad[^.]*(optional|your choice)/i, /never see one/i];
     for (const f of ['docs/store-listing.md', 'docs/PRIVACY-POLICY.md', 'PLAY-STORE.md']) {
+      if (!existsSync(join(ROOT, f))) continue;
       const text = readFileSync(join(ROOT, f), 'utf8').replace(/Until 1\.12[^]*?gone\./, '');
       for (const re of promises) if (re.test(text)) fails.push(`CLAIM    ${f} says "${text.match(re)[0]}", but interstitials are on`);
     }
@@ -170,12 +219,13 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
        policy must say so before any event leaves a phone. --- */
 {
   const cfgPath = 'android/app/google-services.json';
-  if (!existsSync(join(ROOT, cfgPath))) fails.push(`MISSING  ${cfgPath} — download it from the Firebase console`);
+  if (!existsSync(join(ROOT, cfgPath))) notes.push(`firebase: no ${cfgPath} — analytics and crash reports are off until you add one (see SETUP.md)`);
   else {
     const cfg = JSON.parse(readFileSync(join(ROOT, cfgPath), 'utf8'));
     const pkgs = cfg.client.map((c) => c.client_info.android_client_info.package_name);
     const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8');
-    const appId = gradle.match(/applicationId\s+"([^"]+)"/)?.[1];
+    const appId = APP.applicationId;
+    if (!IS_CASH_PAWS && cfg.project_info.project_id === CASH_PAWS.firebaseProject) fails.push(`IDENTITY ${cfgPath} is Cash Paws' Firebase project — create your own`);
     const suffix = gradle.match(/applicationIdSuffix\s+"([^"]+)"/)?.[1] || '';
     for (const want of [appId, appId + suffix]) {
       if (!pkgs.includes(want)) fails.push(`CONTENT  ${cfgPath} has no app for ${want} — add it in Firebase and download the file again`);
@@ -187,7 +237,7 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
   if (!bom || bom.includes('+')) fails.push('CONTENT  the Firebase BoM must be present and pinned');
   needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt', '"CashPawsAnalytics"', 'the Activity must expose the analytics bridge');
   needContains('www/shell/analytics.js', 'CashPawsAnalytics', 'the shell must look for the same bridge name');
-  needContains('docs/PRIVACY-POLICY.md', 'Firebase', 'the privacy policy must disclose Firebase');
+  if (existsSync(join(ROOT, cfgPath))) needContains('docs/PRIVACY-POLICY.md', 'Firebase', 'the privacy policy must disclose Firebase');
 }
 
 /* --- reminders (1.10.0): the bridge names match, and Android 13 can ask --- */
@@ -209,6 +259,9 @@ needContains('www/index.html', 'shell/main.js', 'the page must boot the shell');
 for (const f of ['tokens.css', 'shell.css']) need(`www/css/${f}`, 'linked from index.html');
 for (const f of ['main', 'host', 'wallet', 'save', 'header', 'lobby', 'tabs', 'overlays', 'cats', 'art', 'assets', 'ads', 'daily', 'rewards'])
   need(`www/shell/${f}.js`, 'part of the shell');
+need('www/shell/sound.js', 'sound effects and music');
+need('www/fonts/nunito.woff', 'the bundled font (tokens.css)');
+need('www/fonts/OFL-Nunito.txt', 'the font\'s licence must ship with it');
 for (const f of ['cat-hero', 'coin', 'logo', 'tagline']) need(`www/img/${f}.png`, 'shell artwork');
 need('www/img/bg-room.jpg', 'the room background');
 
@@ -265,6 +318,15 @@ const jsIn = (dir) => {
       if (missing.length) notes.push(`${g}: no ${missing.join('/')} tasks — its daily set will be short`);
     }
 
+    // The web build's settings for this game (platforms/crazygames), if any.
+    if (existsSync(join(ROOT, `www/games/${g}/web.json`))) {
+      try {
+        const web = JSON.parse(readFileSync(join(ROOT, `www/games/${g}/web.json`), 'utf8'));
+        if (web.css) need(`www/games/${g}/${web.css}`, `${g}'s web.json names it as its PC styles`);
+        for (const k of web.keys || []) if (!k.key || !k.click) fails.push(`CONTENT  www/games/${g}/web.json: every key needs "key" and "click"`);
+      } catch (e) { fails.push(`CONTENT  www/games/${g}/web.json is not valid JSON: ${e.message}`); }
+    }
+
     // A game reaches the shell only through host. Importing the shell, or a
     // sibling game, is what would stop games being swappable.
     for (const file of jsIn(`www/games/${g}`)) {
@@ -304,7 +366,7 @@ for (const file of jsIn('www/shell')) {
 }
 
 /* --- Money Sort's chip art, which it builds by name at runtime --- */
-for (const v of [1, 5, 10, 20, 50]) {
+if (existsSync(join(ROOT, 'www/games/money-sort'))) for (const v of [1, 5, 10, 20, 50]) {
   need(`www/games/money-sort/img/chip-${v}.png`, `chip artwork for $${v}`);
   need(`www/games/money-sort/img/chipb-${v}.png`, `paper chip artwork for $${v}`);
 }
@@ -333,14 +395,8 @@ for (const v of [1, 5, 10, 20, 50]) {
   notes.push(`${refs.size} shell image references checked`);
 }
 
-/* --- the version the app reports matches the one Play sees --- */
-{
-  const main = readFileSync(join(ROOT, 'www/shell/main.js'), 'utf8').match(/APP_VERSION\s*=\s*'([^']+)'/)?.[1];
-  const gradle = readFileSync(join(ROOT, 'android/app/build.gradle'), 'utf8').match(/versionName\s+"([^"]+)"/)?.[1];
-  if (main !== gradle) {
-    fails.push(`CONTENT  shell/main.js says version ${main} but build.gradle says ${gradle} — keep them equal`);
-  }
-}
+/* --- the version the app reports is the one Play sees: both from app.config.js --- */
+needContains('www/shell/main.js', 'APP.versionName', 'the shell must take its version from www/app.config.js');
 
 /* --- leftover source from old package names still gets compiled --- */
 {
@@ -368,7 +424,7 @@ for (const pat of ignores) {
 }
 notes.push(`${ignores.length} ignore rules checked`);
 
-console.log('Cash Paws pre-flight\n');
+console.log(`${APP.name || 'App'} pre-flight\n`);
 notes.forEach((n) => console.log('  ' + n));
 console.log('');
 if (fails.length === 0) {

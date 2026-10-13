@@ -1,0 +1,18 @@
+{
+  "_about": "How Coin Catch plays on the web (platforms/crazygames). Copy this with the template; the Android app ignores it.",
+  "keys": [
+    { "key": "1-9", "click": ".cc-cell[data-i=\"{i}\"]" }
+  ],
+  "keysHelp": "Keys: 1–9 tap a cell, P pause.",
+  "numberLabels": { "selector": ".cc-cell[data-i]", "attr": "data-i" },
+  "css": "web.css",
+  "mustBeVisible": [".cc-cell"],
+  "overrides": [
+    {
+      "why": "PC players click",
+      "file": "games/template/index.js",
+      "find": "Tap the coin before it hops",
+      "replace": "Click the coin before it hops"
+    }
+  ]
+}

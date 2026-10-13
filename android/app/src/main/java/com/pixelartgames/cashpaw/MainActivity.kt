@@ -143,7 +143,11 @@ class MainActivity : ComponentActivity() {
         ads = Ads(this, webView)
         webView.addJavascriptInterface(ads, "CashPawsAds")
         // Firebase: gameplay events and crash reports. Same reasoning as above.
-        webView.addJavascriptInterface(Analytics(this), "CashPawsAnalytics")
+        // Only when the build has a google-services.json: without one Firebase
+        // never starts, and the shell simply finds no analytics bridge.
+        if (com.google.firebase.FirebaseApp.getApps(this).isNotEmpty()) {
+            webView.addJavascriptInterface(Analytics(this), "CashPawsAnalytics")
+        }
         // Reminders (Rewards Box, Bell Quest), scheduled by shell/notify.js.
         notify = Notify(this, webView) {
             notifyPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)

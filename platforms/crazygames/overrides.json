@@ -1,0 +1,27 @@
+{
+  "_about": "Text changes the web build makes to its COPY of the shell; the source is never edited. Each 'find' must occur exactly once in its file, or the build stops, so a shell change that affects the web wording is caught. {keys} becomes the game's keysHelp from its web.json. A game's own changes go in its web.json.",
+  "replace": [
+    {
+      "why": "PC wording",
+      "file": "shell/questui.js",
+      "find": "Tap to continue",
+      "replace": "Click to continue"
+    },
+    {
+      "why": "On the web, CrazyGames serves the ads, and Ad breaks only follow level-ups",
+      "file": "shell/main.js",
+      "builds": ["full"],
+      "find": "const SETTINGS_NOTE_ADS = 'Free to play, with ads. Some are optional and earn rewards; past level 10, '\n  + 'a short ad also plays every few minutes, announced by an Ad break screen. No purchases. '\n  + 'Ads are served by Google AdMob; see the Privacy Policy for what they collect.';",
+      "replace": "const SETTINGS_NOTE_ADS = 'Free to play, with ads served by CrazyGames. Some are optional and earn rewards; past level 10, '\n  + 'a short ad may also play after a level-up, announced by an Ad break screen. No purchases. {keys}';"
+    },
+    {
+      "why": "A browser, not a phone; and the keys",
+      "file": "shell/main.js",
+      "find": "const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress stays on this phone.';",
+      "replace": "const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress is saved in this browser. {keys}';"
+    }
+  ],
+  "config": {
+    "privacyUrl": "privacy.html"
+  }
+}

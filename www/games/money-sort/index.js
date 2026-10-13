@@ -163,6 +163,7 @@ export default {
         switch (e.type) {
           case 'move':
             paint(vm);
+            host.sound('drop');
             view.finishMove(e.to, e.count || 1);
             await wait(180);
             break;
@@ -170,12 +171,14 @@ export default {
           case 'bank':
             paint(vm);
             view.bankPop(e.column, e.amount);
+            host.sound('bank');
             host.haptic(14);
             await wait(420);
             break;
 
           case 'levelup': {
             paint(vm);
+            host.sound('levelup');
             host.haptic([0, 18, 70, 26]);
             await wait(120);
             const gains = [];
@@ -209,12 +212,14 @@ export default {
           case 'inflow':
             paint(vm);
             view.flowPulse(e.count);
+            host.sound('flow');
             host.haptic(18);
             await wait(420);
             break;
 
           case 'sort':
             paint(vm);
+            host.sound('sort');
             host.haptic(16);
             await wait(380);
             break;
@@ -262,6 +267,7 @@ export default {
           case 'unlock':
             paint(vm);
             view.unlockPop(e.column);
+            host.sound('unlock');
             host.haptic([0, 12, 40, 18]);
             await wait(520);
             break;
@@ -304,7 +310,8 @@ export default {
       const res = game.tap(col);
       if (res.action === 'move') { drain(); return; }
       frames = [];
-      if (!res.ok && ['illegal', 'frozen', 'locked'].includes(res.reason)) { view.shake(col); host.haptic(9); }
+      if (!res.ok && ['illegal', 'frozen', 'locked'].includes(res.reason)) { view.shake(col); host.haptic(9); host.sound('error'); }
+      else if (game.selected !== null) host.sound('lift');
       view.update();
       tutorial.update();           // lifted or put down: point at the next tap
     }
@@ -313,6 +320,7 @@ export default {
       if (busy || !game.canUndo) return;
       if (!game.undo().ok) { frames = []; return; }
       host.track('undo_used', { level: game.level });
+      host.sound('undo');
       drain();
     }
 

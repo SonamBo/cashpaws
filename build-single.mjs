@@ -1,5 +1,5 @@
 /**
- * Build one self-contained cashpaws.html that opens by double-click.
+ * Build one self-contained game.html that opens by double-click.
  *
  * Opening the real build from disk fails: file:// blocks ES modules and gives
  * localStorage an opaque origin. So this follows the import graph from the
@@ -19,6 +19,7 @@ import { join, dirname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
+const APP = (await import('./www/app.config.js')).default;
 const WWW = join(ROOT, 'www');
 const read = (p) => readFileSync(join(WWW, p), 'utf8');
 const ENTRY = 'shell/main.js';
@@ -92,7 +93,7 @@ const styleList = ((gameIndex.match(/styles:\s*\[([^\]]*)\]/) || [])[1] || '')
 
 /* ---------------- assets ---------------- */
 
-const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', webp: 'image/webp' };
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', webp: 'image/webp', woff: 'font/woff', woff2: 'font/woff2' };
 const assets = {};
 function addImages(dir) {
   if (!existsSync(join(WWW, dir))) return;
@@ -104,6 +105,7 @@ function addImages(dir) {
   }
 }
 addImages('img');
+addImages('fonts');
 addImages(`games/${gameFolder}/img`);
 
 /** url(...) inside a stylesheet resolves relative to that stylesheet. */
@@ -132,7 +134,7 @@ const out = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#fcf5e6">
-<title>Cash Paws</title>
+<title>${APP.name}</title>
 <style>
 ${inlineCss('css/tokens.css')}
 ${inlineCss('css/shell.css')}
@@ -160,7 +162,7 @@ __require(${JSON.stringify(ENTRY)});
 </html>
 `;
 
-const target = process.argv[2] || join(ROOT, 'cashpaws.html');
+const target = process.argv[2] || join(ROOT, 'game.html');
 writeFileSync(target, out);
 console.log(`wrote ${target}`);
 console.log(`  game: ${gameFolder}`);

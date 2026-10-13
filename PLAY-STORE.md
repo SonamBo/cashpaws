@@ -50,7 +50,7 @@ Never commit the `.jks`. `.gitignore` already excludes `*.jks`.
 ## 2. Build
 
 Push. With `KEYSTORE_BASE64` present the workflow builds and uploads
-**`cashpaws-release-aab`** alongside the APK. Download the artifact, unzip, and
+**`app-release-aab`** alongside the APK. Download the artifact, unzip, and
 you have `app-release.aab`.
 
 The APK is built from the same code, so you can sideload and test exactly what

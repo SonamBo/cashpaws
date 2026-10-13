@@ -1182,3 +1182,168 @@ was wrong.
   `.kt`/`.java` file outside `com/pixelartgames/cashpaw/`. The CI log showed a
   leftover `MainActivity.kt` from an old package name still being compiled.
 - versionCode 21, versionName 1.13.2.
+
+## 1.13.3: Ad status readout (ads not showing on the phone)
+
+- Tested the game side with a realistic native stand-in (ads that take a few
+  seconds to load, human-paced play at level 12): the Ad break fired at exactly
+  2.5 minutes of counted play (about 3m20s of wall time, since time spent
+  animating or on cards doesn't count). Rescue-Sort and Rewards Box ads pass too.
+  So "no ads" on the phone is the native side or AdMob, not the game logic.
+- New: **Settings → tap "Version 1.13.3" five times** opens an Ad status card:
+  build type, consent status, whether the SDK started, and the last load
+  result for each ad unit, with AdMob's error code explained.
+- Ads.java logs load failures to Logcat (tag `CashPawsAds`) and once per
+  session to Firebase as `ad_load_failed` (format, code, message).
+- versionCode 22, versionName 1.13.3.
+
+## 1.14.0: the starter (this shell for other games)
+
+- **One config file for the app's identity:** `www/app.config.js` holds the
+  name, applicationId, versionCode, versionName, privacy URL and contact email.
+  - Gradle reads it: applicationId, version, and app_name via `resValue`.
+    `strings.xml` no longer defines app_name.
+  - The shell reads it: page title, Settings title and version, privacy link,
+    logo alt text.
+  - The version is now set in one place instead of two.
+- **Firebase is optional:** the google-services and Crashlytics plugins apply
+  only when `app/google-services.json` exists. MainActivity attaches the
+  analytics bridge only if Firebase started.
+- **`host.busy(on)`:** a game marks moves and animations so no Ad break cuts
+  in. Money Sort still sets the class directly. The Ad break rules are now
+  written up in `docs/GAME-MODULE.md`.
+- **Tests split:**
+  - Shell rule tests stay in `test/*.js`.
+  - Money Sort's tests (node and browser) and the v1 save fixture moved to
+    `test/games/money-sort/`.
+  - New runner: `test/run.js`, used by CI, runs the shell tests plus the
+    installed game's (a `// ci-args:` line passes arguments).
+  - New `test/shell.mjs` checks the shell with any installed game.
+- **Pre-flight:**
+  - Validates `app.config.js` exactly as Gradle parses it.
+  - Treats missing `ads.properties` and `google-services.json` as "off", not
+    errors.
+  - Fails an app that isn't Cash Paws if it still carries any Cash Paws ID:
+    name, privacy URL, email, AdMob publisher or Firebase project.
+- **Starter export and sync:**
+  - `tools/export-starter.mjs` copies the shared files byte for byte.
+  - Money Sort, keys, store docs and history stay private.
+  - Placeholders come from `tools/starter/`: config, Coin Catch installed,
+    logo, icons, README and privacy policy template.
+  - The export refuses to run if a Cash Paws ID would leak.
+  - `.github/workflows/starter.yml` pushes the export after each green build.
+- **Tested here:** I built a starter repo, made an app from it and pushed a
+  shell change through. `git pull upstream main` merged with no conflicts. The
+  app kept its own name, game and config; Money Sort changes and Cash Paws'
+  version bump stayed out.
+- **Renames:**
+  - CI artifacts: `app-debug`, `app-release-apk`, `app-release-aab`.
+  - Single-file build output: `game.html`.
+- **Docs:** `CLAUDE.md` (rules for any Claude working in either repo) and
+  `SETUP.md` (accounts, keys and Play for a new app).
+- versionCode 23, versionName 1.14.0.
+
+## Web platform and marketing tools (no app change; still 1.14.0)
+
+Android is untouched: no file under `android/` changed, and the only
+additions under `www/` are web-only files the app never loads (`web.json`,
+`web.css` in the game folders). No versionCode bump needed.
+
+- **`platforms/crazygames/`:** the CrazyGames build, moved from cashpaws-web
+  and made game-agnostic.
+  - `build.mjs` writes `dist/crazygames/<app>-crazygames-{basic,full}.zip`.
+  - `page/` holds the SDK adapter, PC keyboard and mouse, and the web privacy
+    page. `overrides.json` holds the shell's web wording.
+  - Tests: a stand-in SDK, a harness, and a generic test that passed with
+    both Money Sort and Coin Catch installed.
+- **Per game, `www/games/<id>/web.json`:** keys, keysHelp, number labels, PC
+  CSS, level pattern, must-be-visible selectors, wording overrides. Money
+  Sort's and the template's are written.
+- **`test/games/money-sort/crazygames.mjs`:** Money Sort's own web checks (17):
+  - keys move coins, Z undoes;
+  - the rescue Sort works through a rewarded ad, including unfilled;
+  - a midgame ad plays only after a level-up;
+  - tutorial wording, ad blocker, basic build.
+- **CI:** `.github/workflows/crazygames.yml` runs separately from the Android
+  build and attaches the zips.
+- **Marketing:**
+  - `tools/marketing/record-preview.mjs`: trailers from
+    `marketing/showcase.mjs`, at store sizes, optionally opening on a cover.
+    It suppresses dev-mode stand-in ads.
+  - `tools/marketing/make-covers.py`: exact sizes, with crazygames and play
+    presets.
+  - Cash Paws' `marketing/` (private): BRAND.md, references, showcase,
+    CrazyGames listing and cover prompts.
+- **Starter:**
+  - Gets `platforms/`, `tools/marketing/`, the template's `web.json`, and a
+    `marketing/` template (BRAND, listing, cover prompts, a Coin Catch
+    showcase).
+  - Tested on an exported starter: build, generic test and template trailer
+    all work.
+  - A shell update pulled into an existing app merged with no conflicts.
+  - Lesson: never edit files under `tools/starter/` after release. They
+    belong to each app, so the README edit conflicted; it was reverted.
+- **cashpaws-web:** now only pins which Cash Paws version goes to CrazyGames,
+  and builds with Cash Paws' own `platforms/crazygames`.
+
+## 1.15.0: sound, a bundled font, desktop presentation (after the CrazyGames rejection)
+
+CrazyGames rejected the first submission as "overall quality does not yet
+meet the expectations of our platform". Their quality guidelines, checked
+against the game, pointed to: no audio at all, a phone layout lost in a big
+desktop frame, a font that changed per device, a text-heavy unskippable
+tutorial, and small inconsistencies. All in the shell, so Android, the
+starter and future games get them too.
+
+- **Sound** (`www/shell/sound.js`):
+  - Synthesised with Web Audio, so there are no audio files and nothing to
+    license.
+  - 14 effects: tap, lift, drop, bank, levelup, celebrate, setback, flow,
+    sort, undo, error, coin, open, unlock.
+  - A cosy generated music loop: 84 bpm, four chords, a melody that varies.
+  - `host.sound(name)` lets games add their own; Money Sort calls it on every
+    moment.
+  - Settings has Sound effects and Music switches, saved in `shell.audio`.
+  - Silent until the first tap, and while hidden or during an ad. CrazyGames
+    mutes only once the ad really starts (the adapter); Android mutes around
+    every ad.
+  - `tools/sound-preview.mjs` renders it all to a WAV and checks the levels:
+    no clipping, effects peak −1 to −8 dB, music about 28 dB RMS under them.
+  - `test/sound.mjs` checks unlocking, the switches (remembered), ad and
+    background silence, and that only one audio context is used.
+- **Font:** Nunito, bundled (`www/fonts/`, SIL OFL), so every device matches
+  the rounded logo. It replaces the system rounded font, which only Apple
+  devices have.
+- **Web/desktop:**
+  - The app lays out at about 960×560 and scales up to fill large windows
+    (`--app-scale`, up to 2x). The board, coach, and the coordinates of the
+    coin flight all account for the scale.
+  - P pauses instead of Esc, which browsers use to leave fullscreen
+    (CrazyGames' restricted keys); Backspace also goes back.
+- **First minute:**
+  - Shorter tutorial text, and a "Skip tutorial" button on each tip.
+  - The tip finds a spot that covers no buttons: beside the board on wide
+    screens, below it on phones.
+- **Polish:**
+  - The pause menu says the app's name (Cash Paws), not the game module's
+    (Money Sort).
+  - The flow meter reads "NEW COINS · in 4 moves" instead of "FLOW T004".
+- **Not changed:** the level goals. Level 1 takes a median of 23 moves.
+  Shortening it would move every later goal for existing players, so it's
+  left as a decision for later.
+- **Tests:** all of Cash Paws' node and browser tests, the generic CrazyGames
+  test (plus a check that sound is held once a CrazyGames ad starts) and
+  Money Sort's CrazyGames test pass.
+- versionCode 24, versionName 1.15.0.
+
+## 1.15.1: a clearer tube selection, AD_ID guard
+
+- The selected tube now has a dark green outline (#2b6340), a tinted inside,
+  lifts 10 px, and the coins that will move (the top run of one value) rise
+  another 10 px. It stays visible while the board warns of or receives new
+  coins (the old faint glow was overridden there).
+- Play's "must declare AD_ID" error: the manifest already declares it. The
+  message comes from an older release still active in some track, or from the
+  Advertising ID answer in App content. Preflight now fails if the
+  declaration is ever removed.
+- versionCode 25, versionName 1.15.1.

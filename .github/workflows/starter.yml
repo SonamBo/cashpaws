@@ -1,0 +1,62 @@
+name: Update starter
+
+# After every green build of main, rebuild the starter repo from this one
+# (tools/export-starter.mjs) and push it if the shell changed. Apps made from
+# the starter then get the change with `git pull upstream main`.
+#
+# Needs, in this repo's Settings → Secrets and variables → Actions:
+#   variable  STARTER_REPO   owner/name of the starter repo, e.g. SomeOne/game-starter
+#   secret    STARTER_TOKEN  a fine-grained token with Contents: read and write
+#                            on that one repo
+# Without STARTER_REPO this workflow does nothing.
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  export:
+    if: ${{ vars.STARTER_REPO != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-24.04
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: src
+          ref: ${{ env.SHA }}
+
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ vars.STARTER_REPO }}
+          token: ${{ secrets.STARTER_TOKEN }}
+          path: starter
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      # Refuses to run if anything of Cash Paws would leak into the starter.
+      - name: Export
+        run: node src/tools/export-starter.mjs starter
+
+      # The starter must pass its own checks before anyone can pull it.
+      - name: Check the starter
+        working-directory: starter
+        run: node test/preflight.js && node test/run.js
+
+      - name: Commit and push
+        working-directory: starter
+        run: |
+          git config user.name "starter-sync"
+          git config user.email "starter-sync@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The shell did not change; nothing to push."
+            exit 0
+          fi
+          git commit -m "Shell $(cat SHELL-VERSION) (from ${GITHUB_REPOSITORY}@${SHA::7})"
+          git push

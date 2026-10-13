@@ -117,8 +117,8 @@ host.setback({ kicker, title, figure, line })       // the worn cat slumps
 host.confirm({ kicker, title, line, ok })           // resolves true or false
 host.cards.show(html, kind) / host.cards.dismiss(el)  // for game-specific cards
 
-host.moment(kind)                 // a natural break: 'level-complete', 'setback'.
-                                  // The shell may show an interstitial here.
+host.moment(kind)                 // a natural break: 'level-complete', 'setback'
+host.busy(on)                     // true while a move or animation plays; no Ad break starts until false
 host.rewarded.available(where)    // is a rewarded ad ready for this placement?
 host.rewarded.show(where)         // resolves true if the player earned the reward
 
@@ -127,6 +127,9 @@ host.art.coin(width)
 host.asset(path)                  // this game's file, e.g. 'img/chip-5.png' — always
                                   // go through this; the single-file build depends on it
 
+host.sound(name)                  // an effect: tap, lift, drop, bank, levelup, flow, sort,
+                                  // undo, error, coin, open, unlock. Music and the shell's own
+                                  // sounds (buttons, cards, rewards) need nothing from the game
 host.haptic(pattern)
 host.save()                       // save now, e.g. after something important
 host.exit()                       // back to the lobby
@@ -181,6 +184,22 @@ Before a loss the player chooses, it awaits `host.confirmLevelLoss()`, which
 asks "Give up your quest?" only while a quest is running. A game without
 `quest` never shows the icon. Design and numbers: `docs/BELL-QUEST.md`.
 
+## Ad breaks (interstitials)
+
+The shell runs them; a game only has to report its level. It counts actual play
+time (the game screen showing, nothing over it, the app in the foreground, and
+the game not `busy`), and once the player is past level 10 it shows a 2-second
+"Ad break" card with the worn cat and then an ad, every 2.5 minutes of play.
+The game is paused around it. Two things make this work in a new game:
+
+- **Report `level` in `host.progress()`.** No level, no Ad breaks: a game
+  without levels (like the template) only ever shows rewarded ads.
+- **Call `host.busy(true)` while a move or animation plays**, and
+  `host.busy(false)` when the board is still, so an ad never cuts into one.
+
+The timing lives in `www/shell/ads.js` (`INTERSTITIAL_EVERY_MS`,
+`INTERSTITIAL_FROM_LEVEL`). It is the same for every game built on this shell.
+
 ## Stats: two kinds
 
 The shell keeps a few stats for itself, whatever the game: `coinsEarned`,
@@ -225,5 +244,6 @@ all — before you have written any real gameplay.
 `node test/preflight.js`, run first in CI, enforces the boundaries: every game
 folder has an `index.js` whose `id` matches its folder, its styles and asset
 literals exist, it imports nothing outside its own folder, and the shell imports
-no game except through `active.js`. `test/swap.mjs` installs Coin Catch, plays
+no game except through `active.js`. `test/shell.mjs` checks the shell works with
+whatever game is installed, and Cash Paws' `test/games/money-sort/swap.mjs` installs Coin Catch, plays
 it inside the full shell, swaps back, and checks both saves survived.

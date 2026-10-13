@@ -439,3 +439,30 @@
   30% { transform: translate(-50%, -60%) rotate(-12deg) scale(1.1); }
   100% { transform: translate(-50%, -120%) rotate(8deg) scale(.6); opacity: 0; }
 }
+
+/* ---------------------------------------------------------------- *
+ * The selected tube (1.15.1): unmistakable at a glance. A dark green
+ * outline, a tinted inside, a clear lift, and the coins that will move
+ * raised above the rest. Specific enough to stay visible while the board
+ * warns of, or receives, new coins.
+ * ---------------------------------------------------------------- */
+.board .tube.selected {
+  transform: translateY(-10px);
+  filter:
+    drop-shadow(0 0 1.5px #2b6340)
+    drop-shadow(0 0 1.5px #2b6340)
+    drop-shadow(0 0 1px #2b6340)
+    drop-shadow(0 10px 12px rgba(43, 99, 64, .45));
+}
+.glass { position: relative; }
+.tube.selected .glass::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--tube-w) * 14 / 232) calc(var(--tube-w) * 20 / 232) calc(var(--tube-w) * 40 / 232);
+  border-radius: 0 0 calc(var(--tube-w) * .4) calc(var(--tube-w) * .4);
+  background: rgba(43, 99, 64, .16);
+  pointer-events: none;
+}
+/* translate, not transform: the chip-in animation holds transform for good. */
+.chip { transition: translate var(--t-fast) var(--ease); }
+.chip.lifted { translate: 0 -10px; }

@@ -8,7 +8,6 @@ import {
   emptyDaily, ensureDay, progressOf, isDone, claimable, claimTask, claimBonus,
   newlyDone, localDay, dayBefore, REWARD, BONUS,
 } from '../www/shell/daily.js';
-import moneySort from '../www/games/money-sort/index.js';
 
 let pass = 0;
 const fails = [];
@@ -137,15 +136,6 @@ function finishDay(d, day, stats) {
   const before = { a: 2 }, after = { a: 3 };
   ok('crossing a target is reported once', newlyDone(d, before, after).length === 1);
   ok('staying past it is not reported again', newlyDone(d, after, { a: 4 }).length === 0);
-}
-
-/* ---- Money Sort's real catalogue ---- */
-{
-  const tiers = new Set(moneySort.tasks.map((t) => t.tier));
-  ok('money sort has every tier', ['easy', 'medium', 'hard'].every((t) => tiers.has(t)));
-  ok('every money sort task names a stat and a target',
-     moneySort.tasks.every((t) => t.stat && t.target > 0 && t.text));
-  ok('no task asks the player to spend coins', !moneySort.tasks.some((t) => t.stat === 'sorts'));
 }
 
 console.log(`Daily tests: ${pass}/${pass + fails.length} passed`);

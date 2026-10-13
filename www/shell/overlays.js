@@ -5,9 +5,10 @@
  */
 
 import { cat, icons } from './art.js';
+import APP from '../app.config.js';
 
 export const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-export const PRIVACY_URL = 'https://pixelartgames000.github.io/privacy-policy/';
+export const PRIVACY_URL = APP.privacyUrl;
 
 let layer = null;
 export function mountOverlays(root) {
@@ -166,15 +167,25 @@ export function pauseMenu({ canRestart, title }) {
  * opens a tab, and the Android shell hands any outside address to the phone's
  * browser, since the app itself has no internet permission.
  */
-export function settings({ title, note, privacy = false, reminders = null }) {
+export function settings({ title, note, privacy = false, reminders = null, version = '', audio = null }) {
+  // `version`: tapped 5 times, it resolves 'adstatus' (a tester's readout).
   // `privacy` only when Google's consent SDK says this player must be offered
   // their choices (the US "do not sell or share" link). The form is Google's.
-  return pickMenu('Settings', title, [
+  const picked = pickMenu('Settings', title, [
     `<a class="menu-link" href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
        ${icons.lock(20)}<span>Privacy Policy</span>${icons.external(16)}
      </a>`,
     !privacy ? '' : `
      <button data-pick="privacy">${icons.lock(20)}<span>Do not sell or share my personal information</span></button>`,
+    audio === null ? '' : `
+     <button class="menu-toggle" data-pick="sfx" role="switch" aria-checked="${audio.sfx}">
+       ${icons.speaker(20)}<span>Sound effects</span>
+       <i class="switch ${audio.sfx ? 'on' : ''}"></i>
+     </button>
+     <button class="menu-toggle" data-pick="music" role="switch" aria-checked="${audio.music}">
+       ${icons.music(20)}<span>Music</span>
+       <i class="switch ${audio.music ? 'on' : ''}"></i>
+     </button>`,
     reminders === null ? '' : `
      <button class="menu-toggle" data-pick="reminders" role="switch" aria-checked="${reminders}">
        ${icons.daily(20)}<span>Reminders: Rewards Box and Bell Quest</span>
@@ -182,7 +193,13 @@ export function settings({ title, note, privacy = false, reminders = null }) {
      </button>`,
     `<button data-pick="erase">${icons.undo(20)}<span>Erase all progress</span></button>`,
     `<button class="primary" data-pick="close">${icons.play(20)}<span>Done</span></button>`,
-  ], note ? `<p class="ovl-sub settings-note">${note}</p>` : '');
+  ], (note ? `<p class="ovl-sub settings-note">${note}</p>` : '')
+    + (version ? `<p class="settings-version">Version ${version}</p>` : ''));
+  const v = [...layer.querySelectorAll('.settings-version')].pop();
+  let taps = 0;
+  // Runs before the card's own click handler, so the 5th tap becomes a pick.
+  v?.addEventListener('click', () => { if (++taps >= 5) v.dataset.pick = 'adstatus'; });
+  return picked;
 }
 
 /**

@@ -2,7 +2,6 @@
 /** Bell Quest rules, tested without a browser. Run: node test/quest.js */
 
 import * as Q from '../www/shell/quest.js';
-import moneySort from '../www/games/money-sort/index.js';
 
 let pass = 0;
 const fails = [];
@@ -15,7 +14,6 @@ const T0 = Date.UTC(2026, 8, 26, 10);
   const q = Q.emptyQuest();
   ok('locked below the unlock level', !Q.sync(q, { now: T0, level: 7 }) && q.status === 'none');
   ok('offered once reached', Q.sync(q, { now: T0, level: 8 }) && q.status === 'offer');
-  ok('Money Sort opens it after the first Hard level', moneySort.quest.unlockLevel === 8 && moneySort.quest.steps === 7);
   ok('a game can set its own unlock level', (() => {
     const r = Q.emptyQuest(); Q.sync(r, { now: T0, level: 3, unlockLevel: 3 }); return r.status === 'offer';
   })());

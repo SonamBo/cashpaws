@@ -11,7 +11,7 @@ export function haptic(pattern) {
   try { navigator.vibrate?.(pattern); } catch { /* not supported */ }
 }
 
-export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach }) {
+export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach, sound }) {
   const stats = (shell.gameStats[game.id] ||= {});
 
   return {
@@ -56,8 +56,11 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     /** Between one level's celebration and the next level: the shell may show event progress. */
     levelBreak: () => Promise.resolve(events.levelBreak?.()),
 
-    celebrate,
-    setback,
+    celebrate: (o) => { sound?.play('celebrate'); return celebrate(o); },
+    setback: (o) => { sound?.play('setback'); return setback(o); },
+    // A sound effect: tap, lift, drop, bank, levelup, flow, sort, undo, error,
+    // coin, open, unlock (see shell/sound.js). Silent when the player turned sound off.
+    sound: (name) => sound?.play(name),
     confirm,
     cards: { show, dismiss, wait },
 
@@ -82,6 +85,8 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     },
 
     haptic,
+    // true while a move or animation is playing: no Ad break starts until false.
+    busy: (on) => document.body.classList.toggle('busy', !!on),
     save,
     exit,
     dev,

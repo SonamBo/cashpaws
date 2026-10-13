@@ -17,4 +17,4 @@ createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
     res.end(body);
   } catch { res.writeHead(404).end('not found'); }
-}).listen(PORT, () => console.log(`Cash Paws  ->  http://localhost:${PORT}`));
+}).listen(PORT, () => console.log(`Dev server  ->  http://localhost:${PORT}`));

@@ -5,26 +5,24 @@ project's memory, since a fresh chat with me starts with none.
 
 ## The only file you must edit
 
-`android/app/build.gradle`, two lines near the top:
+`www/app.config.js`, two lines:
 
-```gradle
-versionCode 2          // a whole number. MUST go up every upload.
-versionName "1.0.1"    // what players see. Yours to choose.
+```js
+"versionCode": 2,          // a whole number. MUST go up every upload.
+"versionName": "1.0.1",    // what players see. Yours to choose.
 ```
+
+The Android build and the in-game Settings both read them from there, so there
+is nothing else to keep in step.
 
 **`versionCode` is the one that matters.** Play permanently reserves every
 number it has seen, including uploads to internal or closed tracks, and rejects
 any repeat. It never goes down and never reuses a number, even for a build that
-was rejected. Just add one each time: 2, 3, 4.
+was rejected. Just add one each time: 2, 3, 4. Skipping a number is harmless;
+reusing one is not.
 
 `versionName` is cosmetic. The usual convention is `1.0.1` for a fix, `1.1.0`
 for new features, `2.0.0` for something substantial.
-
-Currently set to **versionCode 21, versionName 1.13.2**, ready for your next
-upload. Skipping a number is harmless; reusing one is not.
-
-**`versionName` appears twice** — in `build.gradle` and as `APP_VERSION` in
-`www/shell/main.js`. The pre-flight fails if they disagree.
 
 ## Then
 
@@ -33,7 +31,7 @@ node test/preflight.js     # two seconds, catches missing files
 git add . && git commit -m "v1.0.1" && git push
 ```
 
-Actions builds it. When the run finishes, download the **`cashpaws-release-aab`**
+Actions builds it. When the run finishes, download the **`app-release-aab`**
 artifact from the bottom of the run page, unzip, and upload `app-release.aab` to
 the Play Console.
 
@@ -41,11 +39,11 @@ the Play Console.
 
 | | |
 |---|---|
-| Package | `com.pixelartgames.cashpaw` — permanent, never change it |
+| Package | `applicationId` in `www/app.config.js` — permanent once published, never change it |
 | Target API | 36 (Play's floor; raise when Google raises it) |
 | Toolchain | AGP 8.7.3, Gradle 8.9, Kotlin 2.3.21 |
 | Signing | four repo secrets, see `PLAY-STORE.md` |
-| Privacy policy | https://pixelartgames000.github.io/privacy-policy/ — lobby gear, Settings |
+| Privacy policy | `privacyUrl` in `www/app.config.js` — lobby gear, Settings |
 
 ## When Play raises the API floor again
 

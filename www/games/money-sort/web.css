@@ -1,0 +1,11 @@
+/* Money Sort on PC (web build only): the tubes respond to the mouse. */
+@media (hover: hover) and (pointer: fine) {
+  .tube { cursor: pointer; transition: filter .12s ease, transform .12s ease; }
+  .tube:hover { filter: brightness(1.06) drop-shadow(0 0 6px rgba(255, 196, 64, .55)); transform: translateY(-2px); }
+}
+
+/* Wide windows: Undo and Sort stay under the board instead of stretching
+   across the whole frame. */
+@media (min-aspect-ratio: 4/3) {
+  #app .foot { max-width: 720px; margin-left: auto; margin-right: auto; }
+}
