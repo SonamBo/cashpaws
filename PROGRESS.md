@@ -1347,3 +1347,13 @@ starter and future games get them too.
   Advertising ID answer in App content. Preflight now fails if the
   declaration is ever removed.
 - versionCode 25, versionName 1.15.1.
+
+## 1.15.2: high-contrast tube selection
+
+- Selected tube: a solid 3 px near-black green ring (#123a22), a gold glow
+  outside it, a deeper tint inside (30%), lifted 12 px; the coins that will
+  move rise 12 px.
+- AD_ID: the repo and the versionCode 25 bundle declare it. If Play still
+  shows the error, an older bundle is still active (or retained in a draft)
+  in some track; see the chat for the steps.
+- versionCode 26, versionName 1.15.2.

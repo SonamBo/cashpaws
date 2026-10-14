@@ -441,18 +441,23 @@
 }
 
 /* ---------------------------------------------------------------- *
- * The selected tube (1.15.1): unmistakable at a glance. A dark green
- * outline, a tinted inside, a clear lift, and the coins that will move
- * raised above the rest. Specific enough to stay visible while the board
- * warns of, or receives, new coins.
+ * The selected tube (1.15.2): high contrast. A solid, near-black green
+ * ring (four hard drop-shadows build a 3px outline around the tube's
+ * shape), a warm gold glow outside it, a deep tint inside, a clear lift,
+ * and the coins that will move raised above the rest. Specific enough to
+ * stay visible while the board warns of, or receives, new coins.
  * ---------------------------------------------------------------- */
 .board .tube.selected {
-  transform: translateY(-10px);
+  transform: translateY(-12px);
   filter:
-    drop-shadow(0 0 1.5px #2b6340)
-    drop-shadow(0 0 1.5px #2b6340)
-    drop-shadow(0 0 1px #2b6340)
-    drop-shadow(0 10px 12px rgba(43, 99, 64, .45));
+    drop-shadow(1.5px 0 0 #123a22)
+    drop-shadow(-1.5px 0 0 #123a22)
+    drop-shadow(0 1.5px 0 #123a22)
+    drop-shadow(0 -1.5px 0 #123a22)
+    drop-shadow(1.5px 0 0 #123a22)
+    drop-shadow(-1.5px 0 0 #123a22)
+    drop-shadow(0 0 5px rgba(255, 196, 40, .95))
+    drop-shadow(0 10px 10px rgba(18, 58, 34, .45));
 }
 .glass { position: relative; }
 .tube.selected .glass::before {
@@ -460,9 +465,9 @@
   position: absolute;
   inset: calc(var(--tube-w) * 14 / 232) calc(var(--tube-w) * 20 / 232) calc(var(--tube-w) * 40 / 232);
   border-radius: 0 0 calc(var(--tube-w) * .4) calc(var(--tube-w) * .4);
-  background: rgba(43, 99, 64, .16);
+  background: rgba(18, 58, 34, .30);
   pointer-events: none;
 }
 /* translate, not transform: the chip-in animation holds transform for good. */
 .chip { transition: translate var(--t-fast) var(--ease); }
-.chip.lifted { translate: 0 -10px; }
+.chip.lifted { translate: 0 -12px; }
