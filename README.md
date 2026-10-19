@@ -16,8 +16,8 @@ ES modules need `http://`, so opening `index.html` directly will not work.
 ## Verify it
 
 ```bash
-node test/sim.js 5000  # rule tests + invariant auditing over full games
-node test/pace.js 400  # progression and board-pressure curves
+node test/games/money-sort/sim.js 5000 # rule tests + invariant auditing over full games
+node test/games/money-sort/pace.js 400 # progression and board-pressure curves
 ```
 
 ## Layout
