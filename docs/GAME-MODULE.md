@@ -58,6 +58,9 @@ export default {
   ],
   quest: { unlockLevel: 8, steps: 7 },   // optional: opts in to Bell Quest
   analytics: { batch: ['bank'] },        // coin reasons too frequent to send one by one
+  sounds: {                // the game's own effects, played with host.sound(name)
+    meow: (t, { ctx, bus, tone, noise }) => { /* Web Audio nodes into bus, from time t */ },
+  },
 
   create(host, root) { return instance; },
 };
@@ -128,8 +131,9 @@ host.asset(path)                  // this game's file, e.g. 'img/chip-5.png' —
                                   // go through this; the single-file build depends on it
 
 host.sound(name)                  // an effect: tap, lift, drop, bank, levelup, flow, sort,
-                                  // undo, error, coin, open, unlock. Music and the shell's own
-                                  // sounds (buttons, cards, rewards) need nothing from the game
+                                  // undo, error, coin, open, unlock, or one of the game's own
+                                  // `sounds`. Music and the shell's own sounds (buttons, cards,
+                                  // rewards) need nothing from the game
 host.haptic(pattern)
 host.save()                       // save now, e.g. after something important
 host.exit()                       // back to the lobby

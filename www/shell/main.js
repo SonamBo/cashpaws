@@ -516,6 +516,7 @@ async function boot() {
 
   setWornCat(shell.cats.worn);
   await loadStyles(game);
+  sound.register(game.sounds);
 
   ads = createAds({ dev: DEV, confirm, track });
   // Silence while an ad plays. On Android the full-screen ad sits over a

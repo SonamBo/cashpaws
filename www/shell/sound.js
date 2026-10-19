@@ -12,6 +12,11 @@
  *
  * Effects: tap, lift, drop, bank, levelup, celebrate, setback, flow, sort,
  * undo, error, coin, open, unlock.
+ *
+ * A game can add its own with a `sounds` map in its manifest (see
+ * docs/GAME-MODULE.md): each is `(t, kit) => {}`, scheduled at time `t` on the
+ * effects bus, so the Sound switch, ads and backgrounding silence it too. The
+ * shell's names always win, so a game can't replace one by accident.
  */
 
 const C = { sfx: 1.5, music: 0.55 };      // tuned by measuring a rendered mix (see the preview tool)
@@ -97,6 +102,7 @@ export function createSound({ sfx = true, music = true, context = null } = {}) {
   }
 
   const N = (semis) => 523.25 * 2 ** (semis / 12);     // semitones from C5
+  const custom = {};
 
   const EFFECTS = {
     tap: (t) => tone(1400, t, 0.03, { type: 'sine', gain: 0.08 }),
@@ -182,8 +188,15 @@ export function createSound({ sfx = true, music = true, context = null } = {}) {
     play(name, delay = 0) {
       if (given) ensure();
       if (!state.sfx || !audible()) return;
-      const fx = EFFECTS[name];
-      if (fx) { try { fx(ctx.currentTime + 0.005 + delay); } catch { /* never let a sound break the game */ } }
+      const t = ctx.currentTime + 0.005 + delay;
+      try {
+        if (EFFECTS[name]) EFFECTS[name](t);
+        else if (custom[name]) custom[name](t, { ctx, bus: sfxBus, tone, noise, clink, N });
+      } catch { /* never let a sound break the game */ }
+    },
+    /** A game's own effects, from its manifest's `sounds`. */
+    register(effects = {}) {
+      for (const [name, fx] of Object.entries(effects)) if (typeof fx === 'function' && !EFFECTS[name]) custom[name] = fx;
     },
     /** Rendering a preview only: schedule `bars` bars of music from `at` seconds. */
     scheduleMusic(at, bars) { ensure(); for (let i = 0; i < bars; i++) scheduleBar(at + i * BEAT * 4); },
@@ -200,6 +213,6 @@ export function createSound({ sfx = true, music = true, context = null } = {}) {
     },
     hold(reason) { holds.add(reason); applyHolds(); },
     release(reason) { holds.delete(reason); applyHolds(); },
-    names: Object.keys(EFFECTS),
+    get names() { return [...Object.keys(EFFECTS), ...Object.keys(custom)]; },
   };
 }
