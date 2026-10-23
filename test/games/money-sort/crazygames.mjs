@@ -61,9 +61,9 @@ console.log('--- Money Sort, full build ---');
 console.log('--- Ad breaks: a midgame ad right after a level-up only ---');
 {
   const { ctx, p, errs } = await open(FULL, { dev: true });
-  await p.evaluate(() => { game.level = 12; game.netWorth = game.floor; game.status = 'playing'; view.update(); window.__ads.played(200000); });
+  await p.evaluate(() => { game.level = 12; game.netWorth = game.floor; game.status = 'playing'; view.update(); });
   await p.waitForTimeout(3000);
-  check('due, but no level-up: no Ad break mid-board', !(await calls(p)).includes('requestAd:midgame'));
+  check('no level-up: no Ad break mid-board', !(await calls(p)).includes('requestAd:midgame'));
   await p.evaluate(() => {
     game.netWorth = game.nextFloor - 1; game.locked = null; game.ice = [];
     game.columns = game.columns.map(() => []);
@@ -89,7 +89,7 @@ console.log('--- tutorial, ad blocker, basic build ---');
 {
   const { ctx, p } = await open(FULL, { tutorial: true });
   const tip = await p.locator('.coach').first().innerText().catch(() => '');
-  check('the tutorial says Click', /Click a tube to lift its top coin/.test(tip), tip.slice(0, 60));
+  check('the tutorial says Click', /Click a tube/.test(tip), tip.slice(0, 60));
   await ctx.close();
 }
 {

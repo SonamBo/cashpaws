@@ -46,14 +46,14 @@ const tube0 = await p.locator('.tube[data-col="0"]').boundingBox();
 check('once lifted, the hand points at the drop', handAfterLift && handAfterLift.x > tube0.x - 10 && handAfterLift.x < tube0.x + tube0.width,
   `hand x ${handAfterLift?.x}, tube 0 ${tube0.x}–${tube0.x + tube0.width}`);
 await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(900);
-check('after a first move, the four-of-a-kind tip', /4 of the same/.test(await p.locator('.coach-bubble').textContent()));
+check('after a first move, the four-of-a-kind tip', /4 of a kind/.test(await p.locator('.coach-bubble').textContent()));
 await p.screenshot({ path: '/tmp/ftue-stack.png' });
 
 // Now cash in: $5 from tube 3 onto the three $5s.
 await p.click('.tube[data-col="3"]'); await p.waitForTimeout(150);
 await p.click('.tube[data-col="0"]'); await p.waitForTimeout(1400);
 check('the first cash-in spotlights the progress bar', await p.locator('.coach-hole').count() === 1);
-check('explaining net worth and levelling up', /net worth/.test(await p.locator('.coach-bubble').textContent())
+check('explaining net worth and levelling up', /level up/.test(await p.locator('.coach-bubble').textContent())
   && /level up/.test(await p.locator('.coach-bubble').textContent()));
 const hole = await p.locator('.coach-hole').boundingBox();
 const fig = await p.locator('[data-figure]').boundingBox();

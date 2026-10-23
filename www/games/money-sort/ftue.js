@@ -16,9 +16,9 @@
  */
 
 const TEXT = {
-  move: 'Tap a tube to lift its top coin, then tap another to drop it.',
-  stack: '<b>4 of the same</b> in one tube cash in!',
-  bank: 'Cashed in! Every tube you cash in grows your <b>net worth</b>.<br>Fill this bar to <b>level up</b>.',
+  move: 'Tap a tube, then another to move the top coin',
+  stack: '<b>4 of a kind</b> cash in!',
+  bank: 'Cashed in! Fill this bar to <b>level up</b>.',
 };
 
 export function createTutorial({ host, getGame, getView, suggest }) {

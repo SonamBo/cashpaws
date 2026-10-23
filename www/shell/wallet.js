@@ -20,8 +20,9 @@ export class Wallet {
     n = Math.floor(n);
     if (n <= 0) return;
     this.balance += n;
-    // A top-up so a broke player always has one way out is a gift, not earnings.
-    if (reason !== 'safety-net') this.stats.coinsEarned = (this.stats.coinsEarned || 0) + n;
+    // A top-up so a broke player always has one way out is a gift, not earnings;
+    // bought coins aren't earnings either (coins earned reveal the cats).
+    if (reason !== 'safety-net' && reason !== 'purchase') this.stats.coinsEarned = (this.stats.coinsEarned || 0) + n;
     this.notify(n, reason);
   }
 

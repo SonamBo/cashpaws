@@ -48,6 +48,22 @@ let APP = {};
     if (/[&<>"\\]/.test(APP.name || '')) fails.push('CONTENT  the app name can\'t contain & < > " or \\ (Android resource rules)');
     if (APP.privacyUrl && !/^https:\/\//.test(APP.privacyUrl)) fails.push('CONTENT  privacyUrl must be an https:// address');
     notes.push(`${APP.name}: ${APP.applicationId}, versionCode ${APP.versionCode}, versionName ${APP.versionName} — Play rejects a repeated versionCode`);
+    // Coin packs (shell/billing.js): optional. Each id is a one-time product in Play Console, and permanent there.
+    if (APP.coinPacks !== undefined) {
+      const packs = Array.isArray(APP.coinPacks) ? APP.coinPacks : null;
+      if (!packs) fails.push('CONTENT  coinPacks in www/app.config.js must be a list');
+      else {
+        const seen = new Set();
+        for (const k of packs) {
+          if (!k || !/^[a-z0-9][a-z0-9._]*$/.test(k.id || '')) fails.push(`CONTENT  coin pack id "${k?.id}": Play allows lowercase letters, digits, _ and . (starting with a letter or digit)`);
+          else if (seen.has(k.id)) fails.push(`CONTENT  coin pack id "${k.id}" is listed twice`);
+          seen.add(k?.id);
+          if (!(Number.isInteger(k?.coins) && k.coins > 0)) fails.push(`CONTENT  coin pack "${k?.id}" needs a whole number of coins above 0`);
+          if (!k?.name) fails.push(`CONTENT  coin pack "${k?.id}" needs a name`);
+        }
+        if (packs.length) notes.push(`${packs.length} coin packs: ${packs.map((k) => k.id).join(', ')} — each must exist (and be active) in Play Console`);
+      }
+    }
     if (/^com\.example\./.test(APP.applicationId || '')) notes.push('WARNING  applicationId is still com.example.…: Play refuses it. Set your own in www/app.config.js before uploading.');
   }
 }
@@ -142,6 +158,10 @@ need('.github/workflows/android.yml', 'no workflow means no APK is ever built');
   if (!/<uses-permission[^>]+com\.google\.android\.gms\.permission\.AD_ID"(?![^>]*tools:node="remove")/.test(mf)) {
     fails.push('CONTENT  AndroidManifest.xml must declare com.google.android.gms.permission.AD_ID (Play rejects ad apps without it)');
   }
+  // Play refuses uploads built with Billing Library older than 8 (from 31 Aug 2026).
+  const bl = app.match(/com\.android\.billingclient:billing(?:-ktx)?:(\d+)\./);
+  if (!bl) fails.push('CONTENT  app/build.gradle has no Play Billing Library (Billing.java needs it)');
+  else if (+bl[1] < 8) fails.push(`CONTENT  Play Billing Library ${bl[1]}.x: Play requires 8 or newer`);
   if (/kotlinOptions\s*\{/.test(app)) fails.push('CONTENT  app/build.gradle uses kotlinOptions {}, an error since Kotlin 2.2 — use kotlin { compilerOptions {} }');
 
   const kt = readFileSync(join(ROOT, 'android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.kt'), 'utf8');
@@ -211,7 +231,7 @@ needContains('android/app/src/main/java/com/pixelartgames/cashpaw/MainActivity.k
       const text = readFileSync(join(ROOT, f), 'utf8').replace(/Until 1\.12[^]*?gone\./, '');
       for (const re of promises) if (re.test(text)) fails.push(`CLAIM    ${f} says "${text.match(re)[0]}", but interstitials are on`);
     }
-    notes.push(`ads: interstitial ${inter}, after level 10, every 2.5 min of play`);
+    notes.push(`ads: interstitial ${inter}, at each level end after level 10`);
   }
 }
 

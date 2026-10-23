@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
     private lateinit var ads: Ads
     private lateinit var notify: Notify
+    private lateinit var billing: Billing
 
     // Android 13+: the system prompt for notifications. Registered up front, as
     // the API requires; launched only when the page asks, after its own card.
@@ -154,6 +155,10 @@ class MainActivity : ComponentActivity() {
         }
         notify.setLaunchSource(intent?.getStringExtra(ReminderWorker.EXTRA_FROM))
         webView.addJavascriptInterface(notify, "CashPawsNotify")
+        // Coin packs through Google Play Billing (shell/billing.js). It connects
+        // only when the page asks, with the pack IDs from www/app.config.js.
+        billing = Billing(this, webView)
+        webView.addJavascriptInterface(billing, "CashPawsBilling")
         ads.start()
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)
@@ -208,6 +213,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         Notify.foreground = true
         webView.onResume()
+        // A pending payment may have cleared, or a purchase finished while away.
+        billing.refresh()
     }
 
     override fun onDestroy() {

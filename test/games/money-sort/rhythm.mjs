@@ -33,13 +33,13 @@ const c0 = await p.evaluate(() => wallet.coins);
 await p.click('#levelup'); await p.waitForTimeout(900);
 const g8 = await gains();
 check('beating it pays double', (await p.evaluate(() => wallet.coins)) - c0 === 100 && g8.includes('Hard bonus'), `+${(await p.evaluate(() => wallet.coins)) - c0}`);
-check('and the next level is announced as gentler', g8.includes('gentler'));
+check('and the next level is announced as gentler', g8.includes('easier next'));
 await p.locator('[data-go]').click(); await p.waitForTimeout(500);
 check('the breather is not marked Hard', !(await p.locator('[data-title]').textContent()).includes('Hard'));
 
 // 8 -> 9: face-down chips introduced, on a normal level
 await p.click('#levelup'); await p.waitForTimeout(900);
-check('level 9 introduces face-down chips', (await gains()).includes('face down'));
+check('level 9 introduces face-down chips', (await gains()).includes('face-down'));
 await p.locator('[data-go]').click(); await p.waitForTimeout(500);
 check('and level 9 itself is not Hard', !(await p.locator('[data-title]').textContent()).includes('Hard'));
 

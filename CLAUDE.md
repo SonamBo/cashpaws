@@ -57,7 +57,8 @@ code's package. Renaming them breaks every future update.
 | To get | The game does |
 |---|---|
 | The header, lobby line and best-level tracking | `host.progress({ title, fraction, figure, sub, level, summary })` on every change |
-| Ad breaks (interstitials, past level 10, every 2.5 min of play) | report `level` in `host.progress`, and wrap moves and animations in `host.busy(true)` / `host.busy(false)` |
+| Ad breaks (interstitials, at each level's end past level 10) | report each win with `host.levelWon({ level })` (the level reached) and `await host.levelBreak()` before the next level starts |
+| Short of coins | `await host.shortOf({ price, what, ad, adLabel })`: coin packs first, then a rewarded ad; `host.shortHelps(ad)` keeps a button tappable |
 | `level_up` / `level_lost` analytics and Bell Quest steps | `host.levelWon(info)` / `host.levelLost(info)`; `await host.levelBreak()` between a level's celebration and the next |
 | Bell Quest at all | `quest: { unlockLevel, steps }` in the manifest; `await host.confirmLevelLoss()` before any loss the player chooses |
 | Daily tasks | a `tasks` catalogue in the manifest, and `host.stat(key)` as things happen |
@@ -67,6 +68,7 @@ code's package. Renaming them breaks every future update.
 | A first-time tutorial | `host.coach.*` with `host.flag` / `host.setFlag` to remember it ran |
 | The game's own events | `host.track(name, params)`. List them in `www/games/<id>/EVENTS.md`, not in `docs/ANALYTICS.md` |
 | Coins | `host.wallet.earn(n, reason)` / `spend(n, reason)`; never keep a separate currency |
+| Coin packs (real money) | nothing: the shell sells them in the Shop when `www/app.config.js` lists `coinPacks` (`SETUP.md` 7b). Coins bought arrive in the same wallet; a game never talks to billing |
 | Sound | `host.sound(name)` on the game's own moments (lift, drop, bank, levelup, flow, sort, undo, error…: `www/shell/sound.js`). The shell already plays music, button ticks, celebrations and rewards, honours the Settings switches, and goes quiet during ads and in the background |
 
 The shell already sends `app_ready`, `screen_view`, the economy events, daily
@@ -140,7 +142,9 @@ node test/run.js         # the shell's rule tests plus test/games/<id>/*.js
 CI runs both, then builds. After changing `www/shell/sound.js`, run
 `node tools/sound-preview.mjs` (with the dev server up): it renders every
 effect and the music to `dist/sound/sound-preview.wav` and fails on clipping
-or silence. `test/sound.mjs` checks unlocking, the switches and ad silence. To play it in a browser: `node serve.js 8080` and
+or silence. `test/sound.mjs` checks unlocking, the switches and ad silence.
+`test/billing.mjs` checks coin packs against a stand-in for Google Play: paid
+once, saved before consuming, pending, cancelled, restarts. To play it in a browser: `node serve.js 8080` and
 open `http://localhost:8080/?dev=1` (the dev panel shows the game's `dev`
 buttons and readout). With that server running, `node test/shell.mjs` checks
 the shell still works around the game (needs Playwright); put the game's own

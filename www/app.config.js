@@ -5,8 +5,14 @@
 export default {
   "name": "Cash Paws",
   "applicationId": "com.pixelartgames.cashpaw",
-  "versionCode": 26,
-  "versionName": "1.15.2",
+  "versionCode": 27,
+  "versionName": "1.16.0",
   "privacyUrl": "https://pixelartgames000.github.io/privacy-policy/",
-  "contactEmail": "pixelartgames000@gmail.com"
+  "contactEmail": "pixelartgames000@gmail.com",
+  "coinPacks": [
+    { "id": "coins_500", "coins": 500, "name": "Pocket change" },
+    { "id": "coins_1200", "coins": 1200, "name": "Coin purse" },
+    { "id": "coins_3500", "coins": 3500, "name": "Piggy bank", "tag": "Most popular" },
+    { "id": "coins_8000", "coins": 8000, "name": "Treasure chest", "tag": "Best value" }
+  ]
 };

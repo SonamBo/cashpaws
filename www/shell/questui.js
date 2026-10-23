@@ -67,8 +67,7 @@ export function introCard({ grand, steps, hours }) {
         ${cat('cheer', 150, 'q-hero-cat')}
       </div>
       <p class="q-kicker">Grand prize</p>
-      <p class="q-lead"><b>Beat ${steps} levels in a row</b> without dropping one.
-        Every cat who makes it shares the prize.</p>
+      <p class="q-lead"><b>Beat ${steps} levels in a row.</b> Finishers share the prize.</p>
       <p class="q-timer">${icons.daily(14)} ${hours} hours</p>
       <button class="ovl-btn primary" data-pick="start">Start</button>
     </div>`);
@@ -80,7 +79,7 @@ export async function findingCard({ grand }) {
     <div class="q-card q-finding" data-pick="go">
       <p class="q-kicker">Bell Quest</p>
       ${prizePile(grand, 170)}
-      <p class="q-lead">Rounding up cats on your level</p>
+      <p class="q-lead">Finding cats</p>
       <p class="q-count"><b data-n>1</b>/${RIVALS + 1}</p>
       <div class="q-heap" data-heap></div>
       <p class="q-tap" data-tap hidden>Tap to continue</p>
@@ -123,7 +122,7 @@ export function pathCard({ q, now, first = false, advanced = false, from = null,
   const here = stones[q.step];
   // Arriving from an earlier stone: start there, then hop (CSS eases the move).
   const start = from !== null && from < q.step ? stones[Math.max(0, from)] : here;
-  const lead = advanced && q.step > 0 ? 'You made it to the next step!' : `Beat ${steps} levels in a row. Don't drop one.`;
+  const lead = advanced && q.step > 0 ? 'Next step!' : `${steps} levels in a row`;
   return card(`
     <div class="q-card q-path-card">
       ${head(lead)}
@@ -142,8 +141,8 @@ export function pathCard({ q, now, first = false, advanced = false, from = null,
       </div>
       ${first ? `<ul class="q-rules">
         <li>${RIVALS + 1} cats start the quest</li>
-        <li>Use a Sort when stuck. Dropping a level knocks you out.</li>
-        <li>The prize is shared equally by every cat who finishes</li>
+        <li>Drop a level and you're out</li>
+        <li>Finishers split the prize</li>
       </ul>` : ''}
       <button class="ovl-btn primary" data-pick="play">${icons.play(18)} ${inGame ? 'Continue' : 'Play'}</button>
     </div>`, hop);
@@ -165,8 +164,8 @@ export function wonCard({ share, grand, others }) {
       ${prizePile(grand, 190)}
       <p class="ovl-figure q-share">${coinIcon(28)} +${fmt(share)}</p>
       <p class="q-lead">${others
-        ? `You share the prize with ${others} other cat${others === 1 ? '' : 's'}.`
-        : 'No other cat made it. <b>The whole prize is yours!</b>'}</p>
+        ? `Shared with ${others} other cat${others === 1 ? '' : 's'}`
+        : '<b>All yours!</b>'}</p>
       ${others ? `<div class="q-row">${faces(Math.min(others, 8), 30)}</div>` : ''}
       <button class="ovl-btn primary" data-pick="claim">Claim</button>
     </div>`);
@@ -181,9 +180,9 @@ export function overCard({ reason, step, steps, left }) {
       ${cat('slump', 170, 'q-over-cat')}
       <h3 class="ovl-h">${expired ? 'Time ran out' : 'Knocked out'}</h3>
       <p class="q-lead">${expired
-        ? `You reached step ${step} of ${steps} before the time ran out.`
-        : `You dropped a level on step ${step + 1} of ${steps}. ${left - 1} cats are still going.`}</p>
-      <button class="ovl-btn primary" data-pick="again">Start a new quest</button>
+        ? `Reached step ${step} of ${steps}`
+        : `Out on step ${step + 1} of ${steps}`}</p>
+      <button class="ovl-btn primary" data-pick="again">New quest</button>
       <button class="ovl-btn ghost" data-pick="close">Later</button>
     </div>`);
 }

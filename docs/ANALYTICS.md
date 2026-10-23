@@ -40,8 +40,8 @@ Firebase collects some events itself: `first_open`, `session_start`,
 | `screen_view` | screen_name: `lobby`, `game`, `daily`, `cats`, `progress`, `shop` | Each screen or tab. |
 | `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), modifiers (`locked`, `frozen`, `lucky`, comma-separated, or `none`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
 | `level_lost` | level, to, modifiers, moves, seconds | The player drops a level. |
-| `board_stuck` | level, kind, can_sort, free, coins, price, ad_offer | The stuck card appears. |
-| `stuck_choice` | level, choice: `sort`/`free-sort`/`drop` | The player's answer to the stuck card. |
+| `board_stuck` | level, kind, can_sort, free, coins, price, ad_offer, buy_offer | The stuck card appears. |
+| `stuck_choice` | level, choice: `sort`/`free-sort`/`drop` (a Sort after buying coins counts as `sort`) | The player's answer to the stuck card. |
 | `sort_used` | level, how: `paid`/`free`/`ad`, where: `button`/`stuck`, price | Each Sort. |
 | `undo_used` | level | Each Undo. |
 
@@ -50,7 +50,7 @@ built-in reports.
 
 | Event | Parameters |
 |---|---|
-| `earn_virtual_currency` | virtual_currency_name `coins`, value, source (`levelup`, `daily`, `box`, `quest`, `safety-net`, `bank`), balance |
+| `earn_virtual_currency` | virtual_currency_name `coins`, value, source (`levelup`, `daily`, `box`, `quest`, `safety-net`, `bank`, `purchase`), balance |
 | `spend_virtual_currency` | virtual_currency_name `coins`, value, item_name (`sort`, `undo`, `cat`, `cosmetic`), balance |
 
 Banks happen dozens of times per level, so they're summed and sent as one
@@ -85,10 +85,26 @@ to the background.
 |---|---|
 | `ad_rewarded_start` | placement (`rescue-sort`, `box-early`) |
 | `ad_rewarded_result` | placement, earned |
-| `ad_interstitial_show` | placement `ad-break`, level, play_seconds (when the Ad break screen hands over to the ad) |
+| `ad_interstitial_show` | placement `ad-break`, level (the level just reached; when the Ad break screen hands over to the ad, at a level's end) |
 | `ad_load_failed` | format (`rewarded`/`interstitial`), code (AdMob's error code: 3 = no fill, 1 = bad request/ID, 2 = network, 0 = internal), message. Once per format and code per session. |
 | `ad_interstitial_result` | placement, shown (whether an ad actually played) |
 | `ad_impression` | Logged by the AdMob SDK itself once AdMob is linked to Firebase (AdMob → Settings → Linked services): ad revenue per impression. This drives Firebase's ad revenue reports. |
+
+**Purchases** (coin packs, since 1.16.0; only in builds with `coinPacks` in
+`www/app.config.js`)
+
+| Event | Parameters |
+|---|---|
+| `iap_view` | from: `tab` (the Shop tab), `pill` (the + on the coin counter), `short` ("Get coins" when something cost too much). Only once Play has returned prices. |
+| `iap_start` | product, coins (the player tapped a price) |
+| `iap_result` | product, status: `purchased`, `pending`, `cancelled`, `owned` (an earlier purchase being finished), `error` |
+| `coins_short` | what (`a Sort`, a cat or chip set), need, buy (coin packs offered), ad (an ad offered): the "Not enough coins" card. Coin packs come first, then the ad. |
+| `iap_granted` | product, coins, quantity, order (`yes`/`no`): coins actually added, once per purchase |
+| `in_app_purchase` | Logged by Firebase itself for every Google Play purchase, with the price and currency. **Revenue reports come from this one**; the shell sends no revenue of its own, so nothing is counted twice. |
+
+The funnel is `iap_view` → `iap_start` → `iap_result` → `iap_granted`.
+Bought coins also send `earn_virtual_currency` with source `purchase`; they
+don't count towards `coinsEarned`, which reveals cats.
 
 **User properties** are attached to every event: `game`, `best_level`,
 `cat_worn`, `cats_owned`, `days_played` and `quest_wins`.

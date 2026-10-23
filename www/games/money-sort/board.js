@@ -309,7 +309,11 @@ export class BoardView {
     this.el.sortCost.textContent = vm.freeSorts > 0 ? 'Free' : vm.sortPrice;   // rises with the level
     this.root.classList.toggle('hard-level', vm.kind === 'hard');
     this.el.undo.disabled = !vm.canUndo;
-    this.el.sort.disabled = !(vm.canAffordSort && vm.sortCanHelp);
+    // Short of coins, Sort stays tappable while the shell has a way to help
+    // (coin packs, or an ad for a free Sort): the tap offers them.
+    const short = vm.sortCanHelp && !vm.canAffordSort;
+    this.el.sort.disabled = !vm.sortCanHelp || (short && !this.host.shortHelps?.('rescue-sort'));
+    this.el.sort.classList.toggle('short', short && !this.el.sort.disabled);
     this.lastVm = vm;
     this.fitBoard();
   }

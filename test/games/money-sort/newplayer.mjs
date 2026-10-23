@@ -28,7 +28,7 @@ const [f, t] = await p.evaluate(() => {
 await p.click(`.tube[data-col="${f}"]`); await p.waitForTimeout(150);
 await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(1000);
 check('a jam on level 1 offers the free Sort', await p.locator('[data-do-sort]').count() === 1);
-check('and says so', (await p.locator('.ovl-locked .ovl-sub').first().textContent()).includes('first Sort is free'));
+check('and says so', (await p.locator('.ovl-locked .ovl-sub').first().textContent()).includes('First Sort is free'));
 await p.locator('.device').screenshot({ path: '/tmp/newplayer-stuck.png' });
 await p.locator('[data-do-sort]').click(); await p.waitForTimeout(1400);
 check('taking it keeps the player on level 1 with their net worth', await p.evaluate(() => game.status === 'playing' && game.level === 1));

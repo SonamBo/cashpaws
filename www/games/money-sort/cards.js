@@ -15,23 +15,16 @@ const ICON_AD = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" str
   <rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5Z"/></svg>`;
 
 /**
- * Resolves 'sort', 'ad' or 'drop'. Sort is offered only when it can change
- * anything. `adOffer` adds a free Sort for watching an ad — only shown to a
- * player who cannot afford one, and only once an ad is actually available.
+ * Resolves 'sort', 'buy', 'ad' or 'drop'. Sort is offered only when it can
+ * change anything. A player who can't afford it is offered, in this order,
+ * coin packs (`buyOffer`, where the build sells them) and a free Sort for
+ * watching an ad (`adOffer`, once an ad is actually available).
  */
-export function stuckCard(host, e, vm, sortCost, adOffer = false) {
+export function stuckCard(host, e, vm, sortCost, adOffer = false, buyOffer = false) {
   return new Promise((resolve) => {
-    const lead = e.nothingLeft
-      ? 'Every move just slides chips about, and the board is too full for the flow to land. '
-      : '';
-    const reason = lead + (!vm.sortCanHelp
-      ? 'Every tube already holds a single value, so sorting would change nothing.'
-      : !vm.canAffordSort
-        ? `A sort costs ${sortCost} coins. You have ${host.wallet.coins}.`
-          + (adOffer ? ' Watch a short ad and this one is free.' : '')
-        : vm.freeSorts > 0
-          ? 'Your first Sort is free. It gathers every value into its own tube, and complete sets bank.'
-          : 'A sort gathers every value into its own tube, and complete sets bank.');
+    const reason = !vm.sortCanHelp ? 'Sorting won\'t help'
+      : !vm.canAffordSort ? 'Not enough coins'
+        : vm.freeSorts > 0 ? 'First Sort is free' : 'Sort groups every value';
 
     const card = host.cards.show(`
       <div class="ovl-stack">
@@ -50,10 +43,13 @@ export function stuckCard(host, e, vm, sortCost, adOffer = false) {
                  <span class="ovl-cost">${sortCost === 'Free' ? '' : host.art.coin(16)}${sortCost}</span>
                </button>`
             : ''}
-          ${adOffer
-            ? `<button class="ovl-btn primary" data-ad-sort>${ICON_AD} Watch an ad &middot; free Sort</button>`
+          ${buyOffer
+            ? `<button class="ovl-btn primary" data-buy-coins>${host.art.coin(18)} Get coins</button>`
             : ''}
-          <button class="ovl-btn ${e.canSort || adOffer ? 'ghost' : 'primary'}" data-drop>Drop a level</button>
+          ${adOffer
+            ? `<button class="ovl-btn ${buyOffer ? 'alt' : 'primary'}" data-ad-sort>${ICON_AD} Watch an ad &middot; free Sort</button>`
+            : ''}
+          <button class="ovl-btn ${e.canSort || adOffer || buyOffer ? 'ghost' : 'primary'}" data-drop>Drop a level</button>
         </div>
       </div>`, 'locked');
 
@@ -68,6 +64,7 @@ export function stuckCard(host, e, vm, sortCost, adOffer = false) {
       if (!b) return;
       if (b.matches('[data-do-sort]')) pick('sort');
       else if (b.matches('[data-ad-sort]')) pick('ad');
+      else if (b.matches('[data-buy-coins]')) pick('buy');
       else if (b.matches('[data-drop]')) {
         // Dropping would cost something running, such as Bell Quest: say so in
         // this same card, and let the player take it back.

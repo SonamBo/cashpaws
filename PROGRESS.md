@@ -1357,3 +1357,41 @@ starter and future games get them too.
   shows the error, an older bundle is still active (or retained in a draft)
   in some track; see the chat for the steps.
 - versionCode 26, versionName 1.15.2.
+
+## 1.16.0: coin packs (Google Play Billing)
+
+- Players can buy coins in the Shop: four packs (500, 1,200, 3,500, 8,000),
+  listed in `www/app.config.js` → `coinPacks`. Prices are Play Console's,
+  shown in the player's currency; "+N% extra" is worked out from them.
+- Android: `Billing.java` (Play Billing Library 9.1.0), bridge
+  `window.CashPawsBilling`. Shell: `www/shell/billing.js`.
+- Paid exactly once: coins and the purchase token are saved before the
+  purchase is consumed; a purchase reported again (crash, restart) pays
+  nothing. Pending payments pay when they clear. Bought coins don't count as
+  coins earned (cat reveals stay a playing reward).
+- The + on the coin counter opens the Shop's coin section; a cat or chip set
+  that costs too much offers "Get coins".
+- Settings, the privacy policy (new Purchases section), PLAY-STORE.md (content
+  rating, Data safety: Purchase history) and SETUP.md 7b updated.
+- Web (CrazyGames): no packs, the Shop still says nothing is for sale.
+- `test/billing.mjs` (35 checks), preflight checks pack IDs and the billing
+  library version.
+- versionCode 27, versionName 1.16.0.
+- Out of coins: one shell card (host.shortOf) offers coin packs first, then a
+  rewarded ad, then "Not now". Money Sort's Sort button stays tappable when
+  short and opens it; the stuck card lists Get coins, then the ad, then Drop
+  a level. Buying enough goes straight on to the Sort.
+- Ad breaks moved from every 2.5 minutes of play to the end of each level won
+  once level 10 is beaten (after the level-up card and any Bell Quest card,
+  before the next level). Skipped within a minute of a rewarded ad. The
+  CrazyGames adapter keeps its own 3-minute minimum (their rule).
+- Popups (cards, menus, level-ups, the stuck card) sit over the screen they
+  came from: a tint and a light blur instead of a solid fill.
+- Copy pass across the shell and Money Sort: short phrases instead of
+  sentences ("Not enough coins", "Sort: 300", "Next: Hard level · faster,
+  pays 2×", "New tasks in 4h 3m"). Tests updated to the new wording; the web
+  build's text overrides too.
+- Not changed: tools/starter/docs/PRIVACY-POLICY.md still says "every few
+  minutes" (an owned starter file; editing it would conflict in every app).
+- To do in Play Console: payments profile, upload to internal testing, create
+  the four one-time products, license testers, test from the Play link.

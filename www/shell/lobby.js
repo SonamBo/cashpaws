@@ -53,6 +53,7 @@ export class LobbyView {
     $('[data-settings]').addEventListener('click', () => this.fire('settings'));
     $('[data-box]').addEventListener('click', () => this.fire('box'));
     $('[data-quest]').addEventListener('click', () => this.fire('quest'));
+    $('[data-coin-pill]').addEventListener('click', () => this.fire('coins'));
     this.el.nav.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (b) this.fire('tab', b.dataset.tab);

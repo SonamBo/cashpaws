@@ -31,6 +31,7 @@ export function freshShell() {
     flags: {},            // [gameId]: { ftue: true, ... } via host.flag()
     reminders: { on: true, asked: false },   // local notifications; Android still asks
     audio: { sfx: true, music: true },       // Settings switches (1.15.0)
+    iap: { granted: [], purchases: 0, coins: 0 },   // coin packs: tokens already paid out (1.16.0)
   };
 }
 
@@ -71,6 +72,7 @@ function normalise(rec) {
   shell.flags = { ...(shell.flags || {}) };                  // absent before 1.9.0
   shell.reminders = { ...base.reminders, ...(shell.reminders || {}) };   // absent before 1.10.0
   shell.audio = { ...base.audio, ...(shell.audio || {}) };               // absent before 1.15.0
+  shell.iap = { ...base.iap, ...(shell.iap || {}) };                     // absent before 1.16.0
   return { v: 2, shell, games: rec.games || {} };
 }
 

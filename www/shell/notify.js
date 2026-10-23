@@ -34,7 +34,7 @@ export function boxReminder(box, now) {
   return {
     at: box.nextAt,
     title: 'Your Rewards Box is ready',
-    body: 'Coins inside, and the further you get, the more a box holds.',
+    body: 'Open it for coins',
   };
 }
 
@@ -49,8 +49,7 @@ export function questReminder(q, now, value) {
       return {
         at: daily,
         title: `Bell Quest: step ${q.step} of ${q.steps}`,
-        body: `${cats} cats are still in. Beat ${left} more level${left === 1 ? '' : 's'} to share `
-          + `${fmt(q.grand)} coins. ${formatLeft(q.endsAt - daily)} left.`,
+        body: `${left} more level${left === 1 ? '' : 's'} · ${cats} cats · ${fmt(q.grand)} coins · ${formatLeft(q.endsAt - daily)} left`,
       };
     }
     const lastCall = q.endsAt - 2 * H;
@@ -58,17 +57,17 @@ export function questReminder(q, now, value) {
     return {
       at: lastCall,
       title: 'Bell Quest ends in 2 hours',
-      body: `You're on step ${q.step} of ${q.steps} with ${cats} cats left. Finish to share ${fmt(q.grand)} coins.`,
+      body: `Step ${q.step} of ${q.steps} · ${cats} cats left`,
     };
   }
   const at = nextDaily(now);
   if (q.status === 'won') {
-    return { at, title: 'Your Bell Quest prize is waiting', body: `Claim your share of ${fmt(q.grand)} coins.` };
+    return { at, title: 'Your Bell Quest prize is waiting', body: `Claim your share of ${fmt(q.grand)}` };
   }
   return {                                                    // offer, lost or expired: a new one is ready
     at,
     title: 'A new Bell Quest is ready',
-    body: `Beat 7 levels in a row and share ${fmt(grandPrize(value))} coins with every cat who makes it.`,
+    body: `7 levels in a row · ${fmt(grandPrize(value))} coins to share`,
   };
 }
 

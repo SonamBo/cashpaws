@@ -28,7 +28,7 @@ check('nothing scheduled before permission', Object.keys(await reminders()).leng
 await p.click('[data-box]'); await p.waitForTimeout(400);
 await p.locator('.ovl.in [data-pick="open"]').click(); await p.waitForTimeout(500);
 await p.locator('.ovl.in [data-go]').click(); await p.waitForTimeout(500);
-check('after the first box, the game asks in its own words', /nudge/.test(await p.locator('.ovl.in').textContent()));
+check('after the first box, the game asks in its own words', /Remind you/.test(await p.locator('.ovl.in').textContent()));
 await p.locator('.ovl.in').screenshot({ path: '/tmp/reminders-ask.png' });
 await p.locator('.ovl.in [data-ok]').click(); await p.waitForTimeout(500);
 let r = await reminders();

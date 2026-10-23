@@ -1,21 +1,37 @@
 {
   "_about": "How Money Sort plays on the web (platforms/crazygames). Read only by the web build; the Android app ignores it.",
   "keys": [
-    { "key": "1-9", "click": ".tube[data-col=\"{i}\"]" },
-    { "key": "z", "click": "[data-undo]" },
-    { "key": "s", "click": "[data-sort]" }
+    {
+      "key": "1-9",
+      "click": ".tube[data-col=\"{i}\"]"
+    },
+    {
+      "key": "z",
+      "click": "[data-undo]"
+    },
+    {
+      "key": "s",
+      "click": "[data-sort]"
+    }
   ],
-  "keysHelp": "Keys: 1–9 pick a tube, Z undo, S sort, P pause.",
-  "numberLabels": { "selector": ".tube[data-col]", "attr": "data-col" },
+  "keysHelp": "Keys: 1–9 tube, Z undo, S sort, P pause.",
+  "numberLabels": {
+    "selector": ".tube[data-col]",
+    "attr": "data-col"
+  },
   "css": "web.css",
   "levelPattern": "Level (\\d+)",
-  "mustBeVisible": ["[data-undo]", "[data-sort]", ".tube"],
+  "mustBeVisible": [
+    "[data-undo]",
+    "[data-sort]",
+    ".tube"
+  ],
   "overrides": [
     {
       "why": "PC players click; the number keys work too",
       "file": "games/money-sort/ftue.js",
-      "find": "'Tap a tube to lift its top coin, then tap another to drop it.'",
-      "replace": "'Click a tube to lift its top coin, then click another to drop it.'"
+      "find": "'Tap a tube, then another to move the top coin'",
+      "replace": "'Click a tube, then another (or press 1–9)'"
     }
   ]
 }

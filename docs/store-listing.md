@@ -75,9 +75,9 @@ FREE, WITH FAIR ADS
 
 Stuck and short of coins? Watch an ad for a free Sort. Can't wait four hours?
 Watch one to open your Rewards Box early. Past level 10, a short ad also plays
-every few minutes, and the cat always tells you first with an Ad break, never
-in the middle of a move. No banners over the board, no in-app purchases of any
-kind, and no account to make.
+at the end of each level, and the cat always tells you first with an Ad break,
+never in the middle of a board. No banners over the board, and no account to
+make. Optional coin packs in the Shop if you'd like more coins.
 
 EVERY DAY SOMETHING NEW
 
@@ -116,7 +116,7 @@ most of the work; a long description stuffed with "ball sort water sort cat
 sort puzzle game" ranks worse than this, not better.
 
 **Ads, honestly.** Until 1.12 the listing promised "ads only when you want
-one". Since 1.13 there are interstitials (past level 10, every 2.5 minutes of
-play, announced by an Ad break screen), so that promise is gone. Say exactly
+one". Since 1.13 there are interstitials (since 1.16, at the end of each level past
+level 10, announced by an Ad break screen), so that promise is gone. Say exactly
 what the player gets. `test/preflight.js` fails if the listing claims ads are
 only optional while an interstitial unit is configured.

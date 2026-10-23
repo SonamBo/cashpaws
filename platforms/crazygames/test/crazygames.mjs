@@ -79,7 +79,7 @@ console.log(`--- ${BUILD.name} ${BUILD.version} (${BUILD.game}), full build ---`
   await p.evaluate(() => window.CashPaws.onBack()); await p.waitForTimeout(600);
   await p.click('.lobby-top [data-settings]'); await p.waitForTimeout(500);
   const menu = (await p.locator('.ovl-menu').last().innerText()).replace(/\s+/g, ' ');
-  check('Settings says CrazyGames serves the ads', /served by CrazyGames/.test(menu) && !/AdMob/.test(menu));
+  check('Settings says CrazyGames serves the ads', /ads by CrazyGames/.test(menu) && !/AdMob/.test(menu));
   check('the privacy link is the page inside the zip', (await p.locator('.menu-link').getAttribute('href')) === 'privacy.html');
   check('no page errors', errs.length === 0, errs.join(' | '));
   await ctx.close();

@@ -126,6 +126,19 @@ Then answer:
 Republish the privacy policy (`docs/PRIVACY-POLICY.md`) **before** releasing
 1.8.0, because it now names Firebase.
 
+## 4c. Data safety: purchases (1.16.0)
+
+Google Play processes the payment itself; the app never sees payment details.
+Firebase Analytics logs each purchase automatically (`in_app_purchase`: the
+pack, price and currency), so add:
+
+- **Financial info → Purchase history.** Collected, not shared. Purpose:
+  Analytics. Not optional.
+
+Leave **Financial info → User payment info** unticked: card, bank and UPI
+details stay with Google. Republish the privacy policy (it gained a Purchases
+section) before releasing 1.16.0.
+
 ## 4a. app-ads.txt
 
 AdMob shows the exact line under Apps → View all apps → app-ads.txt. For this
@@ -143,12 +156,14 @@ the top level of the `pixelartgames000.github.io` repository.
 
 ## 5. Content rating
 
-A sorting puzzle with no violence, no user content, no chat and no purchases.
-Since 1.5.0, answer yes to ads when the questionnaire asks.
+A sorting puzzle with no violence, no user content and no chat. Since 1.5.0,
+answer yes to ads when the questionnaire asks.
 
-**One thing to declare honestly:** the game has an in-game shop that spends
-coins earned by playing. There are no real-money purchases and no in-app billing
-library. If Play asks about in-app purchases, the answer is no.
+**Since 1.16.0 there are real-money purchases:** coin packs, through Google
+Play Billing. When the questionnaire asks whether users can buy digital goods,
+the answer is **yes**. The coins can't be cashed out or traded, and nothing
+is random (no loot boxes), so the other purchase questions are no. The store
+listing shows "In-app purchases" by itself once a product is active.
 
 ## Target API level
 

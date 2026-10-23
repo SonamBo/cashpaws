@@ -8,7 +8,7 @@
 import { cat, coinIcon, icons } from './art.js';
 
 export class Header {
-  constructor(root, { onPause }) {
+  constructor(root, { onPause, onCoins = () => {} }) {
     this.root = root;
     root.innerHTML = `
       <header class="hdr">
@@ -36,6 +36,7 @@ export class Header {
       figure: $('[data-figure]'), sub: $('[data-sub]'),
     };
     $('[data-menu]').addEventListener('click', onPause);
+    $('[data-coin-pill]').addEventListener('click', onCoins);
     this.redrawCat();
   }
 

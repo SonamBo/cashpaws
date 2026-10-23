@@ -1,4 +1,4 @@
-# Privacy Policy — Cash Paws 1.13.3
+# Privacy Policy — Cash Paws 1.16.0
 
 > Published at https://pixelartgames000.github.io/privacy-policy/ from
 > `docs/privacy-policy/index.html`. Edit both together. Google Analytics data
@@ -7,15 +7,15 @@
 ---
 
 **Cash Paws: Cat Ball Sort**
-Pixel Art Games · pixelartgames000@gmail.com · Last updated 10 October 2026
+Pixel Art Games · pixelartgames000@gmail.com · Last updated 23 October 2026
 
 This policy explains what information Cash Paws handles, why, and the choices
 you have.
 
 ## What stays on your phone
 
-Your game progress (level, coins, cats, daily tasks, Bell Quest and settings)
-is stored only on your device. We have no server of our own and no account
+Your game progress (level, coins, cats, daily tasks, Bell Quest, settings,
+and a record of coin packs already delivered) is stored only on your device. We have no server of our own and no account
 system, so there is nothing to sign in to and no copy of your progress
 anywhere else. If you uninstall the app or clear its data, it is gone.
 
@@ -38,6 +38,8 @@ They receive:
   Rewards Boxes, Bell Quest progress, and reminder settings;
 - advertising events: which ads were offered, shown or watched, the ad
   revenue each one earned, and technical errors when an ad fails to load;
+- coin pack purchases: which pack, its price and currency (Google Analytics
+  for Firebase records these automatically for apps sold through Google Play);
 - an app-instance identifier that Firebase creates for this installation (it
   is not your name, email or phone number, and resets if you reinstall), and
   your device's advertising ID, which links ad revenue to gameplay;
@@ -62,8 +64,8 @@ Cash Paws is free and supported by ads. There are two kinds:
 
 - **Optional ads** that you choose to watch for an in-game reward, such as a
   free Sort when you are stuck, or opening the Rewards Box early.
-- **Ad breaks.** Past level 10, a short ad plays after every few minutes of
-  play, announced first by an "Ad break" screen.
+- **Ad breaks.** Past level 10, a short ad plays at the end of each level,
+  announced first by an "Ad break" screen.
 
 Ads are provided by **Google AdMob**. To have ads ready when needed, the app
 requests them from Google in the background while you play, not only at the
@@ -85,6 +87,24 @@ information is described in its own policies:
   https://policies.google.com/technologies/partner-sites
 
 We do not sell your information for money.
+
+## Purchases
+
+Cash Paws can be played in full without paying. Optional **coin packs** can be
+bought in the Shop. They are sold and paid for through **Google Play**:
+
+- Google handles the payment. We never see your card, bank, UPI or other
+  payment details, or your Google account.
+- Google Play tells the app which pack was bought, with an order reference,
+  so the coins can be added. The app keeps that reference on your phone so a
+  purchase is never delivered twice.
+- Google processes your purchase under the Google Play terms and the Google
+  Privacy Policy: https://policies.google.com/privacy
+- Coins have no cash value and cannot be exchanged for money. Because your
+  progress is kept only on your phone, coins (bought or earned) are lost if
+  you uninstall the app or clear its data.
+- Refunds follow Google Play's refund policy. For a problem with a purchase,
+  contact us with the order number from your Google Play receipt.
 
 ## Privacy choices and consent
 

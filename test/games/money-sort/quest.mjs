@@ -104,7 +104,7 @@ check('step 1 saved', q.step === 1);
 await waveLevelUp();
 check('then the quest path, still in the game', await card().count() === 1
   && await p.evaluate(() => document.getElementById('app').classList.contains('on-game')));
-check('saying you made it', /You made it to the next step/.test(await text('.ovl-quest.in')));
+check('saying you made it', /Next step!/.test(await text('.ovl-quest.in')));
 check('with Continue, not Play', /Continue/.test(await text('.ovl-quest.in [data-pick="play"]')));
 check('your cat stands on the first stone', await p.locator('.ovl-quest.in .q-stone.here').count() === 1
   && await p.locator('.ovl-quest.in .q-stone.start.here').count() === 0);
@@ -147,7 +147,7 @@ const jam = async () => {
 await jam();
 check('the board is stuck', await p.locator('.ovl.in [data-drop]').count() === 1);
 await p.locator('.ovl.in [data-drop]').click(); await p.waitForTimeout(450);
-check('Drop asks about the quest', /Give up your quest\?/.test(await text('.ovl.in')));
+check('Drop asks about the quest', /Give up quest\?/.test(await text('.ovl.in')));
 check('in the same card: one card, the slumped cat still on it', await p.locator('.ovl').count() === 1
   && await p.locator('.ovl.in .cat-lying').count() === 1);
 check('naming the step and the prize', /Step 2 of 7/.test(await text('.ovl.in')) && /sharing/.test(await text('.ovl.in')));

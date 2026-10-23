@@ -52,7 +52,7 @@ const closeSettings = async (p) => { await p.locator('[data-pick="close"]').clic
 console.log('--- the app with AdMob, a US player (mock bridge, privacy choices required) ---');
 let { p, ctx } = await open({ bridge: { enabled: true, rewardNext: true, privacy: true } });
 let t = await settingsText(p);
-check('Settings names Google AdMob, the optional ads and the Ad breaks', /optional and earn rewards/.test(t) && /Ad break/.test(t) && /Google AdMob/.test(t));
+check('Settings names Google AdMob, the optional ads and the Ad breaks', /Optional ads give rewards/.test(t) && /Ad break/.test(t) && /Google AdMob/.test(t));
 check('the US privacy choice is offered', await p.locator('[data-pick="privacy"]').count() === 1);
 await p.locator('.device').screenshot({ path: '/tmp/settings-ads.png' });
 await p.locator('[data-pick="privacy"]').click(); await p.waitForTimeout(500);
@@ -104,14 +104,14 @@ await ctx.close();
 console.log('--- the app built without keys (bridge present, disabled) ---');
 ({ p, ctx } = await open({ bridge: { enabled: false, rewardNext: true } }));
 t = await settingsText(p);
-check('Settings says no ads', /No ads and no purchases/.test(t));
+check('Settings says no ads', /No ads\. No purchases\./.test(t));
 check('and shows no privacy row, since no ads are shown', await p.locator('[data-pick="privacy"]').count() === 0);
 await ctx.close();
 
 console.log('--- a browser, no bridge at all ---');
 ({ p, ctx } = await open({ bridge: null }));
 t = await settingsText(p);
-check('Settings says no ads here too', /No ads and no purchases/.test(t));
+check('Settings says no ads here too', /No ads\. No purchases\./.test(t));
 await ctx.close();
 
 console.log(errs.length ? 'ERRORS: ' + errs.join(' | ') : 'no page errors');

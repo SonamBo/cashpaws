@@ -45,13 +45,13 @@ async function levelUpTo(to) {
 
 /* ---- Lucky Paw ---- */
 let card = await levelUpTo(12);
-check('level 12 announces the Lucky Paw', /Lucky Paw coin! It counts as any coin/.test(card), card.slice(0, 120));
+check('level 12 announces the Lucky Paw', /New: Lucky Paw/.test(card), card.slice(0, 120));
 check('and one is on the board', await p.locator('.chip.lucky').count() === 1);
 await p.screenshot({ path: '/tmp/mod-lucky.png' });
 
 /* ---- locked tube ---- */
 card = await levelUpTo(17);
-check('level 17 announces the locked tube', /New: a locked tube/.test(card));
+check('level 17 announces the locked tube', /New: locked tube/.test(card));
 const lockCol = await p.evaluate(() => game.locked?.column);
 check('a tube is locked, showing 2 to go', lockCol >= 0 && (await p.locator(`.tube[data-col="${lockCol}"] .lock b`).textContent()) === '2');
 await p.click(`.tube[data-col="${lockCol}"]`); await p.waitForTimeout(200);

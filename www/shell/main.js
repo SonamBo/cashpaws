@@ -10,7 +10,8 @@ import game from '../games/active.js';
 import APP from '../app.config.js';
 import * as store from './save.js';
 import { Wallet } from './wallet.js';
-import { createAds, INTERSTITIAL_EVERY_MS, INTERSTITIAL_FROM_LEVEL } from './ads.js';
+import { createAds, INTERSTITIAL_FROM_LEVEL, AFTER_REWARDED_MS } from './ads.js';
+import { createBilling } from './billing.js';
 import { createAnalytics } from './analytics.js';
 import { createCoach } from './coach.js';
 import { createNotify, boxReminder, questReminder } from './notify.js';
@@ -20,9 +21,9 @@ import { Header } from './header.js';
 import { LobbyView } from './lobby.js';
 import { Panels } from './tabs.js';
 import { CATS, catById, unlockProgress, perkIn } from './cats.js';
-import { setWornCat, icons } from './art.js';
+import { setWornCat, icons, coinIcon } from './art.js';
 import {
-  mountOverlays, anyCardOpen, confirm, ask, pauseMenu, settings, toast, boxCard, celebrate, adBreak,
+  mountOverlays, anyCardOpen, confirm, ask, choose, pauseMenu, settings, toast, boxCard, celebrate, adBreak,
 } from './overlays.js';
 import { localDay, ensureDay, claimable, claimTask, claimBonus, newlyDone } from './daily.js';
 import { isReady, msUntil, formatWait, openBox, adOpensLeft, DEFAULT_VALUE } from './rewards.js';
@@ -38,7 +39,7 @@ game.path = `games/${game.id}/`;
 
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
-let wallet, header, lobby, panels, instance, ads, analytics, notify, sound;
+let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, billing;
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
@@ -248,7 +249,9 @@ function autoQuest(reason) {
   if (reason === 'open' || Q.hasNews(q) || (q.status === 'offer' && !offeredThisSession)) openQuest();
 }
 
+let reachedLevel = 0;      // the level just reached, for the Ad break at the level's end
 function onLevelWon(info = {}) {
+  if (Number.isFinite(info.level)) reachedLevel = info.level;
   flushCoins();
   track('level_up', { ...info, quest_step: Q.isActive(shell.quest) ? shell.quest.step + 1 : undefined });
   if (!questOn()) return;
@@ -262,11 +265,20 @@ function onLevelWon(info = {}) {
 }
 
 /**
- * The game has finished celebrating a level and is about to start the next:
- * show the quest's progress here, in the game, rather than waiting for the
- * lobby. A win is claimed on the spot.
+ * The game has finished celebrating a level and is about to start the next.
+ * Bell Quest's progress first, then, past level 10, an Ad break.
  */
 async function onLevelBreak() {
+  await questBreak();
+  const level = reachedLevel || currentLevel;
+  if (screen === 'game' && !adBreakOn && ads.interstitialDue(level)) await runAdBreak(level);
+}
+
+/**
+ * Show the quest's progress here, in the game, rather than waiting for the
+ * lobby. A win is claimed on the spot.
+ */
+async function questBreak() {
   if (!questOn() || questOpen) return;
   const q = shell.quest;
   if (!Q.hasNews(q) || (q.status !== 'active' && q.status !== 'won')) return;
@@ -311,12 +323,12 @@ function levelLossWarning() {
   if (!questOn() || !Q.isActive(q)) return null;
   return {
     kicker: 'Bell Quest',
-    title: 'Give up your quest?',
-    line: `Dropping a level knocks you out of Bell Quest. `
+    title: 'Give up quest?',
+    line: `Dropping a level ends it. `
         + `${Q.catsLeft(q)} cats are still in, sharing ${q.grand.toLocaleString('en-US')} coins.`,
     stat: { label: `Step ${q.step + 1} of ${q.steps}`, value: `${Q.catsLeft(q)} cats` },
-    ok: 'Drop a level anyway',
-    cancel: 'Keep my quest',
+    ok: 'Drop anyway',
+    cancel: 'Keep quest',
     answer: (gaveUp) => track('quest_give_up_prompt', { step: q.step, gave_up: gaveUp }),
   };
 }
@@ -334,29 +346,18 @@ async function confirmLevelLoss() {
 setInterval(refreshQuest, 30000);
 
 /*
- * Interstitials. A clock counts actual play: the board on screen, nothing
- * over it, the app in the foreground. Past level 10, every 2.5 minutes of it,
- * an "Ad break" screen shows the cat for 2 seconds and then the ad plays.
- * It starts only between moves (never while a move or a bank is animating,
- * or a card or tutorial spotlight is up), and the game is paused throughout.
+ * Interstitials, at the end of a level (onLevelBreak above): past level 10,
+ * after the level-up celebration and any Bell Quest card, an "Ad break"
+ * screen shows the cat for 2 seconds and then the ad plays, before the next
+ * level starts. Never mid-board. The game is paused throughout.
  */
-const boardIdle = () => screen === 'game' && document.visibilityState === 'visible'
-  && !panels.open && !anyCardOpen() && !adBreakOn
-  && !document.body.classList.contains('busy') && !document.querySelector('.coach.blocking');
-
-setInterval(() => {
-  if (!ads || !boardIdle()) return;
-  ads.played(1000);
-  if (ads.interstitialDue(currentLevel)) runAdBreak();
-}, 1000);
-
-async function runAdBreak() {
+async function runAdBreak(level = currentLevel) {
   adBreakOn = true;
   instance.pause?.();
   try {
     const card = adBreak(2000);
     await card.done;
-    await ads.showInterstitial('ad-break', { level: currentLevel });
+    await ads.showInterstitial('ad-break', { level });
     await card.close();
   } finally {
     adBreakOn = false;
@@ -391,10 +392,9 @@ async function offerReminders(reason) {
   save();
   const yes = await ask({
     kicker: 'Reminders',
-    title: reason === 'box' ? 'Want a nudge when it refills?' : 'Want a nudge to keep going?',
-    line: 'We can tell you when your next Rewards Box is ready, and once a day, in the evening, '
-        + 'how your Bell Quest is going. Nothing else.',
-    ok: 'Yes, remind me',
+    title: reason === 'box' ? 'Remind you when it refills?' : 'Remind you to keep going?',
+    line: 'Rewards Box ready, and a daily Bell Quest update. Nothing else.',
+    ok: 'Remind me',
     cancel: 'Not now',
   });
   track('reminders_offer', { reason, yes });
@@ -413,7 +413,7 @@ async function toggleReminders() {
     const perm = notify.permission();
     if (perm === 'ask') shell.reminders.on = await notify.request();
     else if (perm === 'granted') shell.reminders.on = true;
-    else toast(`Turn on notifications for ${APP.name} in your phone's settings first.`, 3600);
+    else toast(`Turn on notifications in phone settings`, 3600);
   }
   track('reminders_toggle', { on: remindersOn() });
   save();
@@ -435,7 +435,7 @@ const pendingCoins = new Map();          // 'earn:bank' -> total since last flus
 
 function onCoins(delta, reason) {
   if (!delta || !reason || reason === 'set') return;
-  if (delta > 0 && ['daily', 'box', 'quest', 'safety-net'].includes(reason)) sound?.play('coin');
+  if (delta > 0 && ['daily', 'box', 'quest', 'safety-net', 'purchase'].includes(reason)) sound?.play('coin');
   const dir = delta > 0 ? 'earn' : 'spend';
   if ((game.analytics?.batch || []).includes(reason)) {
     const k = `${dir}:${reason}`;
@@ -494,7 +494,7 @@ async function boot() {
     if (e.target.closest('button, [data-pick], .menu-link, [data-tap]') && !e.target.closest('[data-game-root] .tube, [data-game-root] [data-col]')) sound.play('tap');
   }, true);
   lobby = new LobbyView(root.querySelector('[data-screen="lobby"]'));
-  header = new Header(root.querySelector('[data-header]'), { onPause });
+  header = new Header(root.querySelector('[data-header]'), { onPause, onCoins: openCoins });
   mountOverlays(root);
   panels = new Panels(root);
   panels.onBuy = buy;
@@ -513,6 +513,7 @@ async function boot() {
   lobby.on('settings', onSettings);
   lobby.on('box', onBox);
   lobby.on('quest', openQuest);
+  lobby.on('coins', openCoins);
 
   setWornCat(shell.cats.worn);
   await loadStyles(game);
@@ -542,6 +543,7 @@ async function boot() {
     events: {
       levelWon: onLevelWon, levelLost: onLevelLost, levelBreak: onLevelBreak,
       levelLossWarning, confirmLevelLoss, track,
+      shortOf, shortHelps, openCoins, coinsForSale: () => !!billing?.enabled,
     },
   });
 
@@ -551,6 +553,13 @@ async function boot() {
 
   const slot = record.games[game.id];
   instance.start(slot ? slot.data : null, slot ? slot.v : null);
+
+  // Coin packs, after the game has started: a purchase is saved the moment it pays.
+  billing = createBilling({
+    packs: APP.coinPacks || [], dev: DEV, confirm, track, wallet, ledger: shell.iap, save,
+    notice: onBillingNotice,
+    onChange: () => { if (panels.open === 'shop') panels.show('shop', panelContext()); },
+  });
   refreshDaily();
   refreshBox();
 
@@ -621,20 +630,81 @@ document.addEventListener('visibilitychange', () => {
  * Tabs, menus, settings
  * ---------------------------------------------------------------- */
 
-const panelContext = () => ({ game, shell, instance, stats: gameStats() });
+const panelContext = () => ({ game, shell, instance, billing, stats: gameStats() });
 
+const panelClosed = [];      // openCoins() waiters
 function closePanel() {
   panels.hide();
+  panelClosed.splice(0).forEach((fn) => fn());
   if (screen === 'lobby') lobby.setNavTab('home');
   else instance.resume?.();          // nothing covers the game any more
 }
 
-function onLobbyTab(tab) {
+function onLobbyTab(tab, opts) {
   lobby.setNavTab(tab);
   if (tab === 'home') return panels.hide();
   if (tab === 'daily') refreshDaily();
   track('screen_view', { screen_name: tab, screen_class: 'tab' });
-  panels.show(tab, panelContext());
+  panels.show(tab, panelContext(), opts);
+  if (tab === 'shop' && billing?.state === 'ready') track('iap_view', { from: opts?.from || 'tab' });
+}
+
+/**
+ * The + on the coin counter, and "Get coins" when something costs too much:
+ * the Shop's coin section. Resolves when the sheet closes.
+ */
+function openCoins(from = 'pill') {
+  if (anyCardOpen()) return Promise.resolve();
+  if (typeof from !== 'string') from = 'pill';
+  billing?.refresh();
+  const closed = new Promise((resolve) => panelClosed.push(resolve));
+  if (screen === 'lobby') onLobbyTab('shop', { focus: 'coins', from });
+  else {
+    instance.pause?.();                         // resumed when the sheet closes
+    panels.show('shop', panelContext(), { focus: 'coins' });
+    if (billing?.state === 'ready') track('iap_view', { from });
+  }
+  return closed;
+}
+
+const fmtCoins = (n) => Number(n).toLocaleString('en-US');
+
+function onBillingNotice(kind, { coins, pack } = {}) {
+  if (kind === 'granted') {
+    sound.play('celebrate');
+    toast(`${coinIcon(18)} <span>+${fmtCoins(coins)} coins · Thank you!</span>`, 3200);
+  } else if (kind === 'pending') {
+    toast(`<span>Payment pending · coins arrive once confirmed</span>`, 3600);
+  }
+}
+
+/** Whether shortOf() has anything to offer: coin packs, or a rewarded ad for this placement. */
+const shortHelps = (ad) => !!billing?.enabled || !!(ad && ads.rewarded.available(ad));
+
+/**
+ * Something costs more than the player has. One card, coin packs first, then
+ * a rewarded ad (when the caller has a placement for one), then "Not now".
+ * Resolves 'coins' (the player now has enough), 'ad' (watched to the end)
+ * or null. Games reach it as host.shortOf().
+ */
+async function shortOf({ price, what, ad = null, adLabel = 'Watch an ad instead' } = {}) {
+  const canBuy = !!billing?.enabled;
+  const canAd = !!(ad && ads.rewarded.available(ad));
+  if (!canBuy && !canAd) return null;
+  const need = Math.max(1, price - wallet.coins);
+  track('coins_short', { what, need, buy: canBuy, ad: canAd });
+  const pick = await choose({
+    kicker: 'Not enough coins',
+    title: `${fmtCoins(need)} more for ${what}`,
+    line: canBuy && canAd ? 'Coin pack or a short ad' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
+    choices: [
+      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: true },
+      canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: !canBuy },
+    ].filter(Boolean),
+  });
+  if (pick === 'coins') { await openCoins('short'); return wallet.coins >= price ? 'coins' : null; }
+  if (pick === 'ad') return (await ads.rewarded.show(ad)) ? 'ad' : null;
+  return null;
 }
 
 /*
@@ -659,13 +729,14 @@ async function onPause() {
  * With ads on, the note says so and the US opt-out appears; without keys, the
  * app shows no ads and sends nothing, and says that instead.
  */
-const SETTINGS_NOTE_ADS = 'Free to play, with ads. Some are optional and earn rewards; past level 10, '
-  + 'a short ad also plays every few minutes, announced by an Ad break screen. No purchases. '
-  + 'Ads are served by Google AdMob; see the Privacy Policy for what they collect.';
-const SETTINGS_NOTE_NO_ADS = 'No ads and no purchases. Your progress stays on this phone.';
+const SETTINGS_NOTE_ADS = 'Free, with ads. Optional ads give rewards; past level 10, '
+  + 'an Ad break at each level end. {buy} '
+  + 'Ads by Google AdMob (see Privacy Policy).';
+const SETTINGS_NOTE_NO_ADS = 'No ads. {buy} Progress saved on this phone.';
+const SETTINGS_BUY = 'Optional coin packs via Google Play.';
+const SETTINGS_NO_BUY = 'No purchases.';
 // Only said where it is true: the Android app, where Firebase is built in.
-const SETTINGS_NOTE_ANALYTICS = ' Gameplay statistics and crash reports are sent to Google Firebase '
-  + 'to help improve the game.';
+const SETTINGS_NOTE_ANALYTICS = ' Gameplay stats and crash reports go to Google Firebase.';
 
 /**
  * Ad status: for testing on a phone. Says what AdMob last answered, in plain
@@ -684,6 +755,15 @@ function explainAd(state) {
   const code = /error (\d+)/.exec(state)?.[1];
   return `${state}<br><small>${AD_CODES[code] || ''}</small>`;
 }
+/** Coin packs on the testing card: whether Play answered, and which packs it found. */
+function billingLine() {
+  const b = billing?.status();
+  if (!b) return '<b>Purchases</b>: none in this build';
+  if (!b.asked) return `<b>Purchases</b>: ${b.state}`;
+  return `<b>Purchases</b>: ${b.state}, ${b.found}/${b.asked.length} packs found in Play`
+    + (b.error ? `<br><small>${b.error}</small>` : '');
+}
+
 async function adStatus() {
   for (;;) {
     const s = ads.status();
@@ -696,7 +776,8 @@ async function adStatus() {
         `<b>SDK started</b>: ${s.started ? 'yes' : 'no'}`,
         `<b>Rewarded</b> ${tail(s.rewardedUnit)}: ${explainAd(s.rewarded)}`,
         `<b>Interstitial</b> ${tail(s.interstitialUnit)}: ${explainAd(s.interstitial)}`,
-        `<b>Ad break</b>: level ${currentLevel} (from ${INTERSTITIAL_FROM_LEVEL}), ${ads.playSeconds} s of play counted (needs ${INTERSTITIAL_EVERY_MS / 1000})`,
+        `<b>Ad break</b>: at each level end from level ${INTERSTITIAL_FROM_LEVEL}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${AFTER_REWARDED_MS / 1000} s)`,
+        billingLine(),
       ].join('<br>');
     const again = await confirm({ kicker: 'Testing', title: 'Ad status', line, ok: 'Refresh', cancel: 'Close' });
     if (!again) return;
@@ -708,6 +789,7 @@ async function onSettings() {
   const pick = await settings({
     title: APP.name,
     note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
+      .replace('{buy}', billing.enabled ? SETTINGS_BUY : SETTINGS_NO_BUY)
       + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
     privacy: ads.enabled && ads.privacyRequired(),
     reminders: notify.available ? remindersOn() : null,
@@ -736,9 +818,8 @@ async function onSettings() {
   const yes = await confirm({
     kicker: 'Settings',
     title: 'Erase everything?',
-    line: 'Your coins, cats, cosmetics and every game\'s progress all go back to the start. '
-        + 'This cannot be undone.',
-    ok: 'Erase and start over',
+    line: 'Coins, cats and progress. Can\'t be undone.',
+    ok: 'Erase',
   });
   if (!yes) return;
   track('progress_erased', { best_level: shell.stats.bestLevel });
@@ -754,12 +835,20 @@ function activeCosmetic() {
   return shell.cosmetics[game.id]?.active || game.defaultCosmetic || null;
 }
 
-function buy(kind, id) {
+async function buy(kind, id, button) {
+  if (kind === 'pack') {
+    if (button) button.disabled = true;
+    const status = await billing.buy(id);
+    if (status === 'error') toast('<span>Purchase failed. Try again later.</span>', 3200);
+    else if (status === 'owned') toast('<span>Finishing an earlier purchase…</span>', 3000);
+    if (panels.open === 'shop') panels.show('shop', panelContext());
+    return;
+  }
   if (kind === 'cat') {
     const c = catById(id);
     if (!unlockProgress(c, shell.stats).revealed) return;   // hidden cats cannot be bought
     if (!shell.cats.owned.includes(id)) {
-      if (!wallet.spend(c.price, 'cat')) return;             // the price tag already says so
+      if (!wallet.spend(c.price, 'cat')) return shortOf({ price: c.price, what: c.name });   // the price tag says so; packs may help
       shell.cats.owned.push(id);
     }
     shell.cats.worn = id;
@@ -775,7 +864,7 @@ function buy(kind, id) {
     if (!item) return;
     const mine = (shell.cosmetics[game.id] ||= { owned: [], active: game.defaultCosmetic });
     if (item.price > 0 && !mine.owned.includes(id)) {
-      if (!wallet.spend(item.price, 'cosmetic')) return;
+      if (!wallet.spend(item.price, 'cosmetic')) return shortOf({ price: item.price, what: item.name });
       mine.owned.push(id);
     }
     mine.active = id;
@@ -821,6 +910,7 @@ function wireDev() {
   window.wallet = wallet;
   window.__ads = ads;
   window.__sound = sound;
+  window.__shop = billing;
   window.stats = shell.stats;
   window.gameStats = shell.gameStats[game.id] ||= {};
   window.CATS = CATS;

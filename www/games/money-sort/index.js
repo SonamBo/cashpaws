@@ -47,18 +47,18 @@ export default {
    * start, a level-up bonus — rather than a percentage that grows with the game.
    */
   perks: {
-    mittens:   { text: 'Undo costs 10 instead of 20.', config: { undoCost: 10 } },
-    soot:      { text: 'The board warns you three turns ahead instead of two.', config: { telegraphTurns: 3 } },
-    marmalade: { text: 'Beating a Hard level pays triple, not double.', config: { hardRewardMultiplier: 3 } },
-    pepper:    { text: 'Level-ups pay 70 coins instead of 50.', config: { coinsPerLevelUp: 70 } },
-    biscuit:   { text: 'Sort costs 50 less, at every level.', config: { sortCost: 100 } },
+    mittens:   { text: 'Undo costs 10, not 20', config: { undoCost: 10 } },
+    soot:      { text: 'Warns 3 turns ahead, not 2', config: { telegraphTurns: 3 } },
+    marmalade: { text: 'Hard levels pay 3×, not 2×', config: { hardRewardMultiplier: 3 } },
+    pepper:    { text: 'Level-ups pay 70, not 50', config: { coinsPerLevelUp: 70 } },
+    biscuit:   { text: 'Sort costs 50 less', config: { sortCost: 100 } },
   },
 
   defaultCosmetic: 'classic',
-  shopBlurb: 'Chip sets change how values look, never what they are worth.',
+  shopBlurb: 'New look, same values',
   cosmetics: [
-    { id: 'classic', name: 'Mint set', price: 0, note: 'Blue, silver, copper, green, purple.', preview: 'img/chip-20.png' },
-    { id: 'notes', name: 'Paper set', price: 800, note: 'More bills, fewer coins. Same values.', preview: 'img/chipb-20.png' },
+    { id: 'classic', name: 'Mint set', price: 0, note: 'Classic coins', preview: 'img/chip-20.png' },
+    { id: 'notes', name: 'Paper set', price: 800, note: 'More bills', preview: 'img/chipb-20.png' },
   ],
 
   /*
@@ -183,19 +183,19 @@ export default {
             await wait(120);
             const gains = [];
             if (e.gainedColumn) gains.push(`+1 tube &middot; now ${e.columns}`);
-            if (e.poolGrew) gains.push('A bigger chip joins the pool');
-            if (e.mysteryArrives) gains.push('New: the flow can bury chips face down. They turn over when they reach the top.');
+            if (e.poolGrew) gains.push('New: a bigger chip');
+            if (e.mysteryArrives) gains.push('New: face-down chips, flip at the top');
             // Level modifiers: explained in full the first time, named after that.
             const m = e.mods || {};
-            if (e.lockArrives) gains.push('New: a locked tube. Cash in 2 tubes to open it. The flow skips it till then.');
+            if (e.lockArrives) gains.push('New: locked tube · cash in 2 to open');
             else if (m.locked) gains.push('This level: a locked tube');
             if (e.frozenArrives) gains.push('New: frozen coins can\'t be lifted. Each cash-in cracks the ice; the second frees them.');
             else if (m.frozen) gains.push('This level: frozen coins');
-            if (e.luckyArrives) gains.push('New: a Lucky Paw coin! It counts as any coin, so it finishes any set.');
+            if (e.luckyArrives) gains.push('New: Lucky Paw · fits any set');
             else if (m.lucky) gains.push('A Lucky Paw coin is on the board');
-            if (e.kind === 'hard') gains.push('Next up: a Hard level. Faster flow, and it pays double.');
-            if (e.kind === 'breather') gains.push('Hard level beaten. This one is gentler.');
-            gains.push(`Sort now costs ${vm.sortPrice}`);
+            if (e.kind === 'hard') gains.push('Next: Hard level · faster, pays 2×');
+            if (e.kind === 'breather') gains.push('Hard level beaten · easier next');
+            gains.push(`Sort: ${vm.sortPrice}`);
             gains.push(`+${e.coins} coins${e.beatHard ? ' &middot; Hard bonus' : ''}`);
             await host.celebrate({
               kicker: 'Level up',
@@ -232,16 +232,25 @@ export default {
           case 'lock': {
             paint(vm);
             let choice;
+            let v = vm;
             for (;;) {
-              // Broke and stuck: an ad can pay for the Sort instead.
-              const adOffer = !vm.canAffordSort && vm.sortCanHelp && host.rewarded.available('rescue-sort');
+              // Broke and stuck: coin packs first (where sold), then an ad pays for the Sort.
+              const short = !v.canAffordSort && v.sortCanHelp;
+              const buyOffer = short && host.coinsForSale();
+              const adOffer = short && host.rewarded.available('rescue-sort');
               host.track('board_stuck', {
-                level: vm.level, kind: vm.kind, can_sort: !!e.canSort, free: vm.freeSorts > 0,
-                coins: host.wallet.coins, price: vm.sortPrice, ad_offer: !!adOffer,
+                level: v.level, kind: v.kind, can_sort: !!e.canSort, free: v.freeSorts > 0,
+                coins: host.wallet.coins, price: v.sortPrice, ad_offer: !!adOffer, buy_offer: !!buyOffer,
               });
-              choice = await stuckCard(host, e, vm, vm.freeSorts > 0 ? 'Free' : vm.sortPrice, adOffer);
+              choice = await stuckCard(host, e, v, v.freeSorts > 0 ? 'Free' : v.sortPrice, adOffer, buyOffer);
               // A drop is already confirmed: the card itself warns if it would cost
               // an event such as Bell Quest (host.levelLossWarning).
+              if (choice === 'buy') {
+                await host.openCoins('stuck');
+                v = vmOf(game);
+                if (v.canAffordSort) { choice = 'sort'; break; }   // bought enough: sort now
+                continue;                                          // the card comes back
+              }
               if (choice !== 'ad') break;
               if (await host.rewarded.show('rescue-sort')) { choice = 'free-sort'; break; }
               // Skipped the ad: nothing lost, the choice comes back.
@@ -260,7 +269,7 @@ export default {
               kicker: 'Level lost',
               title: `Back to level ${pad(e.to)}`,
               figure: money(e.netWorth),
-              line: `A fresh board of ${e.columns} tubes.`,
+              line: `${e.columns} tubes`,
             });
             break;
 
@@ -328,10 +337,22 @@ export default {
       host.track('sort_used', { level: game.level, how, where, price: how === 'paid' ? game.sortPrice : 0 });
     }
 
-    function onSort() {
-      if (busy || !(game.canAffordSort && game.sortCanHelp)) return;
-      trackSort(game.freeSorts > 0 ? 'free' : 'paid', 'button');
-      if (!game.sort().ok) { frames = []; return; }
+    let asking = false;
+    async function onSort() {
+      if (busy || asking || !game.sortCanHelp) return;
+      let how = game.freeSorts > 0 ? 'free' : 'paid';
+      if (!game.canAffordSort) {
+        // Short: coin packs first, then an ad for a free Sort (host.shortOf).
+        asking = true;
+        const got = await host.shortOf({ price: game.sortPrice, what: 'a Sort', ad: 'rescue-sort', adLabel: 'Watch an ad &middot; free Sort' });
+        asking = false;
+        if (busy || !game.sortCanHelp) return;
+        if (got === 'ad') how = 'ad';
+        else if (got !== 'coins' || !game.canAffordSort) { paint(vmOf(game)); return; }
+      }
+      trackSort(how, 'button');
+      if (!game.sort(how === 'ad' ? { free: true } : undefined).ok) { frames = []; return; }
+      if (how === 'ad') host.stat('adSorts');
       drain();
     }
 
@@ -408,8 +429,7 @@ export default {
         const yes = await host.confirm({
           kicker: 'Restart',
           title: 'Restart this board?',
-          line: `You keep level ${pad(game.level)} and its tubes. `
-              + `Net worth falls back to ${money(game.floor)}, the floor for this level.`,
+          line: `Net worth back to ${money(game.floor)}`,
           ok: 'Restart board',
         });
         if (!yes) return;
@@ -444,7 +464,7 @@ export default {
           });
         }
         return {
-          blurb: 'Net worth is lifetime. It only ever falls if you lose a level.',
+          blurb: 'Net worth falls only when you lose a level',
           tiles: [
             { value: money(game.netWorth), label: 'net worth' },
             { value: host.stats.banks || 0, label: 'tubes banked' },

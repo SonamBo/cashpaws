@@ -471,3 +471,7 @@
 /* translate, not transform: the chip-in animation holds transform for good. */
 .chip { transition: translate var(--t-fast) var(--ease); }
 .chip.lifted { translate: 0 -12px; }
+
+/* Sort, short of coins but with a way to get them: still the Sort colour, the price greyed. */
+.act-sort.short .act-cost { background: rgba(84, 57, 62, .18); color: #fff; }
+.act-sort.short .coin-art { filter: grayscale(1); opacity: .7; }

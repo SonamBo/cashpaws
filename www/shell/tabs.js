@@ -3,7 +3,8 @@
  *
  * Cats and their unlocks are the shell's; what each cat does comes from the
  * installed game. Progress shows the shell's lifetime numbers, then whatever
- * the game adds. The Shop sells the game's cosmetics, bought with shell coins.
+ * the game adds. The Shop sells the game's cosmetics, bought with shell coins,
+ * and coin packs for real money where the build has them (billing.js).
  */
 
 import { CATS, unlockProgress, perkIn } from './cats.js';
@@ -20,8 +21,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 function catsPanel({ game, shell }) {
   return `
     <h2>Cats</h2>
-    <p class="panel-sub">One cat at a time. Each changes ${game.name} a little, and
-    they pull in different directions — none is simply the best.</p>
+    <p class="panel-sub">Wear one at a time. Each tweaks the game.</p>
     <ul class="cards">
       ${CATS.map((c) => {
         const owned = shell.cats.owned.includes(c.id);
@@ -34,7 +34,7 @@ function catsPanel({ game, shell }) {
           : priceTag(owned, c.price);
         const line = !revealed
           ? `<span class="cat-lock">${c.unlock.label} &middot; ${fmt(Math.min(have, need))}/${fmt(need)}</span>`
-          : `<span class="cat-perk">${perk ? perk.text : c.id === 'patch' ? 'No tricks. The game as designed.' : 'Just for looks in this game.'}</span>`;
+          : `<span class="cat-perk">${perk ? perk.text : c.id === 'patch' ? 'No perk. Classic play.' : 'Looks only'}</span>`;
         const bar = !revealed
           ? `<span class="cat-bar"><i style="width:${Math.min(100, (have / need) * 100).toFixed(0)}%"></i></span>`
           : '';
@@ -48,7 +48,7 @@ function catsPanel({ game, shell }) {
     </ul>`;
 }
 
-function shopPanel({ game, shell }) {
+function shopPanel({ game, shell, billing }) {
   const mine = shell.cosmetics[game.id] || { owned: [], active: null };
   const items = game.cosmetics || [];
   const list = items.length ? `
@@ -63,13 +63,42 @@ function shopPanel({ game, shell }) {
           ${active ? '<span class="tag on">In use</span>' : priceTag(owned, s.price)}
         </li>`;
       }).join('')}
-    </ul>` : '<p class="panel-sub">Nothing for sale in this game yet.</p>';
+    </ul>` : '<p class="panel-sub">Nothing here yet</p>';
   return `
     <h2>Shop</h2>
-    <p class="panel-sub">${game.shopBlurb || 'Looks only. Nothing here changes how the game plays.'}</p>
+    <p class="panel-sub">${game.shopBlurb || 'Looks only'}</p>
     ${list}
-    <h3>Coins</h3>
-    <p class="panel-sub">Coins are earned by playing. Nothing here is for sale for real money.</p>`;
+    ${coinsSection(billing)}`;
+}
+
+/* A stack of 1–4 coins, bigger packs taller. */
+const stack = (i) => `<span class="pack-art n${Math.min(4, i + 1)}">${
+  Array.from({ length: Math.min(4, i + 1) }, () => coinIcon(26)).join('')}</span>`;
+
+function coinsSection(billing) {
+  if (!billing?.enabled) {
+    return `
+    <h3 data-coins-section>Coins</h3>
+    <p class="panel-sub">Earned by playing. Nothing sold for real money.</p>`;
+  }
+  const packs = billing.packs();
+  const body = billing.state === 'loading'
+    ? '<p class="panel-sub">Loading prices…</p>'
+    : billing.state !== 'ready'
+      ? '<p class="panel-sub">Unavailable right now. Check your connection.</p>'
+      : `<ul class="cards packs">
+      ${packs.map((p, i) => `
+        <li class="card pack ${p.tag ? 'tagged' : ''}">
+          ${p.tag ? `<span class="pack-tag">${p.tag}</span>` : ''}
+          <span class="card-art">${stack(i)}</span>
+          <span class="card-main"><b>${fmt(p.coins)} coins</b><span>${p.name || ''}${p.bonus ? ` &middot; <em class="pack-bonus">+${p.bonus}% extra</em>` : ''}</span></span>
+          ${p.price ? `<button class="buy" data-buy-pack="${p.id}">${p.price}</button>` : '<span class="tag">Unavailable</span>'}
+        </li>`).join('')}
+    </ul>`;
+  return `
+    <h3 data-coins-section>Get coins</h3>
+    ${body}
+    <p class="panel-sub small">Paid via Google Play. Coins stay on this phone.</p>`;
 }
 
 function progressPanel({ game, shell, instance }) {
@@ -92,7 +121,7 @@ function progressPanel({ game, shell, instance }) {
     </table>` : '';
   return `
     <h2>Progress</h2>
-    <p class="panel-sub">${extra?.blurb || 'Your lifetime totals.'}</p>
+    <p class="panel-sub">${extra?.blurb || 'Lifetime totals'}</p>
     <div class="stat-grid">
       ${tiles.map((t) => `<div><b>${t.value}</b><span>${t.label}</span></div>`).join('')}
     </div>
@@ -110,7 +139,7 @@ const TIER_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 function dailyPanel({ game, shell, stats }) {
   const d = shell.daily;
   if (!d.tasks.length) {
-    return `<h2>Daily</h2><p class="panel-sub">${game.name} has no daily tasks yet.</p>`;
+    return `<h2>Daily</h2><p class="panel-sub">No daily tasks yet</p>`;
   }
   const rows = d.tasks.map((t, i) => {
     const have = progressOf(t, stats);
@@ -143,18 +172,18 @@ function dailyPanel({ game, shell, stats }) {
   const stamps = Array.from({ length: STREAK_SHOWN }, (_, i) =>
     `<span class="stamp ${i < shown ? 'on' : ''}">${i < shown ? cat('face', 30, 'stamp-cat') : ''}</span>`).join('');
   const streakLine = d.streak === 0
-    ? 'Finish all three today to start a streak.'
+    ? 'Finish all 3 to start a streak'
     : d.bonusClaimed
-      ? `${d.streak} day${d.streak === 1 ? '' : 's'} in a row. Come back tomorrow to keep it going.`
-      : `${d.streak} day${d.streak === 1 ? '' : 's'} in a row. Finish today's three to keep it going.`;
+      ? `${d.streak}-day streak · back tomorrow`
+      : `${d.streak}-day streak · finish today's 3`;
 
   return `
     <h2>Daily</h2>
-    <p class="panel-sub">Three new tasks every day. Fresh ones in ${untilMidnight()}.</p>
+    <p class="panel-sub">New tasks in ${untilMidnight()}</p>
     <ul class="cards">${rows}
       <li class="card task bonus ${d.bonusClaimed ? 'claimed' : ''}">
         <span class="task-tier tier-bonus">${icons.gift(18)}</span>
-        <span class="card-main"><b>Finish all three</b><span>A bonus on top</span></span>
+        <span class="card-main"><b>All 3 done</b><span>Bonus</span></span>
         ${bonusRight}
       </li>
     </ul>
@@ -180,15 +209,18 @@ export class Panels {
       if (c) return this.onBuy('cat', c.dataset.buyCat);
       const s = e.target.closest('[data-buy-cosmetic]');
       if (s) return this.onBuy('cosmetic', s.dataset.buyCosmetic);
+      const k = e.target.closest('[data-buy-pack]');
+      if (k) return this.onBuy('pack', k.dataset.buyPack, k);
     });
   }
 
-  show(tab, ctx) {
+  show(tab, ctx, { focus } = {}) {
     if (!tab || tab === 'home') return this.hide();
     const body = tab === 'cats' ? catsPanel(ctx)
       : tab === 'shop' ? shopPanel(ctx)
       : tab === 'daily' ? dailyPanel(ctx)
       : progressPanel(ctx);
+    const keep = this.open === tab ? this.el.scrollTop : 0;   // a redraw (a purchase, prices arriving) keeps the place
     this.el.innerHTML = `
       <div class="panel-head">
         <button data-close aria-label="Close">${icons.close(20)}</button>
@@ -197,6 +229,8 @@ export class Panels {
     this.el.querySelector('[data-close]').addEventListener('click', () => this.onClose());
     this.el.classList.add('in');
     this.open = tab;
+    this.el.scrollTop = keep;
+    if (focus) this.el.querySelector(`[data-${focus}-section]`)?.scrollIntoView({ block: 'start' });
   }
 
   hide() {

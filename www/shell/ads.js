@@ -12,14 +12,13 @@
  */
 
 /*
- * Interstitials: after level 10, once per 2.5 minutes of actual play. The
- * shell announces each one with a 2-second "Ad break" screen first (so it
- * never ambushes a tap), and only starts one between moves. Watching a
- * rewarded ad restarts the clock too, so ads never come back to back.
+ * Interstitials (1.16.0): at the end of each level won, once the player has
+ * beaten level 10, so the first comes after level 10 and never mid-board. The shell
+ * announces each with a 2-second "Ad break" screen first. Right after a
+ * rewarded ad (within a minute) one is skipped, so ads never come back to back.
  */
-export const INTERSTITIAL_EVERY_MS = 150000;
-export const INTERSTITIAL_FROM_LEVEL = 11;      // "after level 10"
-const RETRY_AFTER_FAIL_MS = 30000;              // an ad that didn't show: try again in 30 s of play
+export const INTERSTITIAL_FROM_LEVEL = 11;      // the level just reached: "after level 10"
+export const AFTER_REWARDED_MS = 60000;
 
 let nextId = 0;
 const pending = new Map();
@@ -65,13 +64,13 @@ export function createAds({ dev, confirm, track = () => {} }) {
     };
 
   // Every rewarded ad started, and whether it paid out, by placement.
-  let playMs = 0;
+  let lastRewarded = -Infinity;
   const show = rewarded.show;
   rewarded.show = async (placement) => {
     track('ad_rewarded_start', { placement });
     const earned = await show(placement);
     track('ad_rewarded_result', { placement, earned });
-    playMs = 0;                      // an ad just played: the interstitial clock starts again
+    lastRewarded = Date.now();       // an ad just played: no Ad break straight after it
     return earned;
   };
 
@@ -99,21 +98,24 @@ export function createAds({ dev, confirm, track = () => {} }) {
     handlesAudio: !!native?.handlesAudio,
     rewarded,
 
-    /** Seconds of actual play, fed by the shell while the board is on screen. */
-    played(ms) { playMs += ms; },
-    get playSeconds() { return Math.round(playMs / 1000); },
+    /** Seconds since the last rewarded ad (Infinity if none), for the testing card. */
+    get sinceRewarded() { return Math.round((Date.now() - lastRewarded) / 1000); },
 
-    /** An interstitial is due: past level 10, 2.5 minutes of play, and one is loaded. */
+    /**
+     * At the end of a level: is an Ad break due? `level` is the level just
+     * reached; due from 11 on (so after level 10), unless a rewarded ad played
+     * within the last minute, and only with an ad loaded.
+     */
     interstitialDue(level) {
-      return level >= INTERSTITIAL_FROM_LEVEL && playMs >= INTERSTITIAL_EVERY_MS && interstitial.available();
+      return level >= INTERSTITIAL_FROM_LEVEL && Date.now() - lastRewarded >= AFTER_REWARDED_MS
+        && interstitial.available();
     },
 
     /** Play it. Resolves when the player is back, true if an ad was shown. */
     async showInterstitial(placement, { level = 0 } = {}) {
-      track('ad_interstitial_show', { placement, level, play_seconds: Math.round(playMs / 1000) });
+      track('ad_interstitial_show', { placement, level });
       const shown = await interstitial.show(placement);
       track('ad_interstitial_result', { placement, shown });
-      playMs = shown ? 0 : INTERSTITIAL_EVERY_MS - RETRY_AFTER_FAIL_MS;
       return shown;
     },
 

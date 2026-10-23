@@ -183,11 +183,13 @@ button {
   backdrop-filter: blur(2px);
 }
 
-.ovl-flow      { background: var(--orange); }
+/* Every popup sits over the screen it came from (1.16.0): a tint and a
+   light blur, never a solid fill, so the player can see where they are. */
+.ovl-flow      { background: rgba(235, 122, 41, .62); backdrop-filter: blur(3px); }
 
-.ovl-milestone { background: var(--sage); }
+.ovl-milestone { background: rgba(120, 132, 92, .48); backdrop-filter: blur(3px); }
 
-.ovl-locked    { background: var(--taupe); }
+.ovl-locked    { background: rgba(84, 66, 58, .55); backdrop-filter: blur(3px); }
 
 .ovl-body {
   width: 100%;
@@ -1330,3 +1332,41 @@ img.art { user-select: none; -webkit-user-drag: none; }
   pointer-events: auto; cursor: pointer;
 }
 .coach-skip:hover { color: #fff; }
+
+/* ---------------------------------------------------------------- *
+ * Coin packs in the Shop (1.16.0): billing.js, only where they exist
+ * ---------------------------------------------------------------- */
+.packs .pack { position: relative; cursor: default; }
+.pack.tagged { border-color: #f0ad3e; }
+.pack-tag {
+  position: absolute; top: -10px; left: var(--s3);
+  padding: 2px 8px; border-radius: var(--r-pill);
+  background: #f0ad3e; color: #fff;
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .02em;
+}
+.pack-art { position: relative; width: 44px; height: 44px; }
+.pack-art .coin, .pack-art svg, .pack-art img { position: absolute; left: 9px; }
+.pack-art > :nth-child(1) { top: 16px; }
+.pack-art > :nth-child(2) { top: 10px; left: 4px; }
+.pack-art > :nth-child(3) { top: 4px; left: 14px; }
+.pack-art > :nth-child(4) { top: -2px; left: 8px; }
+.pack-art.n1 > :nth-child(1) { top: 9px; }
+.card-main .pack-bonus { font-style: normal; font-weight: 800; color: var(--green-ink, #2f7d3c); }
+.buy {
+  flex: 0 0 auto;
+  min-width: 78px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--green);
+  color: #fff;
+  font: inherit; font-size: var(--fs-sm); font-weight: 800;
+  cursor: pointer;
+}
+.buy:active { transform: scale(.97); }
+.buy[disabled] { opacity: .55; }
+.panel-sub.small { font-size: var(--fs-xs); margin-top: var(--s4); }
+[data-coin-pill] { cursor: pointer; }
+/* The second way out of "Not enough coins": the rewarded ad, after coin packs. */
+.ovl-btn.alt { margin-top: var(--s2); background: #9a86d6; color: #fff; }
+.ovl-btn svg, .ovl-btn img { vertical-align: -3px; }

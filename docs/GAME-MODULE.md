@@ -190,19 +190,32 @@ asks "Give up your quest?" only while a quest is running. A game without
 
 ## Ad breaks (interstitials)
 
-The shell runs them; a game only has to report its level. It counts actual play
-time (the game screen showing, nothing over it, the app in the foreground, and
-the game not `busy`), and once the player is past level 10 it shows a 2-second
-"Ad break" card with the worn cat and then an ad, every 2.5 minutes of play.
-The game is paused around it. Two things make this work in a new game:
+The shell runs them, at the end of a level (since 1.16.0). Once the player
+has beaten level 10, every level won ends with a 2-second "Ad break" card
+with the worn cat and then an ad, before the next level starts. One is
+skipped within a minute of a rewarded ad. Never mid-board. Two things make
+this work in a new game:
 
-- **Report `level` in `host.progress()`.** No level, no Ad breaks: a game
-  without levels (like the template) only ever shows rewarded ads.
-- **Call `host.busy(true)` while a move or animation plays**, and
-  `host.busy(false)` when the board is still, so an ad never cuts into one.
+- **Report each win with `host.levelWon({ level })`**, `level` being the level
+  just reached. No levels, no Ad breaks: a game without levels (like the
+  template) only ever shows rewarded ads.
+- **`await host.levelBreak()`** after the level's celebration and before the
+  next level starts. Bell Quest shows its step there, then the Ad break plays.
 
-The timing lives in `www/shell/ads.js` (`INTERSTITIAL_EVERY_MS`,
-`INTERSTITIAL_FROM_LEVEL`). It is the same for every game built on this shell.
+The rules live in `www/shell/ads.js` (`INTERSTITIAL_FROM_LEVEL`,
+`AFTER_REWARDED_MS`). They are the same for every game built on this shell.
+
+## Short of coins
+
+When the player can't afford something, `await host.shortOf({ price, what,
+ad, adLabel })` shows one card: coin packs first (where the build sells
+them), then a rewarded ad for `ad`'s placement, then "Not now". It resolves
+`'coins'` (they now have enough: go ahead and charge), `'ad'` (watched to the
+end: give it free) or `null`. `host.shortHelps(ad)` says whether there is
+anything to offer, so a button can stay tappable while the player is short.
+Money Sort's Sort button and stuck card use it. `host.openCoins()` opens the
+Shop's coin packs and resolves when it closes; `host.coinsForSale()` says
+whether this build sells any.
 
 ## Stats: two kinds
 

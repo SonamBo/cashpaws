@@ -135,9 +135,46 @@ and the game links it from Settings.
      interactions, crash logs and diagnostics. Collected and shared for ads
      (AdMob), collected for analytics (Firebase). Encrypted in transit; users
      can ask for deletion by email.
-   - **Content rating:** answer for your game; say yes to ads. In-game coins
-     aren't real-money purchases.
+   - **Content rating:** answer for your game; say yes to ads. If you sell
+     coin packs (section 7b), say yes to buying digital goods.
+   - **Data safety, with coin packs:** add Financial info → Purchase history,
+     collected for analytics (Firebase logs each purchase).
 3. Upload `app-release.aab` to Internal testing first and try it on a phone.
+
+## 7b. Coin packs (optional)
+
+Players can buy coins with real money through Google Play. The code is all
+in the shell (`www/shell/billing.js`, `android/.../Billing.java`); an app
+turns it on by listing its packs in `www/app.config.js`:
+
+```json
+"coinPacks": [
+  { "id": "coins_500", "coins": 500, "name": "Pocket change" },
+  { "id": "coins_3500", "coins": 3500, "name": "Piggy bank", "tag": "Most popular" }
+]
+```
+
+`id` is the product ID in Play Console (lowercase, permanent once created),
+`coins` what the pack adds, `tag` an optional ribbon. Prices are set in Play
+Console, never in code; the Shop shows Play's price in the player's currency
+and works out "+N% extra" from them. Without `coinPacks` nothing is for sale
+and the Shop says so. Then:
+
+1. **Payments profile:** Play Console → Settings → Payments profile. Needed
+   before any product can be created (a merchant account; Google asks for
+   bank and tax details).
+2. **Upload a build that has `coinPacks`** to Internal testing. Play only lets
+   you create products after it has seen the billing library in a bundle.
+3. **Create the products:** Monetize with Play → Products → One-time
+   products → Create, once per pack, with exactly the IDs from
+   `coinPacks`. Give each a name, description and price, then **Activate**.
+4. **Testers:** Settings → License testing: add your Google account. Testers
+   see test cards ("always approves", "always declines", "slow") and are
+   never charged.
+5. **Test on a phone** with the app **installed from the internal testing
+   link**, signed in as a tester. A debug build, or a release APK installed
+   by hand, finds no products. Settings → tap the version 5 times → the
+   testing card's **Purchases** line says what Play answered.
 
 ## 8. CrazyGames (optional, any time)
 

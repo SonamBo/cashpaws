@@ -112,6 +112,32 @@ export function ask({ kicker, title, line, ok, cancel }) {
 }
 
 /**
+ * A card with several ways out, best first: [{ id, label, primary }], then a
+ * plain cancel. Resolves the chosen id, or null.
+ */
+export function choose({ kicker, title, line, choices, cancel = 'Not now' }) {
+  return new Promise((resolve) => {
+    const card = show(`
+      <div class="ovl-stack">
+        ${cat('slump', 210, 'cat-lying')}
+        <div class="ovl-card">
+          <p class="ovl-kicker">${kicker}</p>
+          <h2 class="ovl-h">${title}</h2>
+          <p class="ovl-sub">${line}</p>
+          ${choices.map((c) => `<button class="ovl-btn ${c.primary ? 'primary' : 'alt'}" data-choice="${c.id}">${c.label}</button>`).join('')}
+          <button class="ovl-btn ghost" data-cancel>${cancel}</button>
+        </div>
+      </div>`, 'locked');
+    const pick = async (v) => { await dismiss(card); resolve(v); };
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      pick(b.matches('[data-cancel]') ? null : b.dataset.choice);
+    });
+  });
+}
+
+/**
  * "Ad break": the worn cat, a title, and a bar that fills over `ms`. It says
  * an ad is coming before it comes. Returns { done, close }: `done` resolves
  * when the bar is full; `close` takes the card down after the ad.
@@ -123,7 +149,7 @@ export function adBreak(ms = 2000) {
       <div class="ovl-card ad-break" role="status" aria-live="assertive">
         <p class="ovl-kicker">Thanks for playing</p>
         <h2 class="ovl-h">Ad break</h2>
-        <p class="ovl-sub">A short ad, then straight back to your board.</p>
+        <p class="ovl-sub">Back in a moment</p>
         <div class="ad-break-bar"><i style="animation-duration:${ms}ms"></i></div>
       </div>
     </div>`, 'milestone');
@@ -176,7 +202,7 @@ export function settings({ title, note, privacy = false, reminders = null, versi
        ${icons.lock(20)}<span>Privacy Policy</span>${icons.external(16)}
      </a>`,
     !privacy ? '' : `
-     <button data-pick="privacy">${icons.lock(20)}<span>Do not sell or share my personal information</span></button>`,
+     <button data-pick="privacy">${icons.lock(20)}<span>Do not sell or share my info</span></button>`,
     audio === null ? '' : `
      <button class="menu-toggle" data-pick="sfx" role="switch" aria-checked="${audio.sfx}">
        ${icons.speaker(20)}<span>Sound effects</span>
@@ -230,8 +256,8 @@ export function boxCard({ ready, wait: waitText, adOffer, adsLeft }) {
           <div class="box-art ${ready ? 'ready' : ''}">${icons.gift(64)}</div>
           <h2 class="ovl-h">${ready ? 'Your box is ready' : `Next box in ${waitText}`}</h2>
           <p class="ovl-sub">${ready
-            ? 'Coins inside, and the further you get, the more a box holds.'
-            : `A new box every 4 hours.${adOffer ? ` Or watch an ad to open it now — ${adsLeft} left today.` : ''}`}</p>
+            ? 'Grows as you level up'
+            : `New box every 4h${adOffer ? ` · ad opens it now (${adsLeft} left today)` : ''}`}</p>
           ${ready ? '<button class="ovl-btn primary" data-pick="open">Open it</button>' : ''}
           ${!ready && adOffer
             ? '<button class="ovl-btn primary" data-pick="ad">Watch an ad &middot; open now</button>'
