@@ -5,6 +5,7 @@ checks the result.
 
     python3 tools/marketing/make-covers.py crazygames landscape.png portrait.png square.png
     python3 tools/marketing/make-covers.py play feature.png icon.png
+    python3 tools/marketing/make-covers.py play-feature feature.png   (just the feature graphic)
     python3 tools/marketing/make-covers.py play-event event.png       (Play promotional content)
 
 Each image is centre-cropped to the right shape, then resized with
@@ -27,6 +28,10 @@ PRESETS = {
     'play': [
         ('feature-1024x500.png', 1024, 500, 'feature graphic'),
         ('icon-512.png', 512, 512, 'app icon (no transparency)'),
+    ],
+    # The feature graphic on its own, when the icon isn't changing.
+    'play-feature': [
+        ('feature-1024x500.png', 1024, 500, 'feature graphic'),
     ],
     # Play Console → Promotional content: the event image. No text at all;
     # 1 MB or less to be eligible for Spotlight.

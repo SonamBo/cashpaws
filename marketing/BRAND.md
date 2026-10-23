@@ -64,6 +64,6 @@ your fortune; every few moves new money drops into every tube.
 | Folder | What |
 |---|---|
 | `crazygames/` | CrazyGames: `LISTING.md` (form text), `COVER-PROMPTS.md`, `covers/` (finished) |
-| `play/` | Google Play: `EVENT-PROMPTS.md`, prompts for promotional content (event) images, where no text is allowed. Finished art goes to `play-event/covers/` |
+| `play/` | Google Play: `FEATURE-PROMPTS.md` (the feature graphic), `EVENT-PROMPTS.md` (promotional content images, where no text is allowed), `art/` (the generated originals). Finished, sized art: `play-feature/covers/`, `play-event/covers/` |
 | `showcase.mjs` | The trailer the video recorder plays |
 | `out/` | Generated videos; not committed, re-made with `tools/marketing/record-preview.mjs` |
