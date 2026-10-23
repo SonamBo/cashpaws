@@ -56,11 +56,14 @@ your fortune; every few moves new money drops into every tube.
 | `ref-cat-hero.png` | Patch hugging the money |
 | `ref-gameplay.png` | The board: glass tubes, coins, notes |
 | `ref-room.jpg` | The cosy room behind the game |
+| `ref-bell-prize.png` | Bell Quest's prize: the gold coin mountain with the bell and red ribbon |
+| `ref-bell-stones.png` | Bell Quest's path stones: grey (ahead), green (done), gold (you are here) |
 
 ## Where things are
 
 | Folder | What |
 |---|---|
 | `crazygames/` | CrazyGames: `LISTING.md` (form text), `COVER-PROMPTS.md`, `covers/` (finished) |
+| `play/` | Google Play: `EVENT-PROMPTS.md`, prompts for promotional content (event) images, where no text is allowed. Finished art goes to `play-event/covers/` |
 | `showcase.mjs` | The trailer the video recorder plays |
 | `out/` | Generated videos; not committed, re-made with `tools/marketing/record-preview.mjs` |
