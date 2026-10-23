@@ -1,0 +1,69 @@
+name: YouTube
+
+# Uploads the next video in marketing/shorts/queue to YouTube once a day, then
+# commits it into marketing/shorts/posted with its link, so it never goes up
+# twice. tools/marketing/youtube-upload.mjs does the work; set-up is in
+# tools/marketing/YOUTUBE.md.
+#
+# Needs three repository secrets: YT_CLIENT_ID, YT_CLIENT_SECRET and
+# YT_REFRESH_TOKEN. Without YT_REFRESH_TOKEN, or with an empty queue, the
+# run does nothing and passes.
+#
+# The commit is made with GITHUB_TOKEN, which never triggers other
+# workflows, so posting a video doesn't start an Android build.
+
+on:
+  schedule:
+    - cron: '0 13 * * *'      # 13:00 UTC every day (6:30 pm in India). Edit to taste.
+  workflow_dispatch:
+    inputs:
+      count:
+        description: How many videos to upload now
+        default: '1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-24.04
+    env:
+      ENABLED: ${{ secrets.YT_REFRESH_TOKEN != '' }}
+    steps:
+      - name: Not set up
+        if: env.ENABLED != 'true'
+        run: echo "No YT_REFRESH_TOKEN secret, so nothing to do. See tools/marketing/YOUTUBE.md."
+
+      - uses: actions/checkout@v5
+        if: env.ENABLED == 'true'
+
+      - uses: actions/setup-node@v5
+        if: env.ENABLED == 'true'
+        with:
+          node-version: '20'
+
+      - name: Upload
+        if: env.ENABLED == 'true'
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: node tools/marketing/youtube-upload.mjs --count "${{ github.event.inputs.count || '1' }}"
+
+      # Runs even if an upload failed part-way, so videos that did go up are
+      # still recorded and won't be posted again.
+      - name: Record what was posted
+        if: always() && env.ENABLED == 'true'
+        run: |
+          [ -d marketing/shorts ] || { echo "Nothing posted."; exit 0; }
+          git add -A marketing/shorts
+          if git diff --cached --quiet; then echo "Nothing posted."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Post to YouTube: $(git diff --cached --name-only --diff-filter=A -- marketing/shorts/posted | grep '\.mp4$' | xargs -n1 basename | tr '\n' ' ')"
+          git pull --rebase --autostash
+          git push

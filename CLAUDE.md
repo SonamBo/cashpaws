@@ -114,6 +114,11 @@ and `covers/`.
   gameplay at store sizes (no sound, no cursor), following
   `marketing/showcase.mjs`, the game's scripted trailer. Build the web version
   first.
+- **YouTube Shorts:** videos in `marketing/shorts/queue/` (each with an
+  optional `.json` for the title and description) are uploaded one a day by
+  `.github/workflows/youtube.yml` and moved to `marketing/shorts/posted/`.
+  Set-up is in `tools/marketing/YOUTUBE.md`; check the queue with
+  `node tools/marketing/youtube-upload.mjs --dry-run`.
 - If the `marketing-creatives` skill is available, follow it: it has every
   store's specs and rules.
 

@@ -12,6 +12,7 @@ text. Start with `BRAND.md`.
 | `<store>/COVER-PROMPTS.md` | Image-model prompts for that store's art |
 | `<store>/covers/` | Finished, exact-size art (from `tools/marketing/make-covers.py`) |
 | `out/` | Generated videos (not committed) |
+| `shorts/` | YouTube Shorts: `queue/` is posted one a day by `.github/workflows/youtube.yml`, `posted/` keeps the links. See `shorts/README.md` |
 
 Tools, shared by every game on this shell:
 
@@ -19,4 +20,5 @@ Tools, shared by every game on this shell:
 python3 tools/marketing/make-covers.py <store> <images…>      # exact sizes, with checks
 node platforms/crazygames/build.mjs                          # the web build the recorder plays
 node tools/marketing/record-preview.mjs [--preset crazygames] [--cover-landscape …] [--cover-portrait …]
+node tools/marketing/youtube-upload.mjs --dry-run           # the Shorts queue (set-up: tools/marketing/YOUTUBE.md)
 ```
