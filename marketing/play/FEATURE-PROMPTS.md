@@ -27,8 +27,15 @@ so the store page and the event look like one game.
    python3 tools/marketing/make-covers.py play-feature chatgpt-image.png
    ```
    This writes `marketing/play-feature/covers/feature-1024x500.png`.
-3. Check by eye: is "Cash Paws" spelled right, and is there no other text
-   apart from the values on the coins?
+3. Check by eye:
+   - is "Cash Paws" spelled right?
+   - is there no other text apart from the values on the coins?
+   - is there no pale band or box across the picture? Gemini once drew the
+     "middle band" as a translucent strip. If it does, reply in the same
+     chat: "Remove the pale translucent rectangle that runs across the middle
+     of the image, so the room shows evenly from top to bottom. Keep
+     everything else exactly the same."
+
 
 ## Attach these
 
@@ -44,9 +51,10 @@ so the store page and the event look like one game.
 
 ```
 Make the main store banner for my mobile game "Cash Paws" on Google Play.
-Landscape 1536 x 1024, but it will be cropped to a wide 2:1 strip: put
-everything important in the middle band (between 20% and 80% of the
-height). Only background at the very top and bottom.
+Landscape 1536 x 1024, but it will be cropped to a wide 2:1 strip: keep
+the title and the cats between 20% and 80% of the height, with only room
+background (ceiling, floor) above and below. That is placement only: do NOT
+draw any band, panel, box, frame or guide lines across the picture.
 
 THE GAME: a cosy puzzle where you sort coins and banknotes between glass
 tubes. Four of the same in a tube bank into your fortune. Cats run it.
@@ -61,7 +69,8 @@ golden afternoon light and a few plants, softly blurred behind.
 LEFT THIRD: the title "Cash Paws", big and readable, lettered exactly like
 ref-feature-graphic.png: "Cash" in rounded charcoal letters, "Paws" below in
 rounded orange letters with a white paw print in place of the "a". A soft
-cream glow behind it so it stands out. Spell it exactly C-a-s-h P-a-w-s.
+outer glow hugging the letters only (no panel or box behind them) so it
+stands out. Spell it exactly C-a-s-h P-a-w-s.
 
 RIGHT THIRD: Patch (the grey-and-white hero cat) sitting on a heap of gold
 coins, hugging a stack of green banknotes with a huge happy grin. Beside him
