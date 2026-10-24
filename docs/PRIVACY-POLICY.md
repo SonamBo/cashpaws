@@ -41,10 +41,7 @@ They receive:
 - coin pack purchases: which pack, its price and currency (Google Analytics
   for Firebase records these automatically for apps sold through Google Play);
 - an app-instance identifier that Firebase creates for this installation (it
-  is not your name, email or phone number, and resets if you reinstall). The
-  game also uses it with Firebase Remote Config, to download game settings
-  such as difficulty and how often ads appear, and to try different settings
-  with different groups of players; and
+  is not your name, email or phone number, and resets if you reinstall), and
   your device's advertising ID, which links ad revenue to gameplay;
 - device information, such as model, operating system, language and app
   version, and an approximate location (country or region) derived from your
@@ -58,6 +55,14 @@ to identify you. Google processes it for us under its terms:
 - How Google uses information from apps that use its services:
   https://policies.google.com/technologies/partner-sites
 - Firebase privacy and security: https://firebase.google.com/support/privacy
+
+**Game settings (Firebase Remote Config).** When it opens, the game downloads
+its current settings from Firebase, such as how difficult levels are, how much
+help it gives when you're stuck, and how often ads appear. To find the
+settings that make the game most enjoyable, we sometimes give different groups
+of players different settings and compare how each group plays, using the
+statistics above. This uses the same app-instance identifier; no other
+information is collected for it.
 
 Analytics data is kept for 14 months, then deleted automatically.
 
