@@ -22,6 +22,7 @@ export const DEFAULTS = Object.freeze({
   sortPriceScale: 1,      // a perk can discount the whole price
   junkChance: 0.4,        // odds a drop-5+ chip is a junk 5
   freeSorts: 1,           // a new player's first Sort costs nothing
+  freeSortThrough: 5,     // and each level up to this one starts with a free Sort (1.17.0)
   // Level rhythm, after the Pixel Flow deconstruction (docs/LEVEL-DESIGN.md):
   // a Hard level every fourth level from 7, each followed by an easier one.
   hardFrom: 7,
@@ -662,6 +663,10 @@ export class Game {
         ? this.cfg.coinsPerLevelUp * this.cfg.hardRewardMultiplier
         : this.cfg.coinsPerLevelUp;
       this.level++;
+      // Early levels are where new players get stuck and leave: each starts
+      // with a free Sort, unused ones don't pile up.
+      const freeSort = this.level <= this.cfg.freeSortThrough && this.freeSorts < 1;
+      if (freeSort) this.freeSorts = 1;
       const after = columnsForLevel(this.level, this.cfg);
       const gainedColumn = after > before;
       while (this.columns.length < after) this.columns.push([]);
@@ -676,6 +681,7 @@ export class Game {
         gainedColumn,
         columns: after,
         coins: reward,
+        freeSort,
         beatHard: leaving === 'hard',
         kind: levelKind(this.level, this.cfg),
         mysteryArrives: this.level === this.cfg.mysteryFrom,

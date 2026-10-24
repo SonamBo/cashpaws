@@ -1395,3 +1395,53 @@ starter and future games get them too.
   minutes" (an owned starter file; editing it would conflict in every app).
 - To do in Play Console: payments profile, upload to internal testing, create
   the four one-time products, license testers, test from the Play link.
+
+## 1.17.0: first-day retention
+
+Why: GA, Sep 26 – Oct 23 (148 installs). D1 ≈ 20%, D7 ≈ 10%: the D7/D1
+ratio (~0.5) is fine, D1 is the gap (casual peers 30–40%). 52% uninstalled.
+Losses before day 2: 11 never sent `app_ready`; 11 more reached the lobby but
+never a board; 109 started the tutorial, 86 finished, 11 skipped. Only 46 of
+148 were ever asked about reminders and 2 ever opened one. Past level 10, the
+18 players there saw about 14 interstitials each.
+
+- **Straight to the board.** A player still on level 1 opens on the game
+  screen, not the lobby. From level 2 the app opens on the lobby as before.
+- **Tomorrow's gift** (`www/shell/gift.js`, `giftCard` in overlays.js).
+  Reaching level 4 shows a locked gift that opens tomorrow: two Sorts' worth
+  of coins (450 at that point). The card offers "Remind me tomorrow", which
+  goes straight to Android's permission prompt. The gift opens the next time
+  the lobby appears on a later local day, before any Bell Quest card. Once
+  per player, ever. The level-4 ad break is skipped when the card shows.
+- **Gift reminder** (id `gift`): the next day, an hour before the time they
+  played, kept between 9 am and 9 pm. If unopened, again every two days.
+  The native side needed no change (WorkManager takes any reminder id).
+- **Reminder ask** moved to the gift card for new players. The old ask (after
+  a Rewards Box or a quest start) stays for anyone the gift didn't ask; its
+  line now mentions the gift.
+- **Ad breaks:** none on the first two local days of play, and at least
+  3 minutes between two, counting from the app opening. The 1.16.0
+  level-end timing is unchanged otherwise. Older saves don't know their
+  first day: two or more days played counts as long past it; a one-day
+  player starts counting from their last day.
+- **Free Sorts, levels 2–5** (Money Sort, `freeSortThrough: 5`): each of
+  these levels starts with one free Sort. Unused ones don't pile up. The
+  level-up card says "Sort: free this level", the stuck card "This Sort is
+  free".
+- **Measurement:** new `app_boot` (load_ms, new_player) as the page's first
+  event; `app_ready` adds load_ms and start_screen; `gift_offer`,
+  `gift_claim`; `reminders_permission` adds reason. In GA, custom dimensions
+  registered on 24 Oct: event `level`, `step`, `choice`, `reason`; user
+  `best_level`, `days_played`.
+- Tests: `test/gift.js` (34 checks: gift timing across midnight, month ends
+  and late/early players; ad-free days; the 3-minute gap),
+  `test/games/money-sort/freesort.js` (9 checks).
+- Not run here: the Playwright browser tests (no Chromium in this
+  environment) and a device build. `test/interstitial.mjs` still describes
+  the pre-1.16 2.5-minute clock and needs updating separately.
+- versionCode 28, versionName 1.17.0.
+
+What to watch after release (GA, new users from the 1.17.0 date):
+`first_open` → `app_boot` → `app_ready` → `ftue_complete` → `level_up`
+(level 4) → `gift_offer` → `reminders_permission` granted →
+`reminder_open` (gift) → `gift_claim`. D1 target 30%.

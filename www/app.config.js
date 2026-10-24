@@ -5,8 +5,8 @@
 export default {
   "name": "Cash Paws",
   "applicationId": "com.pixelartgames.cashpaw",
-  "versionCode": 27,
-  "versionName": "1.16.0",
+  "versionCode": 28,
+  "versionName": "1.17.0",
   "privacyUrl": "https://pixelartgames000.github.io/privacy-policy/",
   "contactEmail": "pixelartgames000@gmail.com",
   "coinPacks": [

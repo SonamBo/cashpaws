@@ -24,7 +24,7 @@ export function stuckCard(host, e, vm, sortCost, adOffer = false, buyOffer = fal
   return new Promise((resolve) => {
     const reason = !vm.sortCanHelp ? 'Sorting won\'t help'
       : !vm.canAffordSort ? 'Not enough coins'
-        : vm.freeSorts > 0 ? 'First Sort is free' : 'Sort groups every value';
+        : vm.freeSorts > 0 ? (vm.level > 1 ? 'This Sort is free' : 'First Sort is free') : 'Sort groups every value';
 
     const card = host.cards.show(`
       <div class="ovl-stack">

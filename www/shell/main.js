@@ -23,11 +23,12 @@ import { Panels } from './tabs.js';
 import { CATS, catById, unlockProgress, perkIn } from './cats.js';
 import { setWornCat, icons, coinIcon } from './art.js';
 import {
-  mountOverlays, anyCardOpen, confirm, ask, choose, pauseMenu, settings, toast, boxCard, celebrate, adBreak,
+  mountOverlays, anyCardOpen, confirm, ask, choose, pauseMenu, settings, toast, boxCard, giftCard, celebrate, adBreak,
 } from './overlays.js';
 import { localDay, ensureDay, claimable, claimTask, claimBonus, newlyDone } from './daily.js';
 import { isReady, msUntil, formatWait, openBox, adOpensLeft, DEFAULT_VALUE } from './rewards.js';
 import * as Q from './quest.js';
+import * as G from './gift.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
@@ -43,6 +44,7 @@ let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, bill
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
+let launchedFrom = '';     // the reminder that opened the app, if any
 
 /* ---------------------------------------------------------------- *
  * Save
@@ -61,6 +63,7 @@ function markDay() {
   if (shell.stats.lastDay === today) return;
   // A clock wound backwards does not earn a new day.
   if (shell.stats.lastDay && today < shell.stats.lastDay) return;
+  shell.stats.firstDay ||= today;
   shell.stats.lastDay = today;
   shell.stats.daysPlayed += 1;
 }
@@ -271,7 +274,68 @@ function onLevelWon(info = {}) {
 async function onLevelBreak() {
   await questBreak();
   const level = reachedLevel || currentLevel;
-  if (screen === 'game' && !adBreakOn && ads.interstitialDue(level)) await runAdBreak(level);
+  if (screen === 'game' && await giftBreak(level)) return;    // no ad straight after the gift card
+  if (screen === 'game' && !adBreakOn && ads.interstitialDue(level, adGate())) await runAdBreak(level);
+}
+
+/* ---------------------------------------------------------------- *
+ * Tomorrow's gift (1.17.0) — the rules live in gift.js
+ *
+ * Once a new player beats level 3, a locked gift that opens tomorrow, with
+ * the reminder offer right there. Opened on arriving in the lobby on any
+ * later day, before any Bell Quest card.
+ * ---------------------------------------------------------------- */
+
+let giftOpen = false;
+
+/** At the break between levels: offer the gift, once. True if a card showed. */
+async function giftBreak(level) {
+  if (giftOpen || !G.shouldOffer(shell.gift, level)) return false;
+  giftOpen = true;
+  try {
+    G.offer(shell.gift, { now: Date.now(), value: questValue() });
+    save();
+    const remind = canAskReminders();
+    track('gift_offer', { level, coins: shell.gift.coins, remind });
+    const pick = await giftCard({ ready: false, coins: shell.gift.coins, remind });
+    if (pick === 'remind') await requestReminders('gift');
+    else if (remind) {
+      // "I'll remember": the system prompt is never shown, and this counts as asked.
+      shell.reminders.asked = true;
+      track('reminders_offer', { reason: 'gift', yes: false });
+    }
+    refreshReminders();
+    save();
+    return true;
+  } finally {
+    giftOpen = false;
+  }
+}
+
+/** On arriving in the lobby: open a gift that's ready. True if it opened. */
+async function openGiftIfReady() {
+  const now = Date.now();
+  if (giftOpen || screen !== 'lobby' || panels.open || anyCardOpen() || !G.isReady(shell.gift, now)) return false;
+  giftOpen = true;
+  try {
+    await giftCard({ ready: true, coins: shell.gift.coins });
+    const days = G.daysSinceOffer(shell.gift, now);
+    const coins = G.claim(shell.gift, now);
+    if (!coins) return false;
+    track('gift_claim', { coins, days, from_reminder: launchedFrom === 'gift' });
+    wallet.earn(coins, 'gift');
+    save();
+    refreshReminders();
+    return true;
+  } finally {
+    giftOpen = false;
+  }
+}
+
+/** The lobby has just appeared: the gift first, then whatever Bell Quest needs. */
+async function lobbyArrive(reason) {
+  await openGiftIfReady();
+  autoQuest(reason);
 }
 
 /**
@@ -383,25 +447,36 @@ function refreshReminders() {
   questSync();                     // a quest may have unlocked or ended since
   notify.set('box', on ? boxReminder(shell.box, now) : null);
   notify.set('quest', on && questOn() ? questReminder(shell.quest, now, questValue()) : null);
+  notify.set('gift', on ? G.giftReminder(shell.gift, now) : null);
 }
 
+/** Can the game still ask, in its own words, before Android's prompt? */
+const canAskReminders = () => !!notify?.available && !shell.reminders.asked && notify.permission() === 'ask';
+
 async function offerReminders(reason) {
-  if (!notify?.available || shell.reminders.asked || notify.permission() !== 'ask') return;
+  if (!canAskReminders()) return;
   if (panels.open || anyCardOpen()) return;
   shell.reminders.asked = true;
   save();
   const yes = await ask({
     kicker: 'Reminders',
     title: reason === 'box' ? 'Remind you when it refills?' : 'Remind you to keep going?',
-    line: 'Rewards Box ready, and a daily Bell Quest update. Nothing else.',
+    line: 'Your gift, the Rewards Box, and a daily Bell Quest update. Nothing else.',
     ok: 'Remind me',
     cancel: 'Not now',
   });
   track('reminders_offer', { reason, yes });
   if (!yes) return;
+  await requestReminders(reason, { offered: true });
+}
+
+/** Android's own prompt. `offered`: the game's question was already tracked. */
+async function requestReminders(reason, { offered = false } = {}) {
+  shell.reminders.asked = true;
+  if (!offered) track('reminders_offer', { reason, yes: true });
   const granted = await notify.request();
   shell.reminders.on = granted;
-  track('reminders_permission', { granted });
+  track('reminders_permission', { granted, reason });
   save();
   refreshReminders();
 }
@@ -435,7 +510,7 @@ const pendingCoins = new Map();          // 'earn:bank' -> total since last flus
 
 function onCoins(delta, reason) {
   if (!delta || !reason || reason === 'set') return;
-  if (delta > 0 && ['daily', 'box', 'quest', 'safety-net', 'purchase'].includes(reason)) sound?.play('coin');
+  if (delta > 0 && ['daily', 'box', 'quest', 'gift', 'safety-net', 'purchase'].includes(reason)) sound?.play('coin');
   const dir = delta > 0 ? 'earn' : 'spend';
   if ((game.analytics?.batch || []).includes(reason)) {
     const k = `${dir}:${reason}`;
@@ -472,6 +547,15 @@ function refreshUser() {
  * Boot
  * ---------------------------------------------------------------- */
 
+/** Milliseconds since the page started loading (the WebView's navigation start). */
+const msSinceStart = () => Math.round(globalThis.performance?.now?.() ?? 0);
+
+/** Still on level 1: the app opens on the board, not the lobby. */
+const isNewPlayer = () => (shell.stats.bestLevel || 1) <= 1;
+
+/** What the ad rules need to know about the player (ads.js interstitialDue). */
+const adGate = () => ({ firstDay: shell.stats.firstDay, today: localDay() });
+
 async function boot() {
   record = store.read();
   shell = record.shell;
@@ -487,6 +571,9 @@ async function boot() {
 
   wallet = new Wallet(shell.coins, shell.stats);
   analytics = createAnalytics({ dev: DEV });
+  // The first thing the page sends: installs that never reach app_ready
+  // either stop before here (the app or WebView) or after (the page's boot).
+  track('app_boot', { load_ms: msSinceStart(), new_player: isNewPlayer() });
   notify = createNotify({ dev: DEV });
   sound = createSound(shell.audio);
   // A soft tick on the shell's buttons (a game's own pieces make their own sounds).
@@ -568,11 +655,16 @@ async function boot() {
   applySizeClasses();
   installBridge();
   refreshUser();
-  track('app_ready', { coins: wallet.coins, best_level: shell.stats.bestLevel, quest: shell.quest.status });
-  const from = notify.launchSource();
-  if (from) track('reminder_open', { id: from });
+  // New players go straight to their first board; the lobby comes once they've won a level.
+  const first = isNewPlayer() ? 'game' : 'lobby';
+  track('app_ready', {
+    coins: wallet.coins, best_level: shell.stats.bestLevel, quest: shell.quest.status,
+    load_ms: msSinceStart(), start_screen: first,
+  });
+  launchedFrom = notify.launchSource();
+  if (launchedFrom) track('reminder_open', { id: launchedFrom });
   refreshReminders();
-  showScreen('lobby', { opening: true });
+  showScreen(first, { opening: true });
   save();
 
   if (DEV) wireDev();
@@ -598,8 +690,8 @@ function showScreen(next, { opening = false } = {}) {
     refreshBox();
     refreshQuest();
     lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
-    if (opening) setTimeout(() => autoQuest('open'), 400);
-    else if (from === 'game') setTimeout(() => autoQuest('return'), 250);
+    if (opening) setTimeout(() => lobbyArrive('open'), 400);
+    else if (from === 'game') setTimeout(() => lobbyArrive('return'), 250);
   }
 }
 
@@ -622,7 +714,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); refreshReminders(); }
   else {
     refreshDaily(); refreshBox(); refreshQuest(); instance.resume?.();
-    if (screen === 'lobby') autoQuest('return');   // a quest may have ended while away
+    if (screen === 'lobby') lobbyArrive('return');   // a gift may be ready, or a quest ended, while away
   }
 });
 

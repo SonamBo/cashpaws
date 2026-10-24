@@ -973,6 +973,23 @@ img.art { user-select: none; -webkit-user-drag: none; }
 }
 .box-art.ready { background: #fdf0d6; color: #e5a64b; animation: box-wiggle 2.4s var(--ease) infinite; }
 
+/* Tomorrow's gift (1.17.0): the box art, warm but still, with a padlock badge. */
+.gift-card .box-art { position: relative; }
+.gift-card .box-art.locked { background: #fdf0d6; color: #e5a64b; }
+.gift-lock {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  color: var(--ink-faint);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
 /* Pushes what follows to the right edge: pause on the game screen, the gift
    and settings in the lobby. It had markup but never a rule, so both sat
    against the coin pill instead of top-right. */
