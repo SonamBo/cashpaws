@@ -36,7 +36,8 @@ Firebase collects some events itself: `first_open`, `session_start`,
 
 | Event | Parameters | When |
 |---|---|---|
-| `app_ready` | coins, best_level, quest | The app has loaded. |
+| `app_boot` | load_ms (since the WebView started the page), new_player | The page's first event, before the game loads. Installs with `first_open` but no `app_boot` never got the page running. |
+| `app_ready` | coins, best_level, quest, load_ms, start_screen (`game` for a player still on level 1, else `lobby`) | The app has loaded. |
 | `screen_view` | screen_name: `lobby`, `game`, `daily`, `cats`, `progress`, `shop` | Each screen or tab. |
 | `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), modifiers (`locked`, `frozen`, `lucky`, comma-separated, or `none`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
 | `level_lost` | level, to, modifiers, moves, seconds | The player drops a level. |
@@ -50,7 +51,7 @@ built-in reports.
 
 | Event | Parameters |
 |---|---|
-| `earn_virtual_currency` | virtual_currency_name `coins`, value, source (`levelup`, `daily`, `box`, `quest`, `safety-net`, `bank`, `purchase`), balance |
+| `earn_virtual_currency` | virtual_currency_name `coins`, value, source (`levelup`, `daily`, `box`, `quest`, `gift`, `safety-net`, `bank`, `purchase`), balance |
 | `spend_virtual_currency` | virtual_currency_name `coins`, value, item_name (`sort`, `undo`, `cat`, `cosmetic`), balance |
 
 Banks happen dozens of times per level, so they're summed and sent as one
@@ -73,10 +74,12 @@ to the background.
 | `do_not_sell` | on |
 | `ftue_step` | step: `move`, `stack`, `bank` (each beat of the first-time tutorial as it starts) |
 | `ftue_complete` | (the player tapped Got it on the progress-bar spotlight) |
-| `reminders_offer` | reason (`box`/`quest`), yes (the in-game ask) |
-| `reminders_permission` | granted (Android's own prompt) |
+| `gift_offer` | level, coins, remind (whether "Remind me tomorrow" was offered): tomorrow's gift, once after level 3 |
+| `gift_claim` | coins, days (local days since the offer; 1 = next day), from_reminder |
+| `reminders_offer` | reason (`gift`/`box`/`quest`), yes (the in-game ask, or the gift card's buttons) |
+| `reminders_permission` | granted (Android's own prompt), reason |
 | `reminders_toggle` | on (the Settings switch) |
-| `reminder_open` | id (`box`/`quest`): the app was opened from a reminder |
+| `reminder_open` | id (`gift`/`box`/`quest`): the app was opened from a reminder |
 | `progress_erased` | best_level |
 
 **Ads**
@@ -113,12 +116,14 @@ don't count towards `coinsEarned`, which reveals cats.
 
 1. **Register the custom parameters** you want in reports: Analytics → Custom
    definitions → Create custom dimension (event scope). Start with `level`,
-   `kind`, `placement`, `source`, `item_name`, `how`, `choice` and `step`, plus
-   the metrics `seconds` and `moves`. Unregistered parameters are still
+   `kind`, `placement`, `source`, `item_name`, `how`, `choice`, `step` and
+   `reason`, plus the metrics `seconds`, `moves` and `load_ms`.
+   (Cash Paws has `level`, `step`, `choice` and `reason` registered since
+   24 Oct 2026; data from before a dimension is registered stays unbroken.) Unregistered parameters are still
    recorded, but reports can't break down by them. The free tier allows 50
    dimensions and 50 metrics.
-2. **Register user properties** the same way: `best_level`, `cat_worn` and
-   `quest_wins`.
+2. **Register user properties** the same way: `best_level`, `days_played`,
+   `cat_worn` and `quest_wins`.
 3. **Mark key events:** `level_up`, `quest_win` and `ad_rewarded_result`.
 4. **Data retention:** Admin → Data settings → Data retention → 14 months. The
    default is 2 months, which is too short to compare seasons. Match the

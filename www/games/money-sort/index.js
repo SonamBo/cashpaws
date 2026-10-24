@@ -195,7 +195,7 @@ export default {
             else if (m.lucky) gains.push('A Lucky Paw coin is on the board');
             if (e.kind === 'hard') gains.push('Next: Hard level · faster, pays 2×');
             if (e.kind === 'breather') gains.push('Hard level beaten · easier next');
-            gains.push(`Sort: ${vm.sortPrice}`);
+            gains.push(e.freeSort ? 'Sort: free this level' : `Sort: ${vm.sortPrice}`);
             gains.push(`+${e.coins} coins${e.beatHard ? ' &middot; Hard bonus' : ''}`);
             await host.celebrate({
               kicker: 'Level up',

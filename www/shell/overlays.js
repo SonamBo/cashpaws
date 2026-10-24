@@ -247,6 +247,37 @@ export function toast(html, ms = 2600) {
  * The Rewards Box. Resolves 'open', 'ad' (open early for an ad) or 'close'.
  * The gift is an icon for now; an illustration can replace .box-art later.
  */
+/**
+ * Tomorrow's gift (gift.js). `ready: false` is the promise, shown once after a
+ * new player's third level: a locked gift that opens tomorrow, with a reminder
+ * on offer. `ready: true` opens it. Resolves 'remind', 'ok' or 'open'.
+ */
+export function giftCard({ ready, coins, remind = false }) {
+  const amount = Number(coins).toLocaleString('en-US');
+  return new Promise((resolve) => {
+    const card = show(`
+      <div class="ovl-stack">
+        <div class="ovl-card box-card gift-card">
+          <p class="ovl-kicker">${ready ? 'Welcome back' : 'Come back tomorrow'}</p>
+          <div class="box-art ${ready ? 'ready' : 'locked'}">${icons.gift(64)}${ready ? '' : `<span class="gift-lock">${icons.lock(22)}</span>`}</div>
+          <h2 class="ovl-h">${ready ? 'Your gift is ready' : 'A gift opens tomorrow'}</h2>
+          <p class="ovl-sub">${ready ? `${amount} coins, as promised` : `${amount} coins, free. Just open the app tomorrow.`}</p>
+          ${ready
+            ? '<button class="ovl-btn primary" data-pick="open">Open it</button>'
+            : remind
+              ? '<button class="ovl-btn primary" data-pick="remind">Remind me tomorrow</button><button class="ovl-btn ghost" data-pick="ok">I\'ll remember</button>'
+              : '<button class="ovl-btn primary" data-pick="ok">Got it</button>'}
+        </div>
+      </div>`, ready ? 'milestone' : 'menu');
+    card.addEventListener('click', async (ev) => {
+      const b = ev.target.closest('[data-pick]');
+      if (!b) return;
+      await dismiss(card);
+      resolve(b.dataset.pick);
+    });
+  });
+}
+
 export function boxCard({ ready, wait: waitText, adOffer, adsLeft }) {
   return new Promise((resolve) => {
     const card = show(`
