@@ -149,6 +149,9 @@ class MainActivity : ComponentActivity() {
         // never starts, and the shell simply finds no analytics bridge.
         if (com.google.firebase.FirebaseApp.getApps(this).isNotEmpty()) {
             webView.addJavascriptInterface(Analytics(this), "CashPawsAnalytics")
+            // Tuning values and A/B tests (shell/config.js). Created here, before
+            // the page loads, so a first launch's fetch is already under way.
+            webView.addJavascriptInterface(RemoteConfig(this), "CashPawsConfig")
         }
         // Reminders (Rewards Box, Bell Quest), scheduled by shell/notify.js.
         notify = Notify(this, webView) {

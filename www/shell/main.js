@@ -10,11 +10,12 @@ import game from '../games/active.js';
 import APP from '../app.config.js';
 import * as store from './save.js';
 import { Wallet } from './wallet.js';
-import { createAds, INTERSTITIAL_FROM_LEVEL, AFTER_REWARDED_MS } from './ads.js';
+import { createAds } from './ads.js';
 import { createBilling } from './billing.js';
 import { createCloud } from './cloud.js';
 import { createSocial } from './social.js';
 import { createAnalytics } from './analytics.js';
+import { createConfig } from './config.js';
 import { createCoach } from './coach.js';
 import { createNotify, boxReminder, questReminder } from './notify.js';
 import { createSound } from './sound.js';
@@ -45,6 +46,7 @@ game.path = `games/${game.id}/`;
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
 let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, billing, cloud, social;
+let config;           // Remote Config values for this session (config.js)
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
@@ -305,10 +307,11 @@ let giftOpen = false;
 
 /** At the break between levels: offer the gift, once. True if a card showed. */
 async function giftBreak(level) {
-  if (giftOpen || !G.shouldOffer(shell.gift, level)) return false;
+  if (giftOpen || !config.get('gift_enabled')) return false;
+  if (!G.shouldOffer(shell.gift, level, config.get('gift_after_level'))) return false;
   giftOpen = true;
   try {
-    G.offer(shell.gift, { now: Date.now(), value: questValue() });
+    G.offer(shell.gift, { now: Date.now(), value: questValue(), share: config.get('gift_value_share') });
     save();
     const remind = canAskReminders();
     track('gift_offer', { level, coins: shell.gift.coins, remind });
@@ -589,6 +592,13 @@ async function boot() {
   // The first thing the page sends: installs that never reach app_ready
   // either stop before here (the app or WebView) or after (the page's boot).
   track('app_boot', { load_ms: msSinceStart(), new_player: isNewPlayer() });
+  // Tuning values: Firebase Remote Config's, else the defaults (config.js). Read
+  // once here; a first launch may wait up to 1.5 s for its first fetch.
+  config = createConfig({ dev: DEV, gameKeys: game.remote || {} });
+  track('config_ready', {
+    source: config.source, waited_ms: config.waited,
+    changed: Object.keys(config.changed).length, rejected: config.rejected.length,
+  });
   notify = createNotify({ dev: DEV });
   sound = createSound(shell.audio);
   // A soft tick on the shell's buttons (a game's own pieces make their own sounds).
@@ -628,7 +638,16 @@ async function boot() {
   await loadStyles(game);
   sound.register(game.sounds);
 
-  ads = createAds({ dev: DEV, confirm, track });
+  ads = createAds({
+    dev: DEV, confirm, track,
+    rules: {
+      interstitials: config.get('ads_interstitials'),
+      fromLevel: config.get('ads_interstitial_from'),
+      gapMs: config.get('ads_interstitial_gap_s') * 1000,
+      freeDays: config.get('ads_free_days'),
+      afterRewardedMs: config.get('ads_after_rewarded_s') * 1000,
+    },
+  });
   // Silence while an ad plays. On Android the full-screen ad sits over a
   // WebView that would otherwise keep playing; a bridge that knows exactly
   // when its ad starts (CrazyGames) does this itself.
@@ -639,7 +658,7 @@ async function boot() {
     ads.showInterstitial = async (...a) => { sound.hold('ad'); try { return await showInterstitial(...a); } finally { sound.release('ad'); } };
   }
   const host = createHost({
-    game, shell, wallet, header, ads, sound,
+    game, shell, wallet, header, ads, sound, config,
     onProgress: (p) => {
       if (Number.isFinite(p?.level)) currentLevel = p.level;
       lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
@@ -896,6 +915,16 @@ function cloudLine() {
     + (c.error ? `<br><small>${c.error}</small>` : '');
 }
 
+/** Remote Config, for the testing card: where values came from and what differs from the defaults. */
+function configLine() {
+  if (!config) return '';
+  const st = config.status();
+  const diff = Object.entries(config.changed).map(([k, from]) => `${k} = ${config.get(k)}${from === 'dev' ? ' (dev)' : ''}`);
+  return `<b>Remote Config</b>: ${config.enabled ? `values ${config.source}` : 'not in this build (defaults)'}`
+    + `${st ? `, last fetch ${st.last}` : ''}${diff.length ? `<br><small>${diff.join(' · ')}</small>` : ''}`
+    + `${config.rejected.length ? `<br><small>Ignored (bad values): ${config.rejected.join(', ')}</small>` : ''}`;
+}
+
 async function adStatus() {
   for (;;) {
     const s = ads.status();
@@ -908,7 +937,8 @@ async function adStatus() {
         `<b>SDK started</b>: ${s.started ? 'yes' : 'no'}`,
         `<b>Rewarded</b> ${tail(s.rewardedUnit)}: ${explainAd(s.rewarded)}`,
         `<b>Interstitial</b> ${tail(s.interstitialUnit)}: ${explainAd(s.interstitial)}`,
-        `<b>Ad break</b>: at each level end from level ${INTERSTITIAL_FROM_LEVEL}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${AFTER_REWARDED_MS / 1000} s)`,
+        `<b>Ad break</b>: ${ads.rules.interstitials ? `at each level end from level ${ads.rules.fromLevel}, ${ads.rules.gapMs / 1000} s apart, none in the first ${ads.rules.freeDays} days` : 'off (Remote Config)'}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${ads.rules.afterRewardedMs / 1000} s)`,
+        configLine(),
         billingLine(),
         cloudLine(),
       ].join('<br>');

@@ -27,23 +27,30 @@ export function emptyGift() {
   return { status: 'none', day: null, offeredAt: 0, coins: 0, claimedDay: null };
 }
 
-/** Coins for the gift, from the game's reward value (Money Sort: Sort's price). */
-export function giftCoins(value) {
+/**
+ * Coins for the gift, from the game's reward value (Money Sort: Sort's price).
+ * `share` comes from Remote Config (gift_value_share) since 1.19.0.
+ */
+export function giftCoins(value, share = GIFT_VALUE_SHARE) {
   const v = Number.isFinite(value) && value > 0 ? value : 150;
-  return Math.max(GIFT_ROUND, Math.round((v * GIFT_VALUE_SHARE) / GIFT_ROUND) * GIFT_ROUND);
+  const k = Number.isFinite(share) && share > 0 ? share : GIFT_VALUE_SHARE;
+  return Math.max(GIFT_ROUND, Math.round((v * k) / GIFT_ROUND) * GIFT_ROUND);
 }
 
-/** Should the gift be offered now that `level` has been reached? Only once, ever. */
-export function shouldOffer(gift, level) {
-  return gift.status === 'none' && Number.isFinite(level) && level > GIFT_AFTER_LEVEL;
+/**
+ * Should the gift be offered now that `level` has been reached? Only once,
+ * ever. `afterLevel` comes from Remote Config (gift_after_level) since 1.19.0.
+ */
+export function shouldOffer(gift, level, afterLevel = GIFT_AFTER_LEVEL) {
+  return gift.status === 'none' && Number.isFinite(level) && level > afterLevel;
 }
 
-export function offer(gift, { now, value }) {
+export function offer(gift, { now, value, share }) {
   if (gift.status !== 'none') return false;
   gift.status = 'waiting';
   gift.day = localDay(new Date(now));
   gift.offeredAt = now;
-  gift.coins = giftCoins(value);
+  gift.coins = giftCoins(value, share);
   return true;
 }
 
