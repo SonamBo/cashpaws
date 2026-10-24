@@ -37,11 +37,13 @@ Firebase collects some events itself: `first_open`, `session_start`,
 | Event | Parameters | When |
 |---|---|---|
 | `app_boot` | load_ms (since the WebView started the page), new_player | The page's first event, before the game loads. Installs with `first_open` but no `app_boot` never got the page running. |
+| `config_ready` | source (`remote` fetched now, `cached` from the last launch, `default`, `dev`), waited_ms (a first launch's wait for its first fetch), changed (keys not at their default), rejected (console values that didn't parse) | Remote Config was read, right after `app_boot`. Firebase A/B Testing records each player's variant itself. |
 | `app_ready` | coins, best_level, quest, load_ms, start_screen (`game` for a player still on level 1, else `lobby`) | The app has loaded. |
 | `screen_view` | screen_name: `lobby`, `game`, `daily`, `cats`, `progress`, `shop` | Each screen or tab. |
-| `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), modifiers (`locked`, `frozen`, `lucky`, comma-separated, or `none`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
+| `level_up` | level (just reached), kind (`normal`/`hard`/`breather`), assisted (Money Sort: the level just beaten had help when stuck), modifiers (`locked`, `frozen`, `lucky`, comma-separated, or `none`), beat_hard, coins, moves, seconds, quest_step | A level is beaten. `moves` and `seconds` are for the level just beaten; `seconds` counts only time on the board. |
 | `level_lost` | level, to, modifiers, moves, seconds | The player drops a level. |
 | `board_stuck` | level, kind, can_sort, free, coins, price, ad_offer, buy_offer | The stuck card appears. |
+| `assist_on` | level, stuck (stuck boards on this level so far), difficulty (points now played) | Money Sort: help when stuck switched on for this level (quietly; nothing is shown). |
 | `stuck_choice` | level, choice: `sort`/`free-sort`/`drop` (a Sort after buying coins counts as `sort`) | The player's answer to the stuck card. |
 | `sort_used` | level, how: `paid`/`free`/`ad`, where: `button`/`stuck`, price | Each Sort. |
 | `undo_used` | level | Each Undo. |

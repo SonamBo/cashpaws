@@ -68,6 +68,7 @@ code's package. Renaming them breaks every future update.
 | A first-time tutorial | `host.coach.*` with `host.flag` / `host.setFlag` to remember it ran |
 | The game's own events | `host.track(name, params)`. List them in `www/games/<id>/EVENTS.md`, not in `docs/ANALYTICS.md` |
 | Coins | `host.wallet.earn(n, reason)` / `spend(n, reason)`; never keep a separate currency |
+| Tuning from Firebase (no app update) | declare keys in the manifest's `remote` (default, type, limits) and read them with `host.remote(key)`. The shell's own (ads, the gift) are in `www/shell/config.js`; see `docs/REMOTE-CONFIG.md` |
 | Share on the level-up card | `host.celebrate({ ..., share: true })`. The shell's Share button sits in the lobby and Settings already |
 | A lobby button of its own (a daily challenge, an event) | `host.lobbyButton(id, { icon, pill, badge, news })`, and `openFromLobby(id)` on the instance |
 | Share a clip or picture it made | `await host.shareFile({ blob, name, text, from })`; `host.canShareFile()` to offer it |
