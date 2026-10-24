@@ -139,6 +139,19 @@ Leave **Financial info → User payment info** unticked: card, bank and UPI
 details stay with Google. Republish the privacy policy (it gained a Purchases
 section) before releasing 1.16.0.
 
+## 4d. Data safety: Play Games, rating, share (1.18.0)
+
+- **Play Games Saved Games** stores the player's progress in their Google
+  account. Google publishes what the Play Games SDK collects ("Data
+  disclosure" in the Play Games services docs): match the form to it. Our own
+  part: **App activity → Other actions** (game progress), collected, not
+  shared, purpose **App functionality**.
+- **In-app review** and **share** send nothing of ours: Google's sheet and the
+  phone's share menu.
+
+Republish the privacy policy (new sections: Play Games backups, ratings and
+sharing) before releasing 1.18.0.
+
 ## 4a. app-ads.txt
 
 AdMob shows the exact line under Apps → View all apps → app-ads.txt. For this

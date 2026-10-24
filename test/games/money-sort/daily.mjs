@@ -28,7 +28,7 @@ const closeSheet = async () => { await p.locator('[data-close]').click(); await 
 await at('2026-09-26T10:00:00+05:30');
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);
 // The tutorial has its own test; here it would spotlight the bot's first bank.
 await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; });

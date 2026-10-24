@@ -21,6 +21,7 @@ export class LobbyView {
         <button class="icon-btn box-btn" data-box aria-label="Rewards box">
           ${icons.gift(22)}<i class="nav-dot" data-box-dot hidden></i>
         </button>
+        <button class="icon-btn" data-share aria-label="Share" hidden>${icons.share(22)}</button>
         <button class="icon-btn" data-settings aria-label="Settings">${icons.gear(22)}</button>
       </header>
       <button class="quest-btn" data-quest hidden aria-label="Bell Quest">
@@ -54,11 +55,16 @@ export class LobbyView {
     $('[data-box]').addEventListener('click', () => this.fire('box'));
     $('[data-quest]').addEventListener('click', () => this.fire('quest'));
     $('[data-coin-pill]').addEventListener('click', () => this.fire('coins'));
+    this.el.share = $('[data-share]');
+    this.el.share.addEventListener('click', () => this.fire('share'));
     this.el.nav.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (b) this.fire('tab', b.dataset.tab);
     });
   }
+
+  /** The share button, where sharing works (the Android app). */
+  showShare(on) { this.el.share.hidden = !on; }
 
   on(name, fn) { this.handlers[name] = fn; }
   fire(name, ...a) { this.handlers[name]?.(...a); }

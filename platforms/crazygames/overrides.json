@@ -25,6 +25,7 @@
   ],
   "config": {
     "privacyUrl": "privacy.html",
-    "coinPacks": []
+    "coinPacks": [],
+    "shareImage": ""
   }
 }

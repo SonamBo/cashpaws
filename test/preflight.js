@@ -48,6 +48,11 @@ let APP = {};
     if (/[&<>"\\]/.test(APP.name || '')) fails.push('CONTENT  the app name can\'t contain & < > " or \\ (Android resource rules)');
     if (APP.privacyUrl && !/^https:\/\//.test(APP.privacyUrl)) fails.push('CONTENT  privacyUrl must be an https:// address');
     notes.push(`${APP.name}: ${APP.applicationId}, versionCode ${APP.versionCode}, versionName ${APP.versionName} — Play rejects a repeated versionCode`);
+    // Share image and Play Games (1.18.0): both optional.
+    if (APP.shareImage && !existsSync(join(ROOT, 'www', APP.shareImage))) fails.push(`MISSING  www/${APP.shareImage}  — shareImage in www/app.config.js`);
+    if (APP.shareImage && !/\.(png|jpe?g)$/i.test(APP.shareImage)) fails.push('CONTENT  shareImage must be a .png or .jpg');
+    if (APP.playGamesAppId !== undefined && APP.playGamesAppId !== '' && !/^\d{6,}$/.test(String(APP.playGamesAppId))) fails.push('CONTENT  playGamesAppId is the number Play Console shows under Play Games services → Configuration (digits only), or ""');
+    if (APP.applicationId && !APP.playGamesAppId) notes.push('Play Games is off (no playGamesAppId): no cloud saves. SETUP.md 7c.');
     // Coin packs (shell/billing.js): optional. Each id is a one-time product in Play Console, and permanent there.
     if (APP.coinPacks !== undefined) {
       const packs = Array.isArray(APP.coinPacks) ? APP.coinPacks : null;

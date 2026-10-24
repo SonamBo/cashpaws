@@ -1387,3 +1387,11 @@ img.art { user-select: none; -webkit-user-drag: none; }
 /* The second way out of "Not enough coins": the rewarded ad, after coin packs. */
 .ovl-btn.alt { margin-top: var(--s2); background: #9a86d6; color: #fff; }
 .ovl-btn svg, .ovl-btn img { vertical-align: -3px; }
+/* A quiet Share under a celebration's main button (1.18.0). */
+.ovl-share {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: var(--s3) auto 0; padding: 6px 14px;
+  border-radius: var(--r-pill);
+  background: transparent; color: var(--ink-soft);
+  font: inherit; font-size: var(--fs-sm); font-weight: 800;
+}

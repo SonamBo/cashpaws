@@ -205,6 +205,15 @@ this work in a new game:
 The rules live in `www/shell/ads.js` (`INTERSTITIAL_FROM_LEVEL`,
 `AFTER_REWARDED_MS`). They are the same for every game built on this shell.
 
+## Share, rating, cloud save
+
+The shell does all three. A game only passes `share: true` to
+`host.celebrate()` on the card worth sharing (Money Sort: every level-up),
+which adds a small Share button where sharing works. The rating sheet is asked
+at `host.levelBreak()` after levels 2, 10 and 25 are cleared (that break has no
+Ad break), and the cloud save copies the whole save, the game's slot included,
+through `serialize()`: nothing to do there.
+
 ## Short of coins
 
 When the player can't afford something, `await host.shortOf({ price, what,

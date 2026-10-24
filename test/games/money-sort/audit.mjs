@@ -21,7 +21,7 @@ console.log('device                    viewport   chip   issues');
 for (const [name, w, h, inset] of DEVICES) {
   const p = await b.newPage({ viewport: { width: w, height: h - inset }, deviceScaleFactor: 2 });
   p.on('pageerror', e => errs.push(`${name}: ${e.message}`));
-  await p.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' });
+  await p.goto('http://localhost:8080/?lobby=1', { waitUntil: 'domcontentloaded' });
   await p.evaluate(() => localStorage.clear());
   await p.reload({ waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(300);

@@ -45,7 +45,7 @@ async function openGame() {
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate(() => localStorage.clear());
-  await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(900);
+  await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(900);
   await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; });
   await p.evaluate(() => window.CashPaws.onBack()); await p.waitForTimeout(300);
   await p.click('[data-play]'); await p.waitForTimeout(500);

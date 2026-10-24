@@ -61,6 +61,12 @@ console.log('--- Money Sort, full build ---');
 console.log('--- Ad breaks: a midgame ad right after a level-up only ---');
 {
   const { ctx, p, errs } = await open(FULL, { dev: true });
+  // Past the shell's own rules (1.17.0): not in the first two days, not in the
+  // first 3 minutes after opening, and no gift card at this level break.
+  await p.evaluate(() => {
+    shell.stats.firstDay = '2000-01-01'; shell.gift.status = 'claimed';
+    const real = Date.now.bind(Date); Date.now = () => real() + 4 * 60000;
+  });
   await p.evaluate(() => { game.level = 12; game.netWorth = game.floor; game.status = 'playing'; view.update(); });
   await p.waitForTimeout(3000);
   check('no level-up: no Ad break mid-board', !(await calls(p)).includes('requestAd:midgame'));

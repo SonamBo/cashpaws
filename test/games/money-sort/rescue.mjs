@@ -21,7 +21,7 @@ async function stuckWith(coins, dev) {
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate(() => localStorage.clear());
-  await p.goto(`http://localhost:8080/${dev ? '?dev=1' : ''}`, { waitUntil: 'domcontentloaded' });
+  await p.goto(`http://localhost:8080/${dev ? '?dev=1&lobby=1' : '?lobby=1'}`, { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(800);
   await p.click('[data-play]'); await p.waitForTimeout(400);
   // One legal move exists; making it jams the board.

@@ -24,7 +24,7 @@ async function fresh(dev, iso) {
   await p.goto('http://localhost:8080/css/tokens.css');
   // Reminders already allowed, so the ask after a first box stays out of the way (test/reminders.mjs covers it).
   await p.evaluate(() => { localStorage.clear(); localStorage.setItem('cashpaws.dev.notifyPermission', 'granted'); });
-  await p.goto(`http://localhost:8080/${dev ? '?dev=1' : ''}`, { waitUntil: 'domcontentloaded' });
+  await p.goto(`http://localhost:8080/${dev ? '?dev=1&lobby=1' : '?lobby=1'}`, { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(800);
   return p;
 }

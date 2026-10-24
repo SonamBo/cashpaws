@@ -48,11 +48,11 @@ const PRIVATE = [
   // the game
   'www/games/money-sort/', 'test/games/money-sort/',
   // Cash Paws' accounts and keys
-  'android/app/google-services.json', 'android/ads.properties',
+  'android/app/google-services.json', 'android/ads.properties', 'www/img/share.jpg',
   // Cash Paws' store presence, history and art pipeline
   'PROGRESS.md', 'PUSH.md', 'PLAY-STORE.md', 'play-assets/',
   'docs/store-listing.md', 'docs/privacy-policy/', 'docs/LEVEL-DESIGN.md', 'docs/ROADMAP.md', 'docs/DESIGN.md',
-  'docs/shots/', 'docs/BELL-QUEST-ART-PROMPTS.md', 'docs/CAT-ART-PROMPTS.md', 'docs/MODIFIER-ART-PROMPTS.md',
+  'docs/shots/', 'docs/BELL-QUEST-ART-PROMPTS.md', 'docs/CAT-ART-PROMPTS.md', 'docs/MODIFIER-ART-PROMPTS.md', 'docs/HIRES-ART-PROMPTS.md',
   'tools/art-src/', 'tools/process-modifier-art.py', 'tools/tune.mjs', 'tools/quest-sim.mjs',
   // Cash Paws' own marketing (the starter gets a template from tools/starter/marketing)
   'marketing/', 'dist/',

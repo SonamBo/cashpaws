@@ -5,7 +5,7 @@ const b = await chromium.launch();
 // or unfolded foldable will run the game in landscape whether we like it or not.
 for (const [name, w, h] of [['phone landscape', 780, 380], ['tablet landscape', 1000, 640]]) {
   const p = await b.newPage({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true });
-  await p.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' });
+  await p.goto('http://localhost:8080/?lobby=1', { waitUntil: 'domcontentloaded' });
   await p.evaluate(() => localStorage.clear());
   await p.reload({ waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(450);

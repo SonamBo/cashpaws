@@ -109,6 +109,17 @@ The funnel is `iap_view` → `iap_start` → `iap_result` → `iap_granted`.
 Bought coins also send `earn_virtual_currency` with source `purchase`; they
 don't count towards `coinsEarned`, which reveals cats.
 
+**Cloud save, share, rating** (since 1.18.0)
+
+| Event | Parameters |
+|---|---|
+| `cloud_signed_in` | (signed in to Play Games, automatically or from Settings) |
+| `cloud_restore_offer` | level (the cloud save's), local_level ("Continue from level N?" shown) |
+| `cloud_restore` | restored (true: took the cloud save; false: started fresh) |
+| `share_open` | from: `lobby`, `settings`, `levelup` (the share sheet opened; whether they sent it is unknown) |
+| `review_request` | at: 3, 11 or 26 (the level just reached: after clearing 2, 10, 25) |
+| `review_done` | at, asked (Google's sheet finished; it never says whether it showed or they rated) |
+
 **User properties** are attached to every event: `game`, `best_level`,
 `cat_worn`, `cats_owned`, `days_played` and `quest_wins`.
 

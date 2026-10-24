@@ -7,7 +7,7 @@ p.on('pageerror', e => errs.push('pageerror: ' + e.message));
 p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
 p.on('requestfailed', r => { const why = r.failure()?.errorText || ''; if (!why.includes('ABORTED')) errs.push('failed (' + why + '): ' + r.url()); });
 p.on('response', r => { if (r.status() >= 400) errs.push(r.status() + ': ' + r.url()); });
-await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
 await p.evaluate(() => localStorage.clear());
 await p.reload({ waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);

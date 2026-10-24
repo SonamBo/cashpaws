@@ -36,7 +36,7 @@ async function open({ bridge, dev = false }) {
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate(() => localStorage.clear());
-  await p.goto(`http://localhost:8080/${dev ? '?dev=1' : ''}`, { waitUntil: 'domcontentloaded' });
+  await p.goto(`http://localhost:8080/${dev ? '?dev=1&lobby=1' : '?lobby=1'}`, { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(800);
   return { p, ctx };
 }

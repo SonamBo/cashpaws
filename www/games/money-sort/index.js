@@ -202,6 +202,7 @@ export default {
               title: `Level ${pad(e.level)} unlocked`,
               figure: money(e.netWorth),
               reward: gains,
+              share: true,
             });
             // Before the new level starts: Bell Quest shows its step here.
             await host.levelBreak();

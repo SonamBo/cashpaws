@@ -15,7 +15,7 @@ let failed = 0;
 const check = (label, ok, detail = '') => { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? '  — ' + detail : ''}`); };
 
 await p.goto('http://localhost:8080/css/tokens.css'); await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(800);
+await p.goto('http://localhost:8080/?lobby=1', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(800);
 await p.click('[data-play]'); await p.waitForTimeout(500);
 check('the Sort button says Free for a new player', (await p.locator('[data-sort-cost]').textContent()).trim() === 'Free');
 check('and it is usable with only 50 coins', !(await p.locator('[data-sort]').isDisabled()));

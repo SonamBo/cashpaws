@@ -176,6 +176,43 @@ and the Shop says so. Then:
    by hand, finds no products. Settings → tap the version 5 times → the
    testing card's **Purchases** line says what Play answered.
 
+## 7c. Play Games: cloud saves (optional)
+
+With Google Play Games, players are signed in automatically and their save is
+copied to their Google account. On a new phone or after a reinstall, the game
+offers "Continue from level 24?". Off until `playGamesAppId` is set.
+
+1. **Play Console → Grow users → Play Games services → Setup and management →
+   Configuration.** Pick "No, my game doesn't use Google APIs" and create the
+   project. Fill in the display name and description.
+2. **Credentials → Add credential → Android.** If it asks, set up the OAuth
+   consent screen first (it links to Google Cloud: app name, support email,
+   save). Then the Android credential: package name = `applicationId`, and the
+   **SHA-1 of the app signing key** from Test and release → Setup → App
+   signing (Play re-signs every build it installs with this key). For builds
+   installed by hand, add a second credential with the upload key's SHA-1.
+3. **Saved games:** Configuration → Properties → turn **Saved games** on.
+4. **Testers:** add your Google account under the Testers tab while it's
+   unpublished.
+5. **Copy the Project ID** (the long number at the top of the Configuration
+   page) into `www/app.config.js` as `"playGamesAppId": "1234567890"`, bump
+   `versionCode`, push, and upload to Internal testing.
+6. **Review and publish** the Play Games configuration (its own Publishing tab).
+
+Test with the app **installed from Play** (a debug build can't sign in). The
+testing card (Settings → tap the version 5 times) has a **Play Games** line.
+
+## 7d. Share and rating
+
+- **Share** (lobby, Settings, every level-up card): the phone's share sheet
+  with `shareText` + the Play link and `shareImage` (a PNG or JPEG under
+  `www/`, about 1200 × 800) from `www/app.config.js`. Without `shareImage` it
+  shares the text and link only. Not on the web: CrazyGames doesn't allow
+  links to other stores.
+- **Rating:** Google Play's own review sheet, after the player clears levels 2,
+  10 and 25 (once each). Google decides whether it actually shows and never
+  says whether they rated; it only works in builds installed from Play.
+
 ## 8. CrazyGames (optional, any time)
 
 The same game runs on CrazyGames with no extra code. Every push runs the

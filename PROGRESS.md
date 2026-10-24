@@ -1445,3 +1445,34 @@ What to watch after release (GA, new users from the 1.17.0 date):
 `first_open` → `app_boot` → `app_ready` → `ftue_complete` → `level_up`
 (level 4) → `gift_offer` → `reminders_permission` granted →
 `reminder_open` (gift) → `gift_claim`. D1 target 30%.
+## 1.18.0: Play Games cloud save, rating, share, sharper tagline
+
+- **Cloud save** through Google Play Games v2 (22.1.0): automatic sign-in,
+  the whole save in one Saved Games slot. `CloudSave.java` (bridge
+  `CashPawsPlay`), `www/shell/cloud.js`. Nothing is uploaded until the cloud
+  copy has been read: a save from another install that is further along is
+  offered ("Continue from level 24?"); restoring keeps purchases made on this
+  install. Uploads at most once a minute and on going to the background.
+  Settings shows "Backed up · <name>" or "Back up with Play Games". Off until
+  `playGamesAppId` is set in `www/app.config.js` (SETUP.md 7c).
+- **Rating:** Play In-App Review (2.0.2) at the level break after clearing
+  levels 2, 10 and 25, once each; that break skips the Ad break.
+- **Share:** the phone's share sheet with `shareText`, the Play link and
+  `shareImage` (`www/img/share.jpg`, the user's cover). Lobby, Settings, and a
+  small Share on every level-up card. Not on the web. `Social.java` (bridge
+  `CashPawsSocial`, FileProvider for the image), `www/shell/social.js`.
+- **Art:** the tagline is redrawn at 3× from Nunito. `docs/HIRES-ART-PROMPTS.md`
+  has prompts for the rest that's too small (chips, coin icon, Patch, the
+  lobby hero, logo).
+- Privacy policy: Play Games backups, ratings and sharing. PLAY-STORE.md 4d,
+  SETUP.md 7c/7d, ANALYTICS.md.
+- Tests: `test/social.mjs`, `test/games/money-sort/rating.mjs`.
+- Merged on top of 1.17.0 (first-day retention, from another session). At a
+  level break: the gift card first, then the rating sheet, then the Ad break.
+- Fixes for 1.17.0's own breakage: on CrazyGames, a new player opens on the
+  board, so loading is reported at once (it waited 8 s for a lobby that never
+  came; the CrazyGames workflow had been failing). Browser tests open the lobby
+  with `?lobby=1` (test-only switch), age the player past the ad-free days,
+  skip the gift where they test level breaks, and move time on for the
+  3-minute gap. `swap.mjs` no longer writes to a hard-coded path.
+- versionCode 29, versionName 1.18.0.

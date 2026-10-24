@@ -110,6 +110,11 @@
     // The shell builds the lobby asynchronously, so wait for its Play button.
     const started = Date.now();
     (function enter() {
+      // A new player opens on the board already (1.17.0): loading is done.
+      if (app() && app().classList.contains('on-game')) {
+        if (sdk) { safe(() => sdk.game.loadingStop()); note('loadingStop'); }
+        return;
+      }
       const play = app() && app().querySelector('[data-play]');
       if (play && app().classList.contains('on-lobby')) {
         play.click();

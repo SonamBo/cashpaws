@@ -1,7 +1,7 @@
 import pw from 'playwright';
 import { writeFileSync } from 'fs';
 const { chromium } = pw;
-const ACTIVE = '/home/claude/cashpaws/www/games/active.js';
+const ACTIVE = new URL('../../../www/games/active.js', import.meta.url);
 const install = (folder) => writeFileSync(ACTIVE,
   `/** The installed game. Change this one line to swap games. */\nexport { default } from './${folder}/index.js';\n`);
 
@@ -18,7 +18,7 @@ async function phase(folder, saved, body) {
   p.on('console', m => { if (m.type() === 'error') errs.push(`${folder}: ${m.text()}`); });
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate((s) => { localStorage.clear(); if (s) localStorage.setItem('cashpaws.save.v2', s); }, saved);
-  await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+  await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(900);
   await body(p);
   await p.evaluate(() => CashPaws.flush());

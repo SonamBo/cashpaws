@@ -19,7 +19,7 @@ const p = await b.newPage({ viewport: { width: 402, height: 874 } });
 p.on('pageerror', (e) => errs.push(e.message));
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(1000);
+await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1000);
 const reminders = () => p.evaluate(() => ({ ...window.__reminders }));
 
 check('nothing scheduled before permission', Object.keys(await reminders()).length === 0);
@@ -38,7 +38,7 @@ check('asked once only', await p.evaluate(() => shell.reminders.asked === true))
 
 // Unlock Bell Quest: the daily reminder appears.
 await p.evaluate(() => { shell.stats.bestLevel = 8; CashPaws.flush(); });
-await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1200);
 r = await reminders();
 check('quest unlocked: a 7 pm reminder', r.quest && new Date(r.quest.at).getHours() === 19 && /Bell Quest/.test(r.quest.title), r.quest?.title);
 if (await p.locator('.ovl-quest.in').count()) { await p.locator('.ovl-quest.in [data-pick="close"]').first().click(); await p.waitForTimeout(400); }
@@ -56,7 +56,7 @@ await p.locator('[data-pick="close"]').click(); await p.waitForTimeout(300);
 // A player who said Not now is never asked again.
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(1000);
+await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1000);
 await p.evaluate(() => { window.__notifyPermissionState = 'ask'; });
 await p.click('[data-box]'); await p.waitForTimeout(400);
 await p.locator('.ovl.in [data-pick="open"]').click(); await p.waitForTimeout(500);

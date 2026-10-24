@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var ads: Ads
     private lateinit var notify: Notify
     private lateinit var billing: Billing
+    private lateinit var cloud: CloudSave
 
     // Android 13+: the system prompt for notifications. Registered up front, as
     // the API requires; launched only when the page asks, after its own card.
@@ -159,6 +160,11 @@ class MainActivity : ComponentActivity() {
         // only when the page asks, with the pack IDs from www/app.config.js.
         billing = Billing(this, webView)
         webView.addJavascriptInterface(billing, "CashPawsBilling")
+        // Play Games sign-in and the cloud save (shell/cloud.js); off without a project ID.
+        cloud = CloudSave(this, webView)
+        webView.addJavascriptInterface(cloud, "CashPawsPlay")
+        // Share sheet and Play's rating sheet (shell/social.js).
+        webView.addJavascriptInterface(Social(this, webView), "CashPawsSocial")
         ads.start()
 
         if (savedInstanceState != null) webView.restoreState(savedInstanceState)

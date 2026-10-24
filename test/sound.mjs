@@ -39,7 +39,7 @@ const errs = [];
 p.on('pageerror', (e) => errs.push(e.message));
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1');
+await p.goto('http://localhost:8080/?dev=1&lobby=1');
 await p.waitForTimeout(900);
 
 const state = () => p.evaluate(() => window.__audio.contexts.map((c) => c.state).join(','));

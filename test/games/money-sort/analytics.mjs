@@ -27,7 +27,7 @@ const p = await b.newPage({ viewport: { width: 402, height: 874 } });
 p.on('pageerror', (e) => errs.push(e.message));
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-const boot = async () => { await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(1000); };
+const boot = async () => { await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1000); };
 const events = () => p.evaluate(() => window.__events);
 const named = async (n) => (await events()).filter((e) => e.name === n);
 const clear = () => p.evaluate(() => { window.__events.length = 0; });

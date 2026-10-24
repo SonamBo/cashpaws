@@ -18,6 +18,11 @@ const LEGACY_KEY = 'cashpaws.save.v1';
 
 export const START_COINS = 50;
 
+/** A random id for this install. */
+function newDevice() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
 export function freshShell() {
   return {
     coins: START_COINS,
@@ -34,6 +39,8 @@ export function freshShell() {
     audio: { sfx: true, music: true },       // Settings switches (1.15.0)
     iap: { granted: [], purchases: 0, coins: 0 },   // coin packs: tokens already paid out (1.16.0)
     gift: emptyGift(),    // tomorrow's gift, offered once after level 3 (1.17.0)
+    device: newDevice(),  // this install, to tell a cloud save from elsewhere (1.18.0)
+    review: { asked: [] },  // rating milestones already asked (1.18.0)
   };
 }
 
@@ -82,6 +89,7 @@ function normalise(rec) {
   if (!shell.stats.firstDay && shell.stats.lastDay) {
     shell.stats.firstDay = shell.stats.daysPlayed >= 2 ? '2000-01-01' : shell.stats.lastDay;
   }
+  shell.review = { ...base.review, ...(shell.review || {}) };             // absent before 1.18.0
   return { v: 2, shell, games: rec.games || {} };
 }
 

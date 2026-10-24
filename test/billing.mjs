@@ -75,7 +75,7 @@ async function open({ init = '', dev = false, keep = null } = {}) {
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate(([k, v]) => { localStorage.clear(); if (v) localStorage.setItem(k, v); }, [SAVE, keep]);
-  await p.goto(`http://localhost:8080/${dev ? '?dev=1' : ''}`);
+  await p.goto(`http://localhost:8080/${dev ? '?dev=1&lobby=1' : '?lobby=1'}`);
   await p.waitForTimeout(1000);
   await p.evaluate(() => window.CashPaws.onBack());      // to the lobby, wherever it opened
   await p.waitForTimeout(400);

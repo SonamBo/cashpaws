@@ -38,6 +38,8 @@ export const icons = {
   external: (s) => stroke('<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', s),
   pause:    (s) => stroke('<path d="M9.5 5v14"/><path d="M14.5 5v14"/>', s),
   play:     (s) => stroke('<path d="M7 4.8 19 12 7 19.2Z"/>', s),
+  share:    (s) => stroke('<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="m8.2 10.8 7.6-4.1"/><path d="m8.2 13.2 7.6 4.1"/>', s),
+  cloud:    (s) => stroke('<path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7 18.5Z"/>', s),
   speaker:  (s) => stroke('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>', s),
   music:    (s) => stroke('<path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', s),
   undo:     (s) => stroke('<path d="M4.6 12a7.4 7.4 0 1 1 2.6 5.6"/><path d="M4.4 5.2v5.1h5.1"/>', s),

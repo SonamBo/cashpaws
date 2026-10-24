@@ -36,7 +36,7 @@ async function open({ bridge = false } = {}) {
   p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto(URL + 'css/tokens.css');
   await p.evaluate(() => localStorage.clear());
-  await p.goto(URL + '?dev=1');
+  await p.goto(URL + '?dev=1&lobby=1');
   await p.waitForTimeout(900);
   // The installed game's tutorial, if it has one, would cover what we click.
   await p.evaluate(() => { for (const id of Object.keys(shell.flags || {})) shell.flags[id] = { ...shell.flags[id], ftue: true }; shell.reminders.asked = true; });

@@ -5,7 +5,7 @@ const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1160, height: 1060 }, deviceScaleFactor: 2 });
 p.on('pageerror', e => errs.push(e.message));
 p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
-await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
 await p.evaluate(() => localStorage.clear());
 await p.reload({ waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(700);

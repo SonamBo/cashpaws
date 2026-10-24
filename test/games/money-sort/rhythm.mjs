@@ -16,7 +16,8 @@ const check = (label, ok, detail = '') => { if (!ok) failed++; console.log(`${ok
 const gains = async () => (await p.locator('.ovl-gains').textContent()).replace(/\s+/g, ' ');
 
 await p.goto('http://localhost:8080/css/tokens.css'); await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(800);
+await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(800);
+await p.evaluate(() => { shell.gift.status = 'claimed'; shell.reminders.asked = true; });
 await p.click('[data-play]'); await p.waitForTimeout(500);
 
 // level 6 -> 7: warned that a Hard level is next

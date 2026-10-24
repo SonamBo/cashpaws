@@ -20,7 +20,7 @@ they merge cleanly only if the shared files were left alone.
 
 | Yours: change freely | Shared: don't edit in an app built from the starter |
 |---|---|
-| `www/app.config.js`: name, package, version, privacy URL | `www/shell/`: the shell |
+| `www/app.config.js`: name, package, version, privacy URL, coin packs, share text and image, Play Games ID | `www/shell/`: the shell |
 | `www/games/<your-id>/`: your game, its art, styles, events, `web.json` and `web.css` | `www/games/template/`: the reference game; copy it, don't edit it |
 | `www/games/active.js`: which game is installed | `www/index.html`, `www/css/` |
 | `test/games/<your-id>/`: your game's tests | `android/` except the files listed on the left |
@@ -68,6 +68,7 @@ code's package. Renaming them breaks every future update.
 | A first-time tutorial | `host.coach.*` with `host.flag` / `host.setFlag` to remember it ran |
 | The game's own events | `host.track(name, params)`. List them in `www/games/<id>/EVENTS.md`, not in `docs/ANALYTICS.md` |
 | Coins | `host.wallet.earn(n, reason)` / `spend(n, reason)`; never keep a separate currency |
+| Share on the level-up card | `host.celebrate({ ..., share: true })`. The shell's Share button sits in the lobby and Settings already |
 | Coin packs (real money) | nothing: the shell sells them in the Shop when `www/app.config.js` lists `coinPacks` (`SETUP.md` 7b). Coins bought arrive in the same wallet; a game never talks to billing |
 | Sound | `host.sound(name)` on the game's own moments (lift, drop, bank, levelup, flow, sort, undo, error…: `www/shell/sound.js`). The shell already plays music, button ticks, celebrations and rewards, honours the Settings switches, and goes quiet during ads and in the background |
 

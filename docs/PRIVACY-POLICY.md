@@ -1,4 +1,4 @@
-# Privacy Policy — Cash Paws 1.16.0
+# Privacy Policy — Cash Paws 1.18.0
 
 > Published at https://pixelartgames000.github.io/privacy-policy/ from
 > `docs/privacy-policy/index.html`. Edit both together. Google Analytics data
@@ -7,7 +7,7 @@
 ---
 
 **Cash Paws: Cat Ball Sort**
-Pixel Art Games · pixelartgames000@gmail.com · Last updated 23 October 2026
+Pixel Art Games · pixelartgames000@gmail.com · Last updated 24 October 2026
 
 This policy explains what information Cash Paws handles, why, and the choices
 you have.
@@ -88,6 +88,23 @@ information is described in its own policies:
 
 We do not sell your information for money.
 
+## Backups with Google Play Games
+
+If you use **Google Play Games** on your phone, Cash Paws signs you in to it
+automatically and keeps a copy of your game progress in your Google account
+(Play Games "Saved Games"). This lets you continue on a new phone or after
+reinstalling. The copy is stored by Google; we have no server and never see
+it. The app shows your Play Games name in Settings and keeps it on your phone.
+To stop backups, sign out of Play Games or remove Cash Paws from your Play
+Games account. How Google handles this: https://policies.google.com/privacy
+
+## Ratings and sharing
+
+After a few levels the game may show Google Play's own rating sheet. Whether
+it appears, and what you write, is handled by Google; the app is not told
+whether you rated. Sharing opens your phone's share menu; what you share goes
+only to the app and people you choose.
+
 ## Purchases
 
 Cash Paws can be played in full without paying. Optional **coin packs** can be
@@ -101,8 +118,8 @@ bought in the Shop. They are sold and paid for through **Google Play**:
 - Google processes your purchase under the Google Play terms and the Google
   Privacy Policy: https://policies.google.com/privacy
 - Coins have no cash value and cannot be exchanged for money. Because your
-  progress is kept only on your phone, coins (bought or earned) are lost if
-  you uninstall the app or clear its data.
+  progress is kept on your phone (and, if you use Play Games, backed up to
+  your Google account), coins are lost if you uninstall without a backup.
 - Refunds follow Google Play's refund policy. For a problem with a purchase,
   contact us with the order number from your Google Play receipt.
 

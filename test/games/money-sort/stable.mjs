@@ -17,12 +17,12 @@ console.log('case                cells seen           stable');
 for (const [name, w, h, cols] of CASES) {
   const p = await b.newPage({ viewport: { width: w, height: h } });
   p.on('pageerror', e => errs.push(`${name}: ${e.message}`));
-  await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+  await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
   await p.evaluate(() => localStorage.clear());
   await p.reload({ waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(500);
   // The first-time tutorial would hold every tap below; it has its own test.
-  await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; });
+  await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; shell.gift.status = 'claimed'; });
   await p.click('[data-play]');
   await p.waitForTimeout(400);
   await p.evaluate((n) => {

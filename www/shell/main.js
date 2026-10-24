@@ -12,6 +12,8 @@ import * as store from './save.js';
 import { Wallet } from './wallet.js';
 import { createAds, INTERSTITIAL_FROM_LEVEL, AFTER_REWARDED_MS } from './ads.js';
 import { createBilling } from './billing.js';
+import { createCloud } from './cloud.js';
+import { createSocial } from './social.js';
 import { createAnalytics } from './analytics.js';
 import { createCoach } from './coach.js';
 import { createNotify, boxReminder, questReminder } from './notify.js';
@@ -32,6 +34,8 @@ import * as G from './gift.js';
 import { bell, introCard, findingCard, pathCard, wonCard, overCard } from './questui.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
+// Browser tests only: open on the lobby even for a new player (the pre-1.17.0 opening).
+const FORCE_LOBBY = new URLSearchParams(location.search).has('lobby');
 const APP_VERSION = APP.versionName;     // from www/app.config.js
 document.title = APP.name;
 
@@ -40,7 +44,7 @@ game.path = `games/${game.id}/`;
 
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
-let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, billing;
+let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, billing, cloud, social;
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
@@ -50,11 +54,18 @@ let launchedFrom = '';     // the reminder that opened the app, if any
  * Save
  * ---------------------------------------------------------------- */
 
-function save() {
-  if (!instance) return;
+/** The whole save, brought up to date. */
+function current() {
   shell.coins = wallet.coins;
   record.games[game.id] = { v: game.saveVersion, data: instance.serialize() };
-  store.write(record);
+  return record;
+}
+
+let restoring = false;      // a cloud save was just written: nothing may overwrite it before the reload
+function save() {
+  if (!instance || restoring) return;
+  store.write(current());
+  cloud?.saved();             // and to Play Games, at most once a minute
 }
 
 /** One count per calendar day the app is opened, for daily tasks and stats. */
@@ -274,8 +285,12 @@ function onLevelWon(info = {}) {
 async function onLevelBreak() {
   await questBreak();
   const level = reachedLevel || currentLevel;
-  if (screen === 'game' && await giftBreak(level)) return;    // no ad straight after the gift card
-  if (screen === 'game' && !adBreakOn && ads.interstitialDue(level, adGate())) await runAdBreak(level);
+  if (screen !== 'game' || adBreakOn) return;
+  if (await giftBreak(level)) return;                // no ad straight after the gift card
+  // The rating sheet after levels 2, 10 and 25; that break has no ad.
+  const at = social.reviewDue(level);
+  if (at) { await social.review(at); return; }
+  if (ads.interstitialDue(level, adGate())) await runAdBreak(level);
 }
 
 /* ---------------------------------------------------------------- *
@@ -601,6 +616,7 @@ async function boot() {
   lobby.on('box', onBox);
   lobby.on('quest', openQuest);
   lobby.on('coins', openCoins);
+  lobby.on('share', () => social.share('lobby'));
 
   setWornCat(shell.cats.worn);
   await loadStyles(game);
@@ -631,6 +647,7 @@ async function boot() {
       levelWon: onLevelWon, levelLost: onLevelLost, levelBreak: onLevelBreak,
       levelLossWarning, confirmLevelLoss, track,
       shortOf, shortHelps, openCoins, coinsForSale: () => !!billing?.enabled,
+      shareFrom: (from) => (social?.canShare ? () => social.share(from) : null),
     },
   });
 
@@ -647,6 +664,12 @@ async function boot() {
     notice: onBillingNotice,
     onChange: () => { if (panels.open === 'shop') panels.show('shop', panelContext()); },
   });
+
+  // Share and the rating sheet; then the Play Games cloud save, which may
+  // offer to restore progress from another install.
+  social = createSocial({ app: APP, ledger: shell.review, dev: DEV, toast, track, save });
+  lobby.showShare(social.canShare);
+  cloud = createCloud({ read: current, write: (rec) => { restoring = true; store.write(rec); }, ask, track });
   refreshDaily();
   refreshBox();
 
@@ -656,7 +679,7 @@ async function boot() {
   installBridge();
   refreshUser();
   // New players go straight to their first board; the lobby comes once they've won a level.
-  const first = isNewPlayer() ? 'game' : 'lobby';
+  const first = isNewPlayer() && !FORCE_LOBBY ? 'game' : 'lobby';
   track('app_ready', {
     coins: wallet.coins, best_level: shell.stats.bestLevel, quest: shell.quest.status,
     load_ms: msSinceStart(), start_screen: first,
@@ -711,7 +734,7 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (!instance) return;
-  if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); refreshReminders(); }
+  if (document.visibilityState === 'hidden') { instance.pause?.(); flushCoins(); save(); cloud?.flush(); refreshReminders(); }
   else {
     refreshDaily(); refreshBox(); refreshQuest(); instance.resume?.();
     if (screen === 'lobby') lobbyArrive('return');   // a gift may be ready, or a quest ended, while away
@@ -856,6 +879,14 @@ function billingLine() {
     + (b.error ? `<br><small>${b.error}</small>` : '');
 }
 
+/** Play Games on the testing card. */
+function cloudLine() {
+  const c = cloud?.status();
+  if (!c) return '<b>Play Games</b>: off in this build (no playGamesAppId)';
+  return `<b>Play Games</b>: ${c.signedIn ? `signed in as ${c.player}` : 'not signed in'}`
+    + (c.error ? `<br><small>${c.error}</small>` : '');
+}
+
 async function adStatus() {
   for (;;) {
     const s = ads.status();
@@ -870,6 +901,7 @@ async function adStatus() {
         `<b>Interstitial</b> ${tail(s.interstitialUnit)}: ${explainAd(s.interstitial)}`,
         `<b>Ad break</b>: at each level end from level ${INTERSTITIAL_FROM_LEVEL}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${AFTER_REWARDED_MS / 1000} s)`,
         billingLine(),
+        cloudLine(),
       ].join('<br>');
     const again = await confirm({ kicker: 'Testing', title: 'Ad status', line, ok: 'Refresh', cancel: 'Close' });
     if (!again) return;
@@ -887,7 +919,15 @@ async function onSettings() {
     reminders: notify.available ? remindersOn() : null,
     audio: { sfx: sound.sfx, music: sound.music },
     version: APP_VERSION,
+    share: social.canShare,
+    cloud: cloud.enabled ? { signedIn: cloud.signedIn, player: cloud.player } : null,
   });
+  if (pick === 'share') { social.share('settings'); return onSettings(); }
+  if (pick === 'cloud') {
+    if (!cloud.signedIn) cloud.signIn();
+    else toast(`<span>Progress backed up to ${cloud.player || 'your Google account'}</span>`, 2400);
+    return;
+  }
   if (pick === 'sfx' || pick === 'music') {
     const on = !shell.audio[pick];
     shell.audio[pick] = on;
@@ -1003,6 +1043,8 @@ function wireDev() {
   window.__ads = ads;
   window.__sound = sound;
   window.__shop = billing;
+  window.__social = social;
+  window.__cloud_api = cloud;
   window.stats = shell.stats;
   window.gameStats = shell.gameStats[game.id] ||= {};
   window.CATS = CATS;

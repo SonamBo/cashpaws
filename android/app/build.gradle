@@ -50,6 +50,8 @@ android {
         versionName appConfig.versionName
         // Android resource strings need apostrophes escaped ("Sam's Game").
         resValue 'string', 'app_name', appConfig.name.replace("'", "\\'")
+        // Play Games (CloudSave.java): the project ID from Play Console, or empty for off.
+        resValue 'string', 'game_services_project_id', (appConfig.playGamesAppId ?: '').toString()
     }
 
     signingConfigs {
@@ -126,6 +128,10 @@ dependencies {
     // Google Play Billing: coin packs (Billing.java). Play requires version 8+
     // for new uploads from 31 Aug 2026; 9.x needs androidx.core 1.9+ (below).
     implementation 'com.android.billingclient:billing:9.1.0'
+    // Google Play Games v2: sign-in and Saved Games, the cloud copy of the save (CloudSave.java).
+    implementation 'com.google.android.gms:play-services-games-v2:22.1.0'
+    // Google Play's in-app review sheet (Social.java).
+    implementation 'com.google.android.play:review:2.0.2'
     // Firebase, versions from the BoM. google-services.json covers both
     // com.pixelartgames.cashpaw and its .debug build, which report as
     // separate apps so testing never mixes with real players.

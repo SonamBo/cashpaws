@@ -25,7 +25,7 @@ for (const [w, h] of SCREENS) {
   const p = await b.newPage({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true });
   p.on('pageerror', (e) => errs.push(`${w}x${h}: ${e.message}`));
   await p.goto('http://localhost:8080/css/tokens.css'); await p.evaluate(() => localStorage.clear());
-  await p.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(450);
+  await p.goto('http://localhost:8080/?lobby=1', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(450);
   await p.click('[data-play]'); await p.waitForTimeout(250);
   const row = [];
   for (const cols of [5, 6, 7, 8]) {

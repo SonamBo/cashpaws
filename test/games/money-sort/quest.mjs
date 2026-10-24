@@ -17,7 +17,7 @@ const check = (label, ok, detail = '') => {
 const p = await b.newPage({ viewport: { width: 402, height: 874 } });
 p.on('pageerror', (e) => errs.push(e.message));
 const boot = async () => {
-  await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+  await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(1100);
 };
 const card = () => p.locator('.ovl-quest.in');

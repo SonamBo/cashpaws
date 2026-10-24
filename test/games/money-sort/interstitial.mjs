@@ -1,8 +1,9 @@
 /**
- * Interstitials, against a mock of the native bridge (1.16.0): at the end of
- * each level won once level 10 is beaten, after the level-up card, announced
- * by a 2-second "Ad break" screen. Never mid-board, and not within a minute
- * of a rewarded ad.
+ * Interstitials, against a mock of the native bridge: at the end of a level
+ * won once level 10 is beaten, after the level-up card, announced by a
+ * 2-second "Ad break" screen. Never mid-board, never in the first two days
+ * (1.17.0), at least 3 minutes apart and from the app opening (1.17.0), and
+ * not within a minute of a rewarded ad.
  *
  * Needs the dev server: node serve.js 8080
  */
@@ -18,6 +19,9 @@ const check = (label, ok, detail = '') => {
 
 const MOCK = `
   window.__mock = { inter: [], at: [] };
+  window.__shift = 0;
+  const realNow = Date.now.bind(Date);
+  Date.now = () => realNow() + window.__shift;      // tests move time on: ad breaks are 3 minutes apart
   window.CashPawsAds = {
     isEnabled: () => true,
     rewardedReady: () => true,
@@ -37,8 +41,8 @@ const p = await ctx.newPage();
 p.on('pageerror', (e) => errs.push(e.message));
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1'); await p.waitForTimeout(900);
-await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; shell.quest.status = 'none'; });
+await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(900);
+await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; shell.gift.status = 'claimed'; shell.quest.status = 'none'; shell.stats.firstDay = '2000-01-01'; shell.review.asked = [3, 11, 26]; });
 await p.evaluate(() => window.CashPaws.onBack()); await p.waitForTimeout(400);
 await p.click('[data-play]'); await p.waitForTimeout(600);
 const inter = () => p.evaluate(() => __mock.inter.length);
@@ -77,7 +81,9 @@ check('reaching level 10: no Ad break', await inter() === 0);
 await p.waitForTimeout(3000);
 check('never mid-board', await inter() === 0 && await p.locator('.ad-break').count() === 0);
 
-// Beating level 10 (reaching 11): the Ad break, after the level-up card.
+// Beating level 10 (reaching 11), 4 minutes in: the Ad break, after the level-up card.
+const later = (min) => p.evaluate((m) => { window.__shift += m * 60000; }, min);
+await later(4);
 await beat(10);
 check('beating level 10: the level-up card comes first, no ad yet', await inter() === 0 && await p.locator('.ad-break').count() === 0);
 const shownBreak = await throughCards();
@@ -92,14 +98,19 @@ await p.waitForTimeout(900);
 check('then the screen goes and the next level is on', await p.locator('.ad-break').count() === 0
   && await p.evaluate(() => document.getElementById('app').classList.contains('on-game') && game.level === 11));
 
-// Every level end after that.
+// Straight after: not within 3 minutes of the last one.
 await beat(11);
+await throughCards(); await p.waitForTimeout(3000);
+check('beating level 11 straight after: no Ad break (3 minutes apart)', await inter() === 1);
+await later(4);
+await beat(12);
 await throughCards(); await p.waitForTimeout(3400);
-check('beating level 11: another Ad break', await inter() === 2);
+check('beating level 12, 4 minutes later: the next Ad break', await inter() === 2);
 
 // Right after a rewarded ad: skipped.
+await later(4);
 await p.evaluate(() => window.__ads.rewarded.show('test'));
-await beat(12);
+await beat(13);
 await throughCards(); await p.waitForTimeout(3000);
 check('within a minute of a rewarded ad: no Ad break', await inter() === 2);
 
@@ -109,7 +120,7 @@ await p.locator('[data-pick="lobby"]').click(); await p.waitForTimeout(2500);
 check('never in the lobby', await inter() === 2 && await p.locator('.ad-break').count() === 0);
 
 const ev = await p.evaluate(() => window.__events.filter((e) => e.name === 'ad_interstitial_show').map((e) => e.params.level));
-check('tracked with the level reached', JSON.stringify(ev) === '[11,12]', JSON.stringify(ev));
+check('tracked with the level reached', JSON.stringify(ev) === '[11,13]', JSON.stringify(ev));
 
 console.log(errs.length ? `page errors: ${errs.join(' | ')}` : 'no page errors');
 await b.close();

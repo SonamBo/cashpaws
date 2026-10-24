@@ -56,7 +56,8 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     /** Between one level's celebration and the next level: the shell may show event progress. */
     levelBreak: () => Promise.resolve(events.levelBreak?.()),
 
-    celebrate: (o) => { sound?.play('celebrate'); return celebrate(o); },
+    // `share: true` adds a small Share button where sharing works (the level-up card).
+    celebrate: (o) => { sound?.play('celebrate'); return celebrate({ ...o, onShare: o?.share ? events.shareFrom?.('levelup') : null }); },
     setback: (o) => { sound?.play('setback'); return setback(o); },
     // A sound effect: tap, lift, drop, bank, levelup, flow, sort, undo, error,
     // coin, open, unlock (see shell/sound.js). Silent when the player turned sound off.

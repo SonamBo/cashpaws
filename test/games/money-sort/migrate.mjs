@@ -23,7 +23,7 @@ p.on('pageerror', (e) => errs.push(e.message));
 // Write the old save from a page that runs no app code, as a real upgrade would find it.
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate((raw) => { localStorage.clear(); localStorage.setItem('cashpaws.save.v1', raw); }, v1);
-await p.goto('http://localhost:8080/?dev=1', { waitUntil: 'domcontentloaded' });
+await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);
 
 const got = await p.evaluate(() => ({

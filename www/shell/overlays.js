@@ -40,7 +40,7 @@ const button = (card, sel) => new Promise((resolve) => {
 });
 
 /** Sage, the worn cat cheering. A level, a record, whatever the game calls a win. */
-export function celebrate({ kicker = 'Well done', title, figure = '', reward = '', go = 'Keep going' }) {
+export function celebrate({ kicker = 'Well done', title, figure = '', reward = '', go = 'Keep going', onShare = null }) {
   const card = show(`
     <div class="ovl-stack">
       ${cat('cheer', 210, 'ovl-cheer')}
@@ -50,8 +50,11 @@ export function celebrate({ kicker = 'Well done', title, figure = '', reward = '
         ${figure ? `<p class="ovl-figure">${figure}</p>` : ''}
         ${reward && reward.length ? `<ul class="ovl-gains">${[].concat(reward).map((r) => `<li>${r}</li>`).join('')}</ul>` : ''}
         <button class="ovl-btn primary" data-go>${go}</button>
+        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} Share</button>` : ''}
       </div>
     </div>`, 'milestone');
+  // Sharing leaves the card up: the player still taps Keep going after.
+  card.querySelector('[data-share]')?.addEventListener('click', (e) => { e.stopPropagation(); onShare(); });
   return button(card, '[data-go]');
 }
 
@@ -193,7 +196,7 @@ export function pauseMenu({ canRestart, title }) {
  * opens a tab, and the Android shell hands any outside address to the phone's
  * browser, since the app itself has no internet permission.
  */
-export function settings({ title, note, privacy = false, reminders = null, version = '', audio = null }) {
+export function settings({ title, note, privacy = false, reminders = null, version = '', audio = null, share = false, cloud = null }) {
   // `version`: tapped 5 times, it resolves 'adstatus' (a tester's readout).
   // `privacy` only when Google's consent SDK says this player must be offered
   // their choices (the US "do not sell or share" link). The form is Google's.
@@ -217,6 +220,10 @@ export function settings({ title, note, privacy = false, reminders = null, versi
        ${icons.daily(20)}<span>Reminders: Rewards Box and Bell Quest</span>
        <i class="switch ${reminders ? 'on' : ''}"></i>
      </button>`,
+    cloud === null ? '' : cloud.signedIn
+      ? `<button data-pick="cloud">${icons.cloud(20)}<span>Backed up · ${cloud.player || 'Play Games'}</span></button>`
+      : `<button data-pick="cloud">${icons.cloud(20)}<span>Back up with Play Games</span></button>`,
+    !share ? '' : `<button data-pick="share">${icons.share(20)}<span>Share ${title}</span></button>`,
     `<button data-pick="erase">${icons.undo(20)}<span>Erase all progress</span></button>`,
     `<button class="primary" data-pick="close">${icons.play(20)}<span>Done</span></button>`,
   ], (note ? `<p class="ovl-sub settings-note">${note}</p>` : '')
