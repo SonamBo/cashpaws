@@ -57,7 +57,18 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     levelBreak: () => Promise.resolve(events.levelBreak?.()),
 
     // `share: true` adds a small Share button where sharing works (the level-up card).
-    celebrate: (o) => { sound?.play('celebrate'); return celebrate({ ...o, onShare: o?.share ? events.shareFrom?.('levelup') : null }); },
+    // `juicy: true` is the big level-end card: headline, stars, fireworks, confetti,
+    // with sound and vibration in time (the stars chime, the fireworks boom).
+    celebrate: (o) => {
+      const onShare = o?.share ? events.shareFrom?.('levelup') : null;
+      if (!o?.juicy) { sound?.play('celebrate'); return celebrate({ ...o, onShare }); }
+      const onBeat = (kind, i) => {
+        if (kind === 'open') { sound?.play('fanfare'); haptic([0, 22, 40, 22]); }
+        else if (kind === 'star') { sound?.play(`star${i}`); haptic(9); }
+        else if (kind === 'boom') { sound?.play('boom'); haptic(26); }
+      };
+      return celebrate({ ...o, onShare, onBeat });
+    },
     setback: (o) => { sound?.play('setback'); return setback(o); },
     // A sound effect: tap, lift, drop, bank, levelup, flow, sort, undo, error,
     // coin, open, unlock (see shell/sound.js). Silent when the player turned sound off.

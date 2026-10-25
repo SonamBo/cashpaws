@@ -8,6 +8,7 @@
  */
 
 import { WILD } from './engine.js';
+import { createFx } from './fx.js';
 
 export const money = (n) => '$' + n.toLocaleString('en-US');
 
@@ -84,6 +85,7 @@ export class BoardView {
     this.handlers = {};
     this.build();
     this.update();
+    this.fx = createFx(root, host);
   }
 
   /** Redraw the static markup, so a change of cat or perk shows up. */
@@ -371,23 +373,94 @@ export class BoardView {
     cell = Math.max(16, Math.min(58, cell));
 
     board.style.setProperty('--cell-h', cell + 'px');
-    // A chip must fit inside the glass as well as the cell. The $20 note is
-    // drawn 6px wider than the rest, so it sets the limit.
-    const chip = Math.max(18, Math.min(cell - 8, Math.floor(glassInner - 6)));
+    // A chip must fit inside the glass as well as the cell. Every coin and
+    // note is the same square now (1.19.0), so only a 2px clearance is kept.
+    const chip = Math.max(18, Math.min(cell - 8, Math.floor(glassInner - 2)));
     board.style.setProperty('--chip-d', chip + 'px');
   }
 
 
   /* ---------------- feedback ---------------- */
 
-  /** Record where the travelling chip starts, before the board updates. */
+  /** Record where the travelling chips start, before the board updates. */
   prepareMove(from) {
     const chip = this.topChip(from);
     this.flightFrom = chip ? chip.getBoundingClientRect() : null;
+    // Every coin in the source tube, top first: the moving run is its top.
+    this.flightRun = { col: from, rects: this.chipsOf(from).map((c) => c.getBoundingClientRect()) };
   }
 
-  /** Slide the arrived chips from where they were lifted, top one last. */
-  finishMove(to, count = 1) {
+  /** A tube's coins, top first. */
+  chipsOf(col) {
+    const glass = this.tubes[col]?.querySelector('.glass');
+    return glass ? [...glass.children].map((cell) => cell.firstElementChild).filter(Boolean) : [];
+  }
+
+  /** Counts per tube, before new coins arrive. */
+  counts() { return this.tubes.map((_, i) => this.chipsOf(i).length); }
+
+  /**
+   * The arrived coins fly over from where they were lifted: the top coin
+   * leaves first and lands at the bottom of the new run. Resolves on landing.
+   */
+  async finishMove(to, count = 1) {
+    const run = this.flightRun;
+    this.flightRun = null;
+    if (this.fx.on && run && this.tubes[to]) {
+      const moved = this.chipsOf(to).slice(0, count);         // top first
+      const pairs = run.rects.slice(0, count).map((from, i) => ({ from, to: moved[count - 1 - i] })).filter((p) => p.to);
+      const src = this.tubes[run.col];
+      src?.classList.add('launch');
+      this.host.sound('swoosh');
+      await this.fx.fly(pairs, { dur: 300, stagger: 70, turns: 2 });
+      src?.classList.remove('launch');
+      return;
+    }
+    this.host.sound('drop');
+    this.slideMove(to, count);
+  }
+
+  /** Sort: every coin that changed place flies to its new one, all at once. */
+  regroup(snap) {
+    if (!this.fx.on) return Promise.resolve();
+    const now = this.fx.snapshot(this.tubes);
+    const key = (c) => `${c.v}|${c.set}`;
+    const before = new Map();
+    for (const tube of snap) for (const c of [...tube].reverse()) (before.get(key(c)) || before.set(key(c), []).get(key(c))).push(c.rect);
+    const pairs = [];
+    for (const tube of now) {
+      for (const c of [...tube].reverse()) {            // bottom up: stacks build upwards
+        const from = before.get(key(c))?.shift();
+        if (from) pairs.push({ from, to: c.chip });
+      }
+    }
+    return this.fx.fly(pairs, { dur: 420, stagger: Math.max(10, Math.min(30, 600 / (pairs.length || 1))), arc: 0.8, turns: 2 });
+  }
+
+  /** New coins (the flow, a refill) fly in from the NEW COINS strip. */
+  flyIn(prev) {
+    if (!this.fx.on) return Promise.resolve();
+    const origin = this.el.flow.getBoundingClientRect();
+    const pairs = [];
+    this.tubes.forEach((tube, i) => {
+      const chips = this.chipsOf(i);
+      const fresh = chips.slice(0, Math.max(0, chips.length - (prev[i] || 0)));
+      for (const chip of fresh.reverse()) pairs.push({ from: origin, to: chip });
+    });
+    return this.fx.fly(pairs, { dur: 380, stagger: 40, arc: 0.6, turns: 3 });
+  }
+
+  /** A cash-in: the banked coins fly up into the progress bar. */
+  collect(items) {
+    if (!this.fx.on || !items?.length) return Promise.resolve();
+    const bar = document.querySelector('[data-fill]') || this.el.flow;
+    const r = bar.getBoundingClientRect();
+    const target = { left: r.right - 4, top: r.top, width: 8, height: r.height };
+    return this.fx.collect(items, target).then(() => this.fx.burst(target, '#ffd36b', 14));
+  }
+
+  /** The old slide, for players who asked for reduced motion. */
+  slideMove(to, count = 1) {
     const from = this.flightFrom;
     this.flightFrom = null;
     const tube = this.tubes[to];

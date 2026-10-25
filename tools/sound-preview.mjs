@@ -26,7 +26,7 @@ await p.goto('http://localhost:8080/css/tokens.css');
 const res = await p.evaluate(async () => {
   const { createSound } = await import('/shell/sound.js');
   const SR = 44100;
-  const names = ['tap', 'lift', 'drop', 'bank', 'levelup', 'celebrate', 'setback', 'flow', 'sort', 'undo', 'error', 'coin', 'open', 'unlock'];
+  const names = ['tap', 'lift', 'drop', 'bank', 'levelup', 'celebrate', 'setback', 'flow', 'sort', 'undo', 'error', 'coin', 'open', 'unlock', 'fanfare', 'star0', 'star2', 'star4', 'boom'];
   const GAP = 1.1;                                   // seconds per effect
   const fxEnd = names.length * GAP;
   const musicBars = 8;

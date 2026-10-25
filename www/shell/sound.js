@@ -118,6 +118,24 @@ export function createSound({ sfx = true, music = true, context = null } = {}) {
       for (let i = 0; i < 6; i++) clink(t + 0.45 + i * 0.06, 1.1 + (i % 3) * 0.1, 0.07);
     },
     celebrate: (t) => [0, 4, 7].forEach((s, i) => tone(N(s + 5), t + i * 0.08, 0.3, { type: 'triangle', gain: 0.16 })),
+    // The big level-end card (1.19.0): a bright fanfare, a chime per star, firework booms.
+    fanfare: (t) => {
+      [0, 4, 7].forEach((s, i) => tone(N(s), t + i * 0.09, 0.22, { type: 'triangle', gain: 0.15 }));
+      [12, 16, 19, 24].forEach((s) => {
+        tone(N(s), t + 0.3, 0.9, { type: 'triangle', gain: 0.1, attack: 0.02 });
+        tone(N(s) * 1.004, t + 0.3, 0.9, { type: 'square', gain: 0.018, attack: 0.03 });
+      });
+      for (let i = 0; i < 8; i++) clink(t + 0.32 + i * 0.05, 1.2 + (i % 4) * 0.15, 0.06);
+    },
+    ...Object.fromEntries([0, 2, 4, 7, 9].map((s, i) => [`star${i}`, (t) => {
+      tone(N(s + 12), t, 0.25, { type: 'triangle', gain: 0.13 });
+      tone(N(s + 24), t + 0.01, 0.12, { type: 'sine', gain: 0.06 });
+    }])),
+    boom: (t) => {
+      tone(90, t, 0.4, { type: 'sine', gain: 0.22, slide: 0.45 });
+      noise(t, 0.45, { gain: 0.14, from: 900, to: 120, q: 0.7 });
+      for (let i = 0; i < 7; i++) noise(t + 0.18 + Math.random() * 0.4, 0.04, { gain: 0.05, from: 6000, to: 4000, q: 2 });
+    },
     setback: (t) => { tone(N(-1), t, 0.28, { type: 'triangle', gain: 0.16 }); tone(N(-5), t + 0.2, 0.42, { type: 'triangle', gain: 0.15 }); },
     flow: (t) => { noise(t, 0.38, { gain: 0.12, from: 600, to: 2600, q: 0.8 }); for (let i = 0; i < 3; i++) clink(t + 0.22 + i * 0.05, 0.85, 0.07); },
     sort: (t) => { for (let i = 0; i < 7; i++) clink(t + i * 0.05, 0.8 + (i % 4) * 0.12, 0.08); noise(t, 0.4, { gain: 0.05, from: 1500, to: 4000 }); },

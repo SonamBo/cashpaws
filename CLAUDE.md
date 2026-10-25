@@ -112,7 +112,9 @@ and `covers/`.
   voice and references.
 - **Images:** the person generates them with an image model from the prompts.
   `python3 tools/marketing/make-covers.py <store> <images…>` crops and sizes
-  them exactly, and warns if one was enlarged or cut too much.
+  them exactly, and warns if one was enlarged or cut too much. In-game art
+  made on a green or magenta ground goes through
+  `python3 tools/import-art.py <src> <out> --max N` (keys, trims, 3x size).
 - **Trailers:** `node tools/marketing/record-preview.mjs` records real
   gameplay at store sizes (no sound, no cursor), following
   `marketing/showcase.mjs`, the game's scripted trailer. Build the web version

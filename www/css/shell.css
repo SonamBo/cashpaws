@@ -671,6 +671,9 @@ img.art { user-select: none; -webkit-user-drag: none; }
   width: min(252px, 66vw);
   height: auto;
   margin: var(--s3) 0 var(--s5);
+  /* The 1.20.0 art is a little taller: keep the old box, fit the art inside. */
+  aspect-ratio: 278 / 217;
+  object-fit: contain;
 }
 
 .play {
@@ -1395,3 +1398,87 @@ img.art { user-select: none; -webkit-user-drag: none; }
   background: transparent; color: var(--ink-soft);
   font: inherit; font-size: var(--fs-sm); font-weight: 800;
 }
+
+/* ---------------------------------------------------------------- *
+ * The big level-end card (1.19.0): overlays.js juicyCelebrate()
+ * ---------------------------------------------------------------- */
+.ovl.ovl-party { background: rgba(36, 26, 52, .66); backdrop-filter: blur(3px); }
+.cel-party { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.cel-stack { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; }
+
+.cel-banner { position: relative; width: 330px; height: 150px; margin-bottom: -26px; z-index: 2; }
+.cel-rays {
+  position: absolute; left: 50%; top: 52%; width: 420px; height: 420px; margin: -210px 0 0 -210px;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 92, .34) 0deg 9deg, rgba(255, 214, 92, 0) 9deg 22.5deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 66%);
+          mask: radial-gradient(circle, #000 18%, transparent 66%);
+  animation: cel-spin 14s linear infinite, cel-fade-in .5s ease-out both;
+  pointer-events: none;
+}
+@keyframes cel-spin { to { transform: rotate(360deg); } }
+@keyframes cel-fade-in { from { opacity: 0; } }
+
+.cel-stars { position: absolute; left: 0; right: 0; top: 0; height: 60px; }
+.cel-star {
+  position: absolute; width: 38px; height: 38px; left: 50%;
+  --x: calc((var(--i) - 2) * 50px);
+  --y: calc(abs(var(--i) - 2) * 10px);
+  transform: translate(calc(-50% + var(--x)), var(--y)) rotate(calc((var(--i) - 2) * 12deg)) scale(0);
+  animation: cel-star .5s cubic-bezier(.3, 1.8, .5, 1) both;
+  animation-delay: calc(260ms + var(--i) * 110ms);
+  filter: drop-shadow(0 3px 0 rgba(120, 60, 10, .45)) drop-shadow(0 0 8px rgba(255, 210, 80, .8));
+}
+.cel-star.s2 { width: 50px; height: 50px; top: -8px; }
+.cel-star svg { width: 100%; height: 100%; display: block; }
+/* abs() isn't everywhere yet: set the arc by hand. */
+.cel-star.s0, .cel-star.s4 { --y: 20px; }
+.cel-star.s1, .cel-star.s3 { --y: 6px; }
+.cel-star.s2 { --y: 0px; }
+@keyframes cel-star {
+  from { transform: translate(calc(-50% + var(--x)), calc(var(--y) + 30px)) rotate(-90deg) scale(0); }
+  to   { transform: translate(calc(-50% + var(--x)), var(--y)) rotate(calc((var(--i) - 2) * 12deg)) scale(1); }
+}
+
+.cel-headline {
+  position: absolute; left: 0; right: 0; top: 46px; margin: 0;
+  font-size: 52px; font-weight: 900; letter-spacing: .01em; line-height: 1; text-align: center;
+  background: linear-gradient(#fff6b0 10%, #ffd02a 48%, #ff9d00 82%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 2.5px #7a3d08;
+  filter: drop-shadow(0 4px 0 #a2560c) drop-shadow(0 8px 12px rgba(0, 0, 0, .35));
+  animation: cel-pop .6s cubic-bezier(.25, 1.7, .45, 1) both;
+}
+@keyframes cel-pop {
+  0% { transform: scale(.2) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+  100% { transform: none; }
+}
+
+.cel-ribbon {
+  position: absolute; left: 50%; top: 104px; transform: translateX(-50%);
+  padding: 6px 30px 8px;
+  background: linear-gradient(#ffb43a, #f08a12);
+  color: #fff; font-weight: 900; font-size: 17px; white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(122, 61, 8, .6);
+  clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
+  box-shadow: inset 0 -3px 0 rgba(122, 61, 8, .25);
+  animation: cel-ribbon .45s .2s cubic-bezier(.3, 1.5, .5, 1) both;
+}
+@keyframes cel-ribbon { from { transform: translateX(-50%) scaleX(0); } to { transform: translateX(-50%) scaleX(1); } }
+
+.cel-cat { width: 170px; margin-bottom: -6px; animation: cel-cat .6s .25s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes cel-cat { from { transform: translateY(40px); opacity: 0; } }
+.cel-card { animation: cel-card .5s .1s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes cel-card { from { transform: translateY(60px) scale(.92); opacity: 0; } }
+.cel-figure { animation: cel-pop .55s .55s cubic-bezier(.25, 1.7, .45, 1) both; }
+.cel-card .ovl-gains li { animation: cel-gain .4s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(700ms + var(--i) * 120ms); }
+@keyframes cel-gain { from { transform: translateX(-16px) scale(.8); opacity: 0; } }
+
+/* Short screens: lose the cat, tighten the banner. */
+#app.short .cel-cat { display: none; }
+#app.short .cel-banner { height: 132px; margin-bottom: 8px; }
+#app.short .cel-headline { font-size: 44px; top: 42px; }
+#app.short .cel-ribbon { top: 92px; }
+
+.ovl-party.still *, .ovl-party.still { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ovl-party * { animation: none !important; } }

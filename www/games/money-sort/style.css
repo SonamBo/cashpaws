@@ -71,8 +71,7 @@
   -webkit-user-drag: none;
 }
 
-/* bills are wider than they are tall */
-.chip.v20 { width: calc(var(--chip-d) + 6px); }
+/* Every coin and note is the same square (1.19.0): coins fill its circle, notes its width. */
 
 .chip.lifted { transform: translateY(-6px); }
 
@@ -123,7 +122,8 @@
 }
 
 .glass {
-  /* tube.png is 232x703; slices are in its pixels, widths scale with the tube */
+  /* tube.png is 407x1414 (1.20.0 art): slices are in its pixels (rim 97, walls
+     44, rounded base 163), drawn at the old widths so the board's maths holds */
   box-sizing: border-box;
   width: var(--tube-w);
   padding: 0;
@@ -142,7 +142,7 @@
     calc(var(--tube-w) * 64 / 232)
     calc(var(--tube-w) * 17 / 232);
   border-image-source: url(img/tube.png);
-  border-image-slice: 88 17 92 17 fill;
+  border-image-slice: 97 44 163 44 fill;
   border-image-repeat: stretch;
 }
 
@@ -441,7 +441,7 @@
 }
 
 /* ---------------------------------------------------------------- *
- * The selected tube (1.15.2): high contrast. A solid, near-black green
+ * The selected tube (1.19.0: lighter, for the clear glass; was high contrast). A solid, near-black green
  * ring (four hard drop-shadows build a 3px outline around the tube's
  * shape), a warm gold glow outside it, a deep tint inside, a clear lift,
  * and the coins that will move raised above the rest. Specific enough to
@@ -449,15 +449,10 @@
  * ---------------------------------------------------------------- */
 .board .tube.selected {
   transform: translateY(-12px);
+  /* 1.19.0: light, for the clear glass tube: a soft warm glow, no dark ring. */
   filter:
-    drop-shadow(1.5px 0 0 #123a22)
-    drop-shadow(-1.5px 0 0 #123a22)
-    drop-shadow(0 1.5px 0 #123a22)
-    drop-shadow(0 -1.5px 0 #123a22)
-    drop-shadow(1.5px 0 0 #123a22)
-    drop-shadow(-1.5px 0 0 #123a22)
-    drop-shadow(0 0 5px rgba(255, 196, 40, .95))
-    drop-shadow(0 10px 10px rgba(18, 58, 34, .45));
+    drop-shadow(0 0 4px rgba(255, 220, 140, .8))
+    drop-shadow(0 8px 10px rgba(120, 90, 40, .16));
 }
 .glass { position: relative; }
 .tube.selected .glass::before {
@@ -465,7 +460,7 @@
   position: absolute;
   inset: calc(var(--tube-w) * 14 / 232) calc(var(--tube-w) * 20 / 232) calc(var(--tube-w) * 40 / 232);
   border-radius: 0 0 calc(var(--tube-w) * .4) calc(var(--tube-w) * .4);
-  background: rgba(18, 58, 34, .30);
+  background: rgba(255, 246, 220, .14);
   pointer-events: none;
 }
 /* translate, not transform: the chip-in animation holds transform for good. */
@@ -475,3 +470,28 @@
 /* Sort, short of coins but with a way to get them: still the Sort colour, the price greyed. */
 .act-sort.short .act-cost { background: rgba(84, 57, 62, .18); color: #fff; }
 .act-sort.short .coin-art { filter: grayscale(1); opacity: .7; }
+
+/* ---------------------------------------------------------------- *
+ * Coin flights (fx.js): the layer the flying coins and their trails
+ * draw on, the source tube's glow, and the landing bounce.
+ * ---------------------------------------------------------------- */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: visible; }
+.fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fx-coin {
+  position: absolute; left: 0; top: 0;
+  object-fit: contain;
+  will-change: transform;
+  filter: drop-shadow(0 4px 5px rgba(60, 40, 20, .28));
+}
+.board .tube.launch .glass {
+  box-shadow: 0 0 0 2px rgba(255, 211, 107, .85), 0 0 18px 4px rgba(255, 196, 64, .55);
+  border-radius: 0 0 calc(var(--tube-w) * .4) calc(var(--tube-w) * .4);
+  transition: box-shadow .12s;
+}
+.chip.land { animation: chip-land .34s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes chip-land {
+  0%   { transform: translateY(-3px) scale(1.12, .82); }
+  45%  { transform: translateY(1px) scale(.94, 1.08); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .chip.land { animation: none; } }

@@ -11,6 +11,7 @@ import { Game, poolForLevel, DEFAULTS, levelKind, levelModifiers, netWorthFloor,
 import { BoardView, vmOf, money } from './board.js';
 import { stuckCard } from './cards.js';
 import { createTutorial } from './ftue.js';
+import { FX_SOUNDS } from './fx.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -31,6 +32,7 @@ export function migrateV1(saved) {
 
 export default {
   id: 'money-sort',
+  sounds: FX_SOUNDS,     // coin flights: landing clinks, cash-in chimes, lift-off swoosh (fx.js)
   name: 'Money Sort',
   saveVersion: 2,          // 2: shorter levels (1.6); older saves are rescaled on load
   // Bell Quest opens once level 7, the first Hard level, is beaten. A step is a
@@ -84,6 +86,7 @@ export default {
     let view;
     let frames = [];
     let busy = false;
+    let sortsThisLevel = 0;   // a level beaten without one is PERFECT!
     let perk = {};
     let chipSet = 'a';
     const tutorial = createTutorial({
@@ -163,22 +166,24 @@ export default {
         switch (e.type) {
           case 'move':
             paint(vm);
-            host.sound('drop');
-            view.finishMove(e.to, e.count || 1);
-            await wait(180);
+            await view.finishMove(e.to, e.count || 1);   // the coins fly over (fx.js)
+            await wait(60);
             break;
 
-          case 'bank':
+          case 'bank': {
+            const before = view.fx.snapshot(view.tubes)[e.column];
             paint(vm);
             view.bankPop(e.column, e.amount);
             host.sound('bank');
-            host.haptic(14);
-            await wait(420);
+            host.haptic([0, 14, 40, 22]);
+            view.collect(before);                        // the four coins fly up into the bar
+            await wait(460);
             break;
+          }
 
           case 'levelup': {
             paint(vm);
-            host.sound('levelup');
+            // No jingle here: the level-end card opens with its own fanfare.
             host.haptic([0, 18, 70, 26]);
             await wait(120);
             const gains = [];
@@ -198,37 +203,47 @@ export default {
             gains.push(e.freeSort ? 'Sort: free this level' : `Sort: ${vm.sortPrice}`);
             gains.push(`+${e.coins} coins${e.beatHard ? ' &middot; Hard bonus' : ''}`);
             await host.celebrate({
+              juicy: true,                                   // the big card: stars, fireworks, confetti
+              headline: sortsThisLevel ? 'LEVEL UP!' : 'PERFECT!',
+              ribbon: `Level ${e.level - 1} complete!`,
               kicker: 'Level up',
               title: `Level ${pad(e.level)} unlocked`,
               figure: money(e.netWorth),
               reward: gains,
               share: true,
             });
+            sortsThisLevel = 0;
             // Before the new level starts: Bell Quest shows its step here.
             await host.levelBreak();
             await host.moment('level-complete');
             break;
           }
 
-          case 'inflow':
+          case 'inflow': {
+            const before = view.counts();
             paint(vm);
             view.flowPulse(e.count);
             host.sound('flow');
             host.haptic(18);
-            await wait(420);
+            await Promise.all([view.flyIn(before), wait(420)]);   // new coins arc in from the strip
             break;
+          }
 
-          case 'sort':
+          case 'sort': {
+            const before = view.fx.snapshot(view.tubes);
             paint(vm);
             host.sound('sort');
             host.haptic(16);
-            await wait(380);
+            await Promise.all([view.regroup(before), wait(380)]);  // every coin flies to its new place
             break;
+          }
 
-          case 'refill':
+          case 'refill': {
+            const before = view.counts();
             paint(vm);
-            await wait(320);
+            await Promise.all([view.flyIn(before), wait(320)]);
             break;
+          }
 
           case 'lock': {
             paint(vm);
@@ -335,6 +350,7 @@ export default {
     }
 
     function trackSort(how, where) {
+      sortsThisLevel += 1;
       host.track('sort_used', { level: game.level, how, where, price: how === 'paid' ? game.sortPrice : 0 });
     }
 

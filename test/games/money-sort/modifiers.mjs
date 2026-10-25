@@ -64,10 +64,11 @@ for (let k = 0; k < 2; k++) {
   });
   const [a, z] = await p.evaluate(() => { const f = game.columns.map((c, i) => i).filter((i) => !game.isLocked(i)); return [f[1], f[0]]; });
   await p.click(`.tube[data-col="${a}"]`); await p.waitForTimeout(150);
-  await p.click(`.tube[data-col="${z}"]`); await p.waitForTimeout(900);
+  await p.click(`.tube[data-col="${z}"]`);
+  await p.waitForFunction(() => !document.body.classList.contains('busy'), null, { timeout: 5000 });
   if (k === 0) check('one cash-in: 1 to go', (await p.locator(`.tube[data-col="${lockCol}"] .lock b`).textContent().catch(() => '')) === '1');
 }
-await p.waitForTimeout(700);
+await p.waitForTimeout(1400);       // the coins fly (fx.js), then the cash-in, then the padlock
 check('two: the padlock opens and goes', await p.locator('.lock').count() === 0 && await p.evaluate(() => game.locked === null));
 
 /* ---- the reported bug: a real, busy board at the level-up ---- */

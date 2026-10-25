@@ -5,6 +5,7 @@
  */
 
 import { cat, icons } from './art.js';
+import { startParty, reducedMotion } from './party.js';
 import APP from '../app.config.js';
 
 export const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -39,8 +40,64 @@ const button = (card, sel) => new Promise((resolve) => {
   card.querySelector(sel).addEventListener('click', async () => { await dismiss(card); resolve(); });
 });
 
+const STAR = `<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="cel-star" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#fff3a1"/><stop offset=".55" stop-color="#ffc928"/><stop offset="1" stop-color="#f29a00"/></linearGradient></defs>
+  <path d="M24 3.5l6.1 12.6 13.9 2-10.1 9.7 2.4 13.8L24 35.1l-12.3 6.5 2.4-13.8L4 18.1l13.9-2z" fill="url(#cel-star)" stroke="#8a4a10" stroke-width="2.6" stroke-linejoin="round"/>
+  <path d="M17 14.5l3.2-1 1.6-3.6" fill="none" stroke="#fffbe0" stroke-width="2.2" stroke-linecap="round" opacity=".9"/></svg>`;
+
+/**
+ * The juicy version, for a level beaten: a sunburst, five stars popping in
+ * one by one over a golden headline on a ribbon, fireworks and confetti over
+ * a darkened screen, the rewards popping in. `onBeat(kind, i)` fires on each
+ * star ('star'), firework ('boom') and the opening ('open'), so the host can
+ * play sound and buzz in time. Reduced motion: the same card, standing still.
+ */
+function juicyCelebrate({ headline = 'LEVEL UP!', ribbon = '', kicker, title, figure, reward, go, onShare, onBeat = () => {} }) {
+  const gains = [].concat(reward || []).filter(Boolean);
+  const card = show(`
+    <canvas class="cel-party" aria-hidden="true"></canvas>
+    <div class="ovl-stack cel-stack">
+      <div class="cel-banner">
+        <div class="cel-rays" aria-hidden="true"></div>
+        <div class="cel-stars">${[0, 1, 2, 3, 4].map((i) => `<i class="cel-star s${i}" style="--i:${i}">${STAR}</i>`).join('')}</div>
+        <h1 class="cel-headline" data-text="${headline}">${headline}</h1>
+        ${ribbon ? `<div class="cel-ribbon"><span>${ribbon}</span></div>` : ''}
+      </div>
+      ${cat('cheer', 210, 'ovl-cheer cel-cat')}
+      <div class="ovl-card cel-card">
+        <p class="ovl-kicker">${kicker}</p>
+        <h2 class="ovl-h">${title}</h2>
+        ${figure ? `<p class="ovl-figure cel-figure">${figure}</p>` : ''}
+        ${gains.length ? `<ul class="ovl-gains">${gains.map((r, i) => `<li style="--i:${i}">${r}</li>`).join('')}</ul>` : ''}
+        <button class="ovl-btn primary" data-go>${go}</button>
+        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} Share</button>` : ''}
+      </div>
+    </div>`, 'milestone ovl-party');
+  card.querySelector('[data-share]')?.addEventListener('click', (e) => { e.stopPropagation(); onShare(); });
+
+  const timers = [];
+  let party = null;
+  if (!reducedMotion()) {
+    party = startParty(card.querySelector('.cel-party'));
+    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    onBeat('open', 0);
+    [0, 1, 2, 3, 4].forEach((i) => at(260 + i * 110, () => onBeat('star', i)));
+    at(120, () => party.confetti(70));
+    [[0.22, 0.2], [0.78, 0.17], [0.5, 0.1], [0.15, 0.32], [0.85, 0.3]].forEach(([x, y], i) => at(520 + i * 380, () => {
+      party.firework(x, y, { power: i === 2 ? 1.25 : 1 });
+      onBeat('boom', i);
+    }));
+    at(1500, () => party.confetti(40));
+    at(2800, () => party.confetti(30));
+  } else {
+    card.classList.add('still');
+  }
+  return button(card, '[data-go]').then(() => { timers.forEach(clearTimeout); party?.stop(); });
+}
+
 /** Sage, the worn cat cheering. A level, a record, whatever the game calls a win. */
-export function celebrate({ kicker = 'Well done', title, figure = '', reward = '', go = 'Keep going', onShare = null }) {
+export function celebrate({ kicker = 'Well done', title, figure = '', reward = '', go = 'Keep going', onShare = null, juicy = false, headline, ribbon, onBeat }) {
+  if (juicy) return juicyCelebrate({ headline, ribbon, kicker, title, figure, reward, go, onShare, onBeat });
   const card = show(`
     <div class="ovl-stack">
       ${cat('cheer', 210, 'ovl-cheer')}

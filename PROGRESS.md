@@ -1476,3 +1476,33 @@ What to watch after release (GA, new users from the 1.17.0 date):
   skip the gift where they test level breaks, and move time on for the
   3-minute gap. `swap.mjs` no longer writes to a hard-coded path.
 - versionCode 29, versionName 1.18.0.
+
+## 1.19.0: coin flights, the big level-end card, sharper art
+
+- **Coin flights** (`www/games/money-sort/fx.js`): every coin that moves flies
+  in a high arc, flipping, with a glowing trail in its own colour and
+  sparkles; it lands with a bounce, a clink that climbs coin by coin and a
+  light buzz. Moves, Sort (every coin to its new place), new coins (from the
+  NEW COINS strip) and cash-ins (up into the progress bar). The source tube
+  glows gold. Reduced motion: the old slide.
+- **Level-end card** (`www/shell/party.js`, `celebrate({ juicy: true })`):
+  "PERFECT!" (no Sort used) or "LEVEL UP!", a ribbon, five stars popping in,
+  a turning sunburst, fireworks and confetti over a darkened screen, rewards
+  popping in. Fanfare, a chime per star, a boom per firework, buzzes in time.
+  In the shell, so any game can use it.
+- **Art** from the user's new set, through `tools/import-art.py` (keys green
+  or magenta grounds, un-mixes see-through glass, drops ChatGPT's corner
+  sparkle, trims, sizes to 3x): both chip sets (Mint $1 = the blue $1 coin),
+  coin icon, heart, logo, tagline, lobby hero, room background, the tube
+  (clear glass, rounded base; border-image slices 97/44/163, layout maths
+  unchanged), Patch's four poses (the brown Patch from cat-cheer, ref-cat,
+  cat-sad, knob-cat; the spotted cat-patch-* set is not used). The lobby hero
+  keeps its old box. The four-cat sheet isn't used: 313 px a pose, below the
+  600 px those cats have now. Quest art was unchanged.
+- After play-testing: the selected tube is light (a soft warm glow and a
+  faint cream wash; the dark ring piled up on the clear glass), coins and
+  notes are 30% less saturated, and every coin and note is the same size
+  (coins fill one circle, notes take its width; the $20's extra 6 px went to
+  every coin, so all are a little bigger). Readability variants with
+  redrawn numbers were tried and not taken.
+- versionCode 30, versionName 1.19.0.
