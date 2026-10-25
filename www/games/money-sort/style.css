@@ -495,3 +495,86 @@
   100% { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .chip.land { animation: none; } }
+
+/* ---------------------------------------------------------------- *
+ * Puzzle of the Day (potd.js): its own screen over the board
+ * ---------------------------------------------------------------- */
+
+.ms-root.potd-on > :not(.potd) { visibility: hidden; }
+.potd {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+}
+.potd[hidden] { display: none; }
+.potd-head {
+  position: relative;
+  flex: 0 0 auto;
+  padding: var(--s2) var(--s5) var(--s2);
+  text-align: center;
+}
+.potd-x {
+  position: absolute;
+  right: var(--s3);
+  top: var(--s1);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-sunk);
+  color: var(--cocoa);
+}
+.potd-kicker {
+  margin: 0;
+  color: var(--orange);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.potd-title { margin: 2px 0 0; color: var(--cocoa); font-size: 22px; font-weight: 1000; }
+.potd-goal { margin: 2px 0 var(--s2); color: var(--cocoa-soft); font-size: 13.5px; font-weight: 700; }
+.potd-goal b { color: var(--cocoa); font-weight: 1000; }
+.potd-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 16px;
+  border-radius: var(--r-pill);
+  background: var(--cocoa);
+  color: #fff;
+  transition: background var(--t-base) var(--ease);
+}
+.potd-count b { font-size: 22px; font-weight: 1000; font-variant-numeric: tabular-nums; }
+.potd-count span { font-size: 12px; font-weight: 800; }
+.potd-count.low { background: #dd5b57; }
+.potd-stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.potd-stage > .flow { display: none; }
+.potd-stage .act-cost { font-weight: 800; }
+.potd-stage .act-sort.potd-restart { background: var(--taupe); }
+#app.short .potd-head { padding-top: var(--s1); padding-bottom: var(--s1); }
+#app.xshort .potd-goal { display: none; }
+
+/* The share clip, playing as it records. */
+.potd-clip { text-align: center; }
+.potd-clip-canvas {
+  display: block;
+  width: min(56vw, 230px);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  margin: var(--s2) auto;
+  border-radius: 14px;
+  box-shadow: var(--shadow-lift);
+}
+.potd-clip-bar { height: 6px; margin: var(--s2) 0; overflow: hidden; border-radius: 3px; background: var(--bar-track); }
+.potd-clip-bar i { display: block; width: 0; height: 100%; background: var(--bar-fill); transition: width .2s linear; }

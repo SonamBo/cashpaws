@@ -3,7 +3,7 @@
  * shell. See docs/GAME-MODULE.md for the contract.
  */
 
-import { cat, coinIcon } from './art.js';
+import { cat, coinIcon, logo } from './art.js';
 import { asset } from './assets.js';
 import { celebrate, setback, confirm, show, dismiss, wait } from './overlays.js';
 
@@ -93,9 +93,29 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
     coinsForSale: () => !!events.coinsForSale?.(),
     openCoins: (from) => events.openCoins?.(from) ?? Promise.resolve(),
 
+    /*
+     * A button of the game's own on the lobby, opposite Bell Quest's: a daily
+     * challenge, an event. host.lobbyButton('daily-puzzle', { icon: <a file in the game's folder>,
+     * pill: 'Solve!', badge: '3', news: true, label: 'Puzzle of the Day' })
+     * shows or updates it; null takes it away. A tap opens the game screen and
+     * calls the instance's openFromLobby(id) first.
+     */
+    lobbyButton: (id, o) => events.lobbyButton?.(id, o ? { ...o, icon: o.icon ? asset(game.path + o.icon) : '' } : null),
+
+    /*
+     * Share a file the game made, such as a replay clip: await host.shareFile({
+     * blob, name: 'clip.mp4', text: 'I solved it in 9 moves', from: 'puzzle' }).
+     * The phone's share sheet on Android (the store link is added to the text),
+     * the browser's where it can share files, a download otherwise. Resolves
+     * true once something opened. host.canShareFile() says whether to offer it.
+     */
+    shareFile: (o) => events.shareFile?.(o) ?? Promise.resolve(false),
+    canShareFile: () => !!events.canShareFile?.(),
+
     art: {
       cat: (pose, width, cls = '') => cat(pose, width, cls),
       coin: (width) => coinIcon(width),
+      logo: (width) => logo(width),       // the app's title art, for a game's own cards and clips
     },
     asset: (path) => asset(game.path + path),
 

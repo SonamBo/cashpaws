@@ -617,6 +617,12 @@ async function boot() {
   lobby.on('quest', openQuest);
   lobby.on('coins', openCoins);
   lobby.on('share', () => social.share('lobby'));
+  // A game's own lobby button: the game gets ready first, then its screen opens.
+  lobby.on('extra', (id) => {
+    track('lobby_button', { id });
+    instance.openFromLobby?.(id);
+    showScreen('game');
+  });
 
   setWornCat(shell.cats.worn);
   await loadStyles(game);
@@ -648,6 +654,9 @@ async function boot() {
       levelLossWarning, confirmLevelLoss, track,
       shortOf, shortHelps, openCoins, coinsForSale: () => !!billing?.enabled,
       shareFrom: (from) => (social?.canShare ? () => social.share(from) : null),
+      lobbyButton: (id, o) => lobby.setExtra(id, o),
+      shareFile: (o) => social?.shareFile(o) ?? Promise.resolve(false),
+      canShareFile: () => !!social?.canShareFile,
     },
   });
 

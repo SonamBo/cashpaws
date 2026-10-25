@@ -117,6 +117,8 @@ don't count towards `coinsEarned`, which reveals cats.
 | `cloud_restore_offer` | level (the cloud save's), local_level ("Continue from level N?" shown) |
 | `cloud_restore` | restored (true: took the cloud save; false: started fresh) |
 | `share_open` | from: `lobby`, `settings`, `levelup` (the share sheet opened; whether they sent it is unknown) |
+| `share_file` | from (the game's word, e.g. `puzzle`), type (`video/mp4`, `image/png`…), kb (a file the game made went to the share sheet, since 1.20.0) |
+| `lobby_button` | id (a game's own lobby button was tapped, e.g. `daily-puzzle`, since 1.20.0) |
 | `review_request` | at: 3, 11 or 26 (the level just reached: after clearing 2, 10, 25) |
 | `review_done` | at, asked (Google's sheet finished; it never says whether it showed or they rated) |
 

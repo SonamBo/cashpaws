@@ -85,6 +85,7 @@ says so. A game with no `cosmetics` shows an empty Shop section.
 | `canOffer(task)` | no | return `false` to keep a task out of today's draw, e.g. one the player cannot do yet |
 | `rewardValue()` | no | coins a reward is worth right now; the Rewards Box pays about half of it. Money Sort returns its Sort price. Default 150 |
 | `relayout()` | no | the screen size or orientation changed |
+| `openFromLobby(id)` | no | the player tapped the game's own lobby button `id` (`host.lobbyButton`); called just before the game screen shows |
 | `dev` | no | `{ buttons: [{ id, label, run }], readout() }` for `?dev=1` |
 
 ## What the shell hands in: `host`
@@ -126,6 +127,7 @@ host.rewarded.available(where)    // is a rewarded ad ready for this placement?
 host.rewarded.show(where)         // resolves true if the player earned the reward
 
 host.art.cat(pose, width, cls)    // the worn cat: 'peek' | 'cheer' | 'slump' | 'face'
+host.art.logo(width)              // the app's title art, as an <img>, for a game's own cards or clips
 host.art.coin(width)
 host.asset(path)                  // this game's file, e.g. 'img/chip-5.png' — always
                                   // go through this; the single-file build depends on it
@@ -213,6 +215,32 @@ which adds a small Share button where sharing works. The rating sheet is asked
 at `host.levelBreak()` after levels 2, 10 and 25 are cleared (that break has no
 Ad break), and the cloud save copies the whole save, the game's slot included,
 through `serialize()`: nothing to do there.
+
+## A button on the lobby, and sharing a file
+
+A daily challenge or an event of the game's own can have a lobby button,
+opposite Bell Quest, in the same gold disc:
+
+```js
+host.lobbyButton('daily-puzzle', {
+  icon: 'img/puzzle-day.svg',     // in the game's folder
+  label: 'Puzzle of the Day',     // for screen readers
+  pill: 'Puzzle',                 // the line under it
+  badge: '3🔥',                   // the corner badge, or ''
+  news: true,                     // wiggle: something waits
+});
+host.lobbyButton('daily-puzzle', null);   // take it away
+```
+
+Call it again whenever what it says changes (the game's `start`, `hide` and
+`resume` are good moments: the lobby shows after `hide`, and midnight may
+pass in the background). A tap calls the instance's `openFromLobby(id)`, then
+shows the game screen.
+
+`await host.shareFile({ blob, name, text, from })` shares a file the game
+made, such as a replay clip: the phone's share sheet in the Android app (the
+store link is added to `text`), the browser's where it can share files, a
+download otherwise. `host.canShareFile()` says whether to offer the button.
 
 ## Short of coins
 

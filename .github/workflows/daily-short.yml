@@ -1,0 +1,59 @@
+# Every evening: render the day's Puzzle of the Day solution as a YouTube
+# Short and upload it. 16:35 UTC is 22:05 in India, inside the day's last two
+# hours; GitHub can start a scheduled run late, and the 2-hour window absorbs it.
+# Without the YouTube secrets it still renders, and the video is in the run's
+# artifacts. Setup: tools/daily-short/README.md.
+name: Daily Short
+
+on:
+  schedule:
+    - cron: '35 16 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Puzzle date, YYYY-MM-DD (empty: today in India)'
+        required: false
+      upload:
+        description: 'Upload to YouTube'
+        type: boolean
+        default: true
+
+concurrency:
+  group: daily-short
+  cancel-in-progress: false
+
+jobs:
+  short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Playwright and ffmpeg
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install --with-deps chromium
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+
+      - name: Render the Short
+        run: node tools/daily-short/render.mjs ${{ inputs.date && format('--date {0}', inputs.date) || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-short
+          path: dist/short/*.mp4
+          retention-days: 14
+
+      - name: Upload to YouTube
+        if: github.event_name == 'schedule' || inputs.upload
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          YT_PRIVACY: ${{ vars.YT_PRIVACY }}
+        run: |
+          for meta in dist/short/*.json; do node tools/daily-short/upload.mjs "$meta"; done

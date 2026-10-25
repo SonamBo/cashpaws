@@ -28,6 +28,7 @@ export class LobbyView {
         <span class="quest-disc">${bell(40)}<i class="quest-badge" data-quest-badge hidden></i></span>
         <span class="quest-pill" data-quest-pill></span>
       </button>
+      <div class="lobby-extras" data-extras></div>
       <main class="lobby-main">
         ${logo(222)}
         ${tagline(190)}
@@ -55,6 +56,11 @@ export class LobbyView {
     $('[data-box]').addEventListener('click', () => this.fire('box'));
     $('[data-quest]').addEventListener('click', () => this.fire('quest'));
     $('[data-coin-pill]').addEventListener('click', () => this.fire('coins'));
+    this.el.extras = $('[data-extras]');
+    this.el.extras.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-extra]');
+      if (b) this.fire('extra', b.dataset.extra);
+    });
     this.el.share = $('[data-share]');
     this.el.share.addEventListener('click', () => this.fire('share'));
     this.el.nav.addEventListener('click', (e) => {
@@ -95,6 +101,33 @@ export class LobbyView {
     const badgeEl = this.root.querySelector('[data-quest-badge]');
     badgeEl.textContent = badge;
     badgeEl.hidden = !badge;
+  }
+
+  /**
+   * A game's own button (host.lobbyButton), on the right, opposite Bell Quest:
+   * its icon in the same disc, a pill under it, a badge, a wiggle for news.
+   * null removes it.
+   */
+  setExtra(id, o) {
+    let b = this.el.extras.querySelector(`[data-extra="${CSS.escape(id)}"]`);
+    if (!o) { b?.remove(); return; }
+    if (!b) {
+      b = document.createElement('button');
+      b.className = 'extra-btn';
+      b.dataset.extra = id;
+      b.innerHTML = `<span class="quest-disc"><img alt="" draggable="false"><i class="quest-badge" hidden></i></span><span class="quest-pill"></span>`;
+      this.el.extras.appendChild(b);
+    }
+    b.setAttribute('aria-label', o.label || id);
+    b.classList.toggle('news', !!o.news);
+    const img = b.querySelector('img');
+    if (img.getAttribute('src') !== o.icon) img.src = o.icon;
+    const pill = b.querySelector('.quest-pill');
+    pill.textContent = o.pill || '';
+    pill.hidden = !o.pill;
+    const badge = b.querySelector('.quest-badge');
+    badge.textContent = o.badge || '';
+    badge.hidden = !o.badge;
   }
 
   /** A dot on the Daily tab when a task or the bonus is waiting to be claimed. */

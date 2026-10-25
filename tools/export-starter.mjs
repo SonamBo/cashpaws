@@ -54,6 +54,8 @@ const PRIVATE = [
   'docs/store-listing.md', 'docs/privacy-policy/', 'docs/LEVEL-DESIGN.md', 'docs/ROADMAP.md', 'docs/DESIGN.md',
   'docs/shots/', 'docs/BELL-QUEST-ART-PROMPTS.md', 'docs/CAT-ART-PROMPTS.md', 'docs/MODIFIER-ART-PROMPTS.md', 'docs/HIRES-ART-PROMPTS.md',
   'tools/art-src/', 'tools/process-modifier-art.py', 'tools/tune.mjs', 'tools/quest-sim.mjs',
+  // Money Sort's Puzzle of the Day Shorts (its puzzles and clip live in the game's folder)
+  'tools/daily-short/', '.github/workflows/daily-short.yml',
   // Cash Paws' own marketing (the starter gets a template from tools/starter/marketing)
   'marketing/', 'dist/',
   // this exporter and its sync

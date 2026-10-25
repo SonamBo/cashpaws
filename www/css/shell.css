@@ -1077,6 +1077,33 @@ img.art { user-select: none; -webkit-user-drag: none; }
 }
 .quest-badge[hidden] { display: none; }
 
+/* A game's own lobby buttons (host.lobbyButton): Bell Quest's disc and pill, on the right. */
+.lobby-extras {
+  position: absolute;
+  z-index: 5;
+  right: var(--s3);
+  top: calc(var(--s5) + var(--safe-top) + 52px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.lobby-extras:empty { display: none; }
+.extra-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 68px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+.extra-btn .quest-disc img { width: 44px; height: 44px; object-fit: contain; }
+.extra-btn .quest-pill[hidden] { display: none; }
+.extra-btn.news .quest-disc { animation: box-wiggle 2.4s var(--ease) infinite; }
+.extra-btn.news .quest-pill { background: #dd5b57; }
+
 /* Cards */
 .ovl-quest { background: rgba(84, 57, 62, .62); padding: var(--s4); backdrop-filter: blur(2px); }
 .q-card {

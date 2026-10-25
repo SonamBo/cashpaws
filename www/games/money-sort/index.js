@@ -12,6 +12,7 @@ import { BoardView, vmOf, money } from './board.js';
 import { stuckCard } from './cards.js';
 import { createTutorial } from './ftue.js';
 import { FX_SOUNDS } from './fx.js';
+import { createDailyPuzzle } from './potd.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -93,6 +94,18 @@ export default {
       host, getGame: () => game, getView: () => view, suggest: (g) => greedy(g),
     });
 
+    // Puzzle of the Day (potd.js): its own screen over the board, opened from its lobby button.
+    let lastSummary = '';
+    const potd = createDailyPuzzle({
+      host, root, chipSet: () => chipSet,
+      onOpen: () => {
+        tutorial.hide();
+        clockOff();
+        host.progress({ title: 'Puzzle of the Day', fraction: null, figure: '', summary: lastSummary });
+      },
+      onClose: () => { if (game) report(); if (onScreen) clockOn(); },
+    });
+
     function attach(g) {
       game = g;
       frames = [];
@@ -141,12 +154,14 @@ export default {
 
     function report(vm = vmOf(game)) {
       const started = vm.netWorth > 0 || vm.turn > 0 || vm.level > 1;
+      lastSummary = started ? `Level ${pad(vm.level)} · ${money(vm.netWorth)}` : '';
+      if (potd.isOpen) return;          // the puzzle has the header while it's open
       host.progress({
         title: vm.kind === 'hard' ? `Level ${vm.level} · Hard` : `Level ${vm.level}`,
         fraction: vm.levelProgress,
         figure: `${money(vm.netWorth)} / ${money(vm.nextFloor)}`,
         level: vm.level,
-        summary: started ? `Level ${pad(vm.level)} · ${money(vm.netWorth)}` : '',
+        summary: lastSummary,
       });
     }
 
@@ -415,9 +430,16 @@ export default {
         window.view = view;
         frames = [];
         paint(vmOf(game));
+        potd.load(saved?.potd);
+        potd.refreshLobby();
       },
 
-      serialize: () => game.serialize(),
+      serialize: () => ({ ...game.serialize(), potd: potd.serialize() }),
+
+      /** The lobby's Puzzle of the Day button: open it before the game screen shows. */
+      openFromLobby(id) {
+        if (id === 'daily-puzzle') potd.open();
+      },
 
       /** What a reward is worth right now: the Sort price, so boxes grow with the game. */
       rewardValue: () => game.sortPrice,
@@ -430,6 +452,7 @@ export default {
 
       show() {
         onScreen = true;
+        if (potd.isOpen) { potd.relayout(); return; }
         clockOn();
         view.relayout();
         report();
@@ -438,9 +461,10 @@ export default {
       },
 
       // Turn-based: nothing runs underneath, so these only stop the level clock.
-      hide() { onScreen = false; clockOff(); tutorial.hide(); },
+      hide() { onScreen = false; clockOff(); tutorial.hide(); potd.close(); },
       pause() { clockOff(); },
-      resume() { if (onScreen) clockOn(); },
+      // Back from the background: midnight may have passed, so a new puzzle may be waiting.
+      resume() { if (onScreen && !potd.isOpen) clockOn(); potd.refreshLobby(); },
 
       async restart() {
         const yes = await host.confirm({
@@ -465,9 +489,10 @@ export default {
       setCosmetic(id) {
         chipSet = id === 'notes' ? 'b' : 'a';
         if (view) { view.chipSet = chipSet; view.update(); }
+        potd.setChipSet(chipSet);
       },
 
-      relayout() { view?.relayout(); },
+      relayout() { view?.relayout(); potd.relayout(); },
 
       progressRows() {
         const rows = [];
@@ -499,6 +524,7 @@ export default {
           } },
           { id: 'inflow', label: 'Force flow', run: async () => { game.turnsUntilDrop = 1; await botStep(1); } },
           { id: 'levelup', label: 'Level up', run: () => { game.netWorth = game.nextFloor; game.checkLevelUp(); drain(); } },
+          { id: 'potd-reset', label: 'Puzzle: reset', run: () => { potd.reset(); host.save(); } },
         ],
         readout: () => `
           <dl>

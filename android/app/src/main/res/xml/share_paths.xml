@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The only files shared with other apps: the share image, copied to the cache by Social.java. -->
+<!-- The only files shared with other apps: the share image and the game's own files (a replay clip), written to the cache by Social.java. -->
 <paths>
     <cache-path name="share" path="share/" />
 </paths>

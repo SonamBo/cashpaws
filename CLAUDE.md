@@ -69,6 +69,8 @@ code's package. Renaming them breaks every future update.
 | The game's own events | `host.track(name, params)`. List them in `www/games/<id>/EVENTS.md`, not in `docs/ANALYTICS.md` |
 | Coins | `host.wallet.earn(n, reason)` / `spend(n, reason)`; never keep a separate currency |
 | Share on the level-up card | `host.celebrate({ ..., share: true })`. The shell's Share button sits in the lobby and Settings already |
+| A lobby button of its own (a daily challenge, an event) | `host.lobbyButton(id, { icon, pill, badge, news })`, and `openFromLobby(id)` on the instance |
+| Share a clip or picture it made | `await host.shareFile({ blob, name, text, from })`; `host.canShareFile()` to offer it |
 | Coin packs (real money) | nothing: the shell sells them in the Shop when `www/app.config.js` lists `coinPacks` (`SETUP.md` 7b). Coins bought arrive in the same wallet; a game never talks to billing |
 | Sound | `host.sound(name)` on the game's own moments (lift, drop, bank, levelup, flow, sort, undo, error…: `www/shell/sound.js`). The shell already plays music, button ticks, celebrations and rewards, honours the Settings switches, and goes quiet during ads and in the background |
 

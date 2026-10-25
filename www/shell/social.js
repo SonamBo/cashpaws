@@ -41,6 +41,50 @@ export function createSocial({ app, ledger, dev, toast, track = () => {}, save =
       if (dev) toast(`<span>Share sheet (stub): ${text.split('\n')[0]}</span>`, 2400);
     },
 
+    /** A file of the game's own can go out: the app's share sheet, or a browser that shares files or downloads. */
+    get canShareFile() { return !!native?.shareFileBegin || typeof document !== 'undefined'; },
+
+    /**
+     * Share a file the game made (host.shareFile). On Android it goes over
+     * the bridge in pieces (a clip is megabytes; one string that size can
+     * stall the WebView) and out through the share sheet with the store link.
+     * In a browser: its share sheet where files are allowed, else a download.
+     * The web text carries no store link: CrazyGames doesn't allow one.
+     */
+    async shareFile({ blob, name = 'share', text = '', from = 'game' }) {
+      track('share_file', { from, type: (blob?.type || '').split(';')[0], kb: Math.round((blob?.size || 0) / 1024) });
+      if (!blob) return false;
+      const mime = (blob.type || 'application/octet-stream').split(';')[0];
+      if (native?.shareFileBegin) {
+        try {
+          if (!native.shareFileBegin(name)) return false;
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          const CHUNK = 3 * 128 * 1024;                 // a multiple of 3: each piece is whole base64
+          for (let i = 0; i < bytes.length; i += CHUNK) {
+            let bin = '';
+            const part = bytes.subarray(i, i + CHUNK);
+            for (let k = 0; k < part.length; k += 8192) bin += String.fromCharCode(...part.subarray(k, k + 8192));
+            if (!native.shareFileChunk(btoa(bin))) return false;
+          }
+          native.shareFileEnd(`${text}\n${link}`.trim(), mime);
+          return true;
+        } catch { return false; }
+      }
+      const file = new File([blob], name, { type: mime });
+      try {
+        if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return true; }
+      } catch (e) { if (e?.name === 'AbortError') return true; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      if (dev) toast(`<span>Saved ${name}</span>`, 1800);
+      return true;
+    },
+
     /** The highest rating milestone reached and not yet asked, or 0. */
     reviewDue(level) {
       if (!native) return 0;                // Google Play's sheet: Android only, never the web
