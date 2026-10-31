@@ -32,7 +32,7 @@ export const SHELL_KEYS = Object.freeze({
   ads_free_days:             { default: 2, type: 'int', min: 0, max: 30, about: 'First local days of play with no Ad breaks (2 = install day and the next).' },
   ads_after_rewarded_s:      { default: 60, type: 'int', min: 0, max: 600, about: 'No Ad break this many seconds after a rewarded ad.' },
   gift_enabled:              { default: true, type: 'bool', about: 'Tomorrow\'s gift for new players.' },
-  gift_after_level:          { default: 3, type: 'int', min: 1, max: 100, about: 'The gift is offered once this level is beaten.' },
+  gift_after_level:          { default: 1, type: 'int', min: 1, max: 100, about: 'The gift is offered once this level is beaten.' },
   gift_value_share:          { default: 2, type: 'num', min: 0.25, max: 20, about: 'The gift is worth this many of the game\'s reward value (Money Sort: Sorts).' },
 });
 

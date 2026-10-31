@@ -38,7 +38,7 @@ export function freshShell() {
     reminders: { on: true, asked: false },   // local notifications; Android still asks
     audio: { sfx: true, music: true },       // Settings switches (1.15.0)
     iap: { granted: [], purchases: 0, coins: 0 },   // coin packs: tokens already paid out (1.16.0)
-    gift: emptyGift(),    // tomorrow's gift, offered once after level 3 (1.17.0)
+    gift: emptyGift(),    // tomorrow's gift, offered once after the first level (1.17.0; level 3 until 1.21.0)
     device: newDevice(),  // this install, to tell a cloud save from elsewhere (1.18.0)
     review: { asked: [] },  // rating milestones already asked (1.18.0)
   };

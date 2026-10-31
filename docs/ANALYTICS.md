@@ -76,7 +76,7 @@ to the background.
 | `do_not_sell` | on |
 | `ftue_step` | step: `move`, `stack`, `bank` (each beat of the first-time tutorial as it starts) |
 | `ftue_complete` | (the player tapped Got it on the progress-bar spotlight) |
-| `gift_offer` | level, coins, remind (whether "Remind me tomorrow" was offered): tomorrow's gift, once after level 3 |
+| `gift_offer` | level, coins, remind (whether "Remind me tomorrow" was offered): tomorrow's gift, once after the first level won (after level 3 before 1.21.0) |
 | `gift_claim` | coins, days (local days since the offer; 1 = next day), from_reminder |
 | `reminders_offer` | reason (`gift`/`box`/`quest`), yes (the in-game ask, or the gift card's buttons) |
 | `reminders_permission` | granted (Android's own prompt), reason |

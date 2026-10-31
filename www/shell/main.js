@@ -298,7 +298,7 @@ async function onLevelBreak() {
 /* ---------------------------------------------------------------- *
  * Tomorrow's gift (1.17.0) — the rules live in gift.js
  *
- * Once a new player beats level 3, a locked gift that opens tomorrow, with
+ * Once a new player beats their first level, a locked gift that opens tomorrow, with
  * the reminder offer right there. Opened on arriving in the lobby on any
  * later day, before any Bell Quest card.
  * ---------------------------------------------------------------- */

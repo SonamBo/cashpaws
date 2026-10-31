@@ -16,7 +16,7 @@
 
 import { localDay } from './daily.js';
 
-export const GIFT_AFTER_LEVEL = 3;         // offered once level 3 is beaten (level 4 reached)
+export const GIFT_AFTER_LEVEL = 1;         // offered once level 1 is beaten (1.21.0; was 3: most new players left before level 4)
 export const GIFT_VALUE_SHARE = 2;         // the gift is worth two of the game's reward value
 export const GIFT_ROUND = 50;
 export const REMINDER_EARLIEST = 9;        // 9 am local

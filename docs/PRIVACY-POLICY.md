@@ -1,4 +1,4 @@
-# Privacy Policy — Cash Paws 1.19.0
+# Privacy Policy — Cash Paws 1.21.0
 
 > Published at https://pixelartgames000.github.io/privacy-policy/ from
 > `docs/privacy-policy/index.html`. Edit both together. Google Analytics data

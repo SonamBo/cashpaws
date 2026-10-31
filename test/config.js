@@ -79,7 +79,7 @@ globalThis.CashPawsConfig = { isEnabled: () => true, getAll: () => 'not json' };
 c = createConfig();
 ok('bridge: broken JSON gives defaults', c.get('ads_interstitial_from') === 11);
 globalThis.CashPawsConfig = { isEnabled: () => { throw new Error('gone'); } };
-ok('bridge: throwing gives defaults', createConfig().get('gift_after_level') === 3);
+ok('bridge: throwing gives defaults', createConfig().get('gift_after_level') === 1);
 delete globalThis.CashPawsConfig;
 
 /* ---- the values reach the rules ---- */

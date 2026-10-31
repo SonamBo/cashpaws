@@ -1506,7 +1506,36 @@ What to watch after release (GA, new users from the 1.17.0 date):
   every coin, so all are a little bigger). Readability variants with
   redrawn numbers were tried and not taken.
 - versionCode 30, versionName 1.19.0.
-## 1.21.0: Remote Config, difficulty per level, help when stuck
+## 1.21.0: Remote Config, difficulty per level, help when stuck, gift after level 1
+
+Retention review, 31 Oct (GA, installs 24–30 Oct; versions in use 1.19.0,
+1.17.0, 1.15.2; 1.20.0 not yet with players):
+- D1 fell to ~6% (4 of 65), from ~20%. Mostly the audience: the paid
+  campaign (cpc) ended 22 Oct; its players returned at ~22% (16 of 73).
+  Since 23 Oct installs are organic, worldwide, 1–3 min first sessions:
+  2 of 48 returned on day 1.
+- One device model (IN2025) counted 13 new users in a week: test reinstalls.
+  Test with the debug build, which reports to its own Firebase app.
+- Tomorrow's gift works where it's seen: 8 of the 22 players offered it came
+  back to open it (~36%). But it came after level 3, and of 70 new players
+  46 reached level 2, 25 level 3, 17 level 4. So it moves to after level 1.
+- Stuck boards are rare for new players (17 players all week, mostly on
+  levels 10–15): level 2's drop-off is attention, not difficulty.
+- Ads $0.33 for the week; ad loads failed for 19 players. 14 players tapped
+  a coin-pack price, none bought (`iap_result` status not yet reportable).
+
+Changes on top of the Remote Config work below (first built as a 1.19.0 that
+never shipped; renumbered after main's 1.19.0 and 1.20.0):
+- **Tomorrow's gift after the first level won** (`gift_after_level` 1, was 3).
+  Worth two Sorts at that point: 350 coins.
+
+What to watch (new players from this release's date; directional until
+~300 installs): `first_open` → `ftue_complete` → `level_up` level 2 →
+`gift_offer` → `reminders_permission` granted → `gift_claim`. Targets:
+gift offered to 60%+ of new players (was ~30%), gift claimed by 30%+ of
+those offered, organic D1 10%+. `config_ready` source should be `remote`
+or `cached` for most sessions once values are set in the console.
+
 
 Why: tuning retention needed a Play release for every number. The Block
 Blast breakdown (ayoships.com) showed the useful half of their system:

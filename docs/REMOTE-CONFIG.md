@@ -37,7 +37,7 @@ keys in its manifest's `remote` field and reads them with `host.remote(key)`
 | `ads_free_days` | `2` | 0–30 | First local days of play with no Ad breaks (2 = install day and the next). |
 | `ads_after_rewarded_s` | `60` | 0–600 | No Ad break this many seconds after a rewarded ad. |
 | `gift_enabled` | `true` | true/false | Tomorrow's gift for new players. |
-| `gift_after_level` | `3` | 1–100 | The gift is offered once this level is beaten. |
+| `gift_after_level` | `1` | 1–100 | The gift is offered once this level is beaten. |
 | `gift_value_share` | `2` | 0.25–20 | The gift is worth this many of the game's reward value. |
 
 A game's own keys are listed in its folder (Cash Paws:
@@ -85,7 +85,7 @@ large changes only, and expect a test to take weeks.
 
 ## Trying a value without the console
 
-With the dev server: `http://localhost:8080/?dev=1&cfg=ads_free_days:0,gift_after_level:1`
+With the dev server: `http://localhost:8080/?dev=1&cfg=ads_free_days:0,gift_after_level:3`
 (comma-separated `key:value`), or in the dev console
 `localStorage.setItem('cashpaws.dev.config', JSON.stringify({ ads_free_days: 0 }))`
 and reload.
