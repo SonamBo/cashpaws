@@ -27,8 +27,22 @@ export const DEFAULTS = Object.freeze({
   // a Hard level every fourth level from 7, each followed by an easier one.
   hardFrom: 7,
   hardEvery: 4,
-  hardJunkBonus: 0.2,     // extra junk-chip odds on a Hard level
-  hardFlowSpeedup: 1,     // turns taken off the flow interval on a Hard level
+  // Difficulty per level (1.19.0), one number each: 1 is a normal level. Each
+  // point above 1 adds hardJunkBonus to the junk odds and takes hardFlowSpeedup
+  // turns off the flow; each point below 1 does the opposite. A level at 1.5
+  // or more is a Hard level (labelled, pays 2×); 0.5 or less is a breather.
+  // Format: "level:points" entries, later ones win; "7/4" means 7, 11, 15…;
+  // "3-5" a range; "20-" level 20 and up. Unlisted levels are 1.
+  // This default is the rhythm above: Hard every fourth level from 7, the
+  // level after each a breather.
+  levelDifficulty: '7/4:2, 8/4:0',
+  hardJunkBonus: 0.2,     // junk odds per difficulty point (a Hard level at 2: +0.2)
+  hardFlowSpeedup: 1,     // flow turns per difficulty point (a Hard level at 2: one turn faster)
+  // Help when stuck (1.19.0): after this many stuck boards on one level the
+  // level plays assistEase points easier until it's beaten. 0 = off. The
+  // level keeps its label and pay; only the flow and junk ease.
+  assistAfterStuck: 2,
+  assistEase: 1,
   hardRewardMultiplier: 2,
   mysteryFrom: 9,         // face-down chips arrive here, on a normal level
   mysteryChance: 0.08,    // odds a chip the flow covers turns face down
@@ -106,11 +120,49 @@ export function columnsForLevel(level, cfg = DEFAULTS) {
   return Math.min(cfg.maxColumns, cfg.startColumns + gained);
 }
 
-/** What kind of level this is: 'hard', 'breather' (the one after), or 'normal'. */
+/**
+ * Parse a difficulty table ("7/4:2, 8/4:0, 20-:1.2") into rules, in order.
+ * Entries that don't parse are skipped and listed in `bad`. Points are kept
+ * between 0 and 4.
+ */
+const tableCache = new Map();
+export function parseDifficulty(text) {
+  const key = String(text ?? '');
+  if (tableCache.has(key)) return tableCache.get(key);
+  const rules = [];
+  const bad = [];
+  for (const raw of key.split(',')) {
+    const entry = raw.trim();
+    if (!entry) continue;
+    const m = entry.match(/^(\d+)(?:\s*(-)\s*(\d+)?|\s*\/\s*(\d+))?\s*:\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) { bad.push(entry); continue; }
+    const from = Number(m[1]);
+    const points = Math.min(4, Math.max(0, Number(m[5])));
+    if (from < 1 || (m[4] !== undefined && Number(m[4]) < 1)) { bad.push(entry); continue; }
+    if (m[4] !== undefined) rules.push({ from, every: Number(m[4]), points });
+    else if (m[2]) rules.push({ from, to: m[3] !== undefined ? Number(m[3]) : Infinity, points });
+    else rules.push({ from, to: from, points });
+  }
+  const out = { rules, bad };
+  if (tableCache.size > 50) tableCache.clear();
+  tableCache.set(key, out);
+  return out;
+}
+
+/** A level's difficulty points from the table: 1 unless a rule says otherwise. */
+export function levelDifficulty(level, cfg = DEFAULTS) {
+  let points = 1;
+  for (const r of parseDifficulty(cfg.levelDifficulty).rules) {
+    const hit = r.every ? level >= r.from && (level - r.from) % r.every === 0 : level >= r.from && level <= r.to;
+    if (hit) points = r.points;
+  }
+  return points;
+}
+
+/** What kind of level this is, from its difficulty: 'hard' (1.5+), 'breather' (0.5 or less), or 'normal'. */
 export function levelKind(level, cfg = DEFAULTS) {
-  if (level < cfg.hardFrom) return 'normal';
-  const k = (level - cfg.hardFrom) % cfg.hardEvery;
-  return k === 0 ? 'hard' : k === 1 ? 'breather' : 'normal';
+  const d = levelDifficulty(level, cfg);
+  return d >= 1.5 ? 'hard' : d <= 0.5 ? 'breather' : 'normal';
 }
 
 /** The Lucky Paw coin: counts as any value. Never face down, never frozen. */
@@ -198,6 +250,7 @@ export class Game {
     this.wallet = options.wallet || localWallet(options.coins ?? this.cfg.startCoins);
     this.moveEarned = 0;      // coins the last move's resolution paid out
     this.freeSorts = options.freeSorts ?? this.cfg.freeSorts;
+    this.stuckOn = {};          // level -> stuck boards on it, until it's beaten (help when stuck)
     this.lifetimeBanks = 0;
 
     this.columns = [];
@@ -243,12 +296,30 @@ export class Game {
   }
   get kind() { return levelKind(this.level, this.cfg); }
 
-  /** A Hard level runs the flow one turn faster; the breather after it, one slower. */
+  /** Stuck boards on the current level so far (kept across drops until it's beaten). */
+  get stuckHere() { return this.stuckOn[this.level] || 0; }
+
+  /** True once the player has been stuck often enough on this level to get help. */
+  get assisted() {
+    return this.cfg.assistAfterStuck > 0 && this.stuckHere >= this.cfg.assistAfterStuck;
+  }
+
+  /** The difficulty actually played: the level's, less the help when stuck. */
+  get difficulty() {
+    const d = levelDifficulty(this.level, this.cfg);
+    return Math.max(0, d - (this.assisted ? this.cfg.assistEase : 0));
+  }
+
+  /** Each difficulty point above 1 runs the flow hardFlowSpeedup turns faster; below 1, slower. */
   get currentInterval() {
     const shortened = Math.floor(this.dropCount / this.cfg.escalateEveryNDrops);
     const base = Math.max(this.cfg.minFlowInterval, this.cfg.flowInterval - shortened);
-    const k = this.kind;
-    return k === 'hard' ? Math.max(3, base - this.cfg.hardFlowSpeedup) : k === 'breather' ? base + 1 : base;
+    return Math.max(3, base - Math.round((this.difficulty - 1) * this.cfg.hardFlowSpeedup));
+  }
+
+  /** Odds a drop-5+ chip is junk: each difficulty point away from 1 adds or removes hardJunkBonus. */
+  get junkOdds() {
+    return Math.min(0.9, Math.max(0, this.cfg.junkChance + (this.difficulty - 1) * this.cfg.hardJunkBonus));
   }
   get coins() { return this.wallet.coins; }
   set coins(n) { this.wallet.set?.(n); }
@@ -659,6 +730,9 @@ export class Game {
     while (this.netWorth >= this.nextFloor) {
       const before = this.columnCount;
       const leaving = levelKind(this.level, this.cfg);
+      const helped = this.assisted;
+      // Beaten: its stuck count is done with, and so is any below it.
+      for (const l of Object.keys(this.stuckOn)) if (Number(l) <= this.level) delete this.stuckOn[l];
       const reward = leaving === 'hard'
         ? this.cfg.coinsPerLevelUp * this.cfg.hardRewardMultiplier
         : this.cfg.coinsPerLevelUp;
@@ -682,6 +756,7 @@ export class Game {
         columns: after,
         coins: reward,
         freeSort,
+        assisted: helped,
         beatHard: leaving === 'hard',
         kind: levelKind(this.level, this.cfg),
         mysteryArrives: this.level === this.cfg.mysteryFrom,
@@ -726,7 +801,7 @@ export class Game {
     const junky = n >= 5;
     const placed = [];
 
-    const junkChance = this.cfg.junkChance + (this.kind === 'hard' ? this.cfg.hardJunkBonus : 0);
+    const junkChance = this.junkOdds;
     const mystery = this.level >= this.cfg.mysteryFrom;
     for (const i of targets) {
       const col = this.columns[i];
@@ -773,6 +848,12 @@ export class Game {
     if (!this.isDeadlocked() && !stuck) return false;
     this.status = 'locked';
     this.selected = null;
+    const wasAssisted = this.assisted;
+    this.stuckOn[this.level] = this.stuckHere + 1;
+    // Help switches on quietly from the next drop; the game only reports it.
+    if (!wasAssisted && this.assisted) {
+      this.emit({ type: 'assist', level: this.level, stuck: this.stuckHere, difficulty: this.difficulty });
+    }
     const rescuable = this.sortCanHelp && this.canAffordSort;
     this.emit({
       type: 'lock',
@@ -953,6 +1034,7 @@ export class Game {
   serialize() {
     return {
       freeSorts: this.freeSorts,
+      stuckOn: this.stuckOn,
       seed: this.rng.seed,
       state: this.snapshot(),
       undo: this.undoSnapshot,
@@ -965,6 +1047,7 @@ export class Game {
     g.restore(data.state);
     g.undoSnapshot = data.undo || null;
     g.freeSorts = data.freeSorts ?? 0;          // saves from before 1.6 had used theirs up
+    g.stuckOn = { ...(data.stuckOn || {}) };    // absent before 1.19
     g.moveEarned = data.moveEarned || 0;
     return g;
   }

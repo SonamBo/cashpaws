@@ -1506,3 +1506,80 @@ What to watch after release (GA, new users from the 1.17.0 date):
   every coin, so all are a little bigger). Readability variants with
   redrawn numbers were tried and not taken.
 - versionCode 30, versionName 1.19.0.
+## 1.21.0: Remote Config, difficulty per level, help when stuck, gift after level 1
+
+Retention review, 31 Oct (GA, installs 24–30 Oct; versions in use 1.19.0,
+1.17.0, 1.15.2; 1.20.0 not yet with players):
+- D1 fell to ~6% (4 of 65), from ~20%. Mostly the audience: the paid
+  campaign (cpc) ended 22 Oct; its players returned at ~22% (16 of 73).
+  Since 23 Oct installs are organic, worldwide, 1–3 min first sessions:
+  2 of 48 returned on day 1.
+- One device model (IN2025) counted 13 new users in a week: test reinstalls.
+  Test with the debug build, which reports to its own Firebase app.
+- Tomorrow's gift works where it's seen: 8 of the 22 players offered it came
+  back to open it (~36%). But it came after level 3, and of 70 new players
+  46 reached level 2, 25 level 3, 17 level 4. So it moves to after level 1.
+- Stuck boards are rare for new players (17 players all week, mostly on
+  levels 10–15): level 2's drop-off is attention, not difficulty.
+- Ads $0.33 for the week; ad loads failed for 19 players. 14 players tapped
+  a coin-pack price, none bought (`iap_result` status not yet reportable).
+
+Changes on top of the Remote Config work below (first built as a 1.19.0 that
+never shipped; renumbered after main's 1.19.0 and 1.20.0):
+- **Tomorrow's gift after the first level won** (`gift_after_level` 1, was 3).
+  Worth two Sorts at that point: 350 coins.
+
+What to watch (new players from this release's date; directional until
+~300 installs): `first_open` → `ftue_complete` → `level_up` level 2 →
+`gift_offer` → `reminders_permission` granted → `gift_claim`. Targets:
+gift offered to 60%+ of new players (was ~30%), gift claimed by 30%+ of
+those offered, organic D1 10%+. `config_ready` source should be `remote`
+or `cached` for most sessions once values are set in the console.
+
+
+Why: tuning retention needed a Play release for every number. The Block
+Blast breakdown (ayoships.com) showed the useful half of their system:
+server-set values and experiments. The unfair half (unwinnable hands timed
+to expensive ads) is deliberately not copied: every rule here only eases.
+
+- **Remote Config** (Firebase, from the BoM): `RemoteConfig.java`, bridge
+  `window.CashPawsConfig`; `www/shell/config.js` owns every default, type and
+  limit. Values are read once at launch and fixed for the session; a new
+  install waits up to 1.5 s for its first fetch, so first-day A/B tests reach
+  a player's first session. A bad console value is ignored. Release builds
+  fetch at most hourly, debug builds every launch.
+- **Shell keys:** `ads_interstitials`, `ads_interstitial_from`,
+  `ads_interstitial_gap_s`, `ads_free_days`, `ads_after_rewarded_s`,
+  `gift_enabled`, `gift_after_level`, `gift_value_share`. Games declare their
+  own in the manifest's `remote` and read them with `host.remote(key)`.
+- **Money Sort keys:** `free_sort_through`, `flow_interval`, `junk_chance`,
+  `level_difficulty`, `hard_junk_bonus`, `hard_flow_speedup`,
+  `assist_after_stuck`, `assist_ease` (`www/games/money-sort/REMOTE.md`).
+  Sort price and level-up pay left out: cat perks set them too.
+- **Difficulty per level:** one number per level from a table
+  (`levelDifficulty`, default `7/4:2, 8/4:0`). Hard levels and breathers are
+  now part of it: 1.5+ is Hard, 0.5 or less a breather. Each point moves
+  junk odds by `hardJunkBonus` and flow by `hardFlowSpeedup`. The default
+  gives exactly 1.18's Hard levels (checked for levels 1–299) and the same
+  flow everywhere; one change: breathers now also have less junk (0.2, was
+  0.4).
+- **Help when stuck:** every stuck board on a level counts; after 2 (by
+  default) the level plays one point easier until beaten. Quiet, no message;
+  the level keeps its label and pay. Counts survive drops and are saved.
+  Events: `assist_on`; `level_up` gains `assisted`.
+- Simulated players (pace.js, 300 games): reach level 8 81% (was 74%),
+  level 9 65% (59%); losses per game unchanged (2.62, was 2.63).
+- `config_ready` event after `app_boot` (source, wait, changed, rejected).
+  Settings → Ad status shows Remote Config's source and changed keys.
+- Docs: `docs/REMOTE-CONFIG.md` (console steps, per-country values, A/B
+  tests, sample size), GAME-MODULE.md, ANALYTICS.md, CLAUDE.md, privacy
+  policy (Remote Config and testing settings with groups of players).
+- Tests: `test/config.js` (39), `test/games/money-sort/difficulty.js` (33);
+  preflight checks every remote key and the bridge.
+- Not run here: the Android build (CI does it on the PR) and the Playwright
+  browser tests (no Chromium in this environment).
+- versionCode 32, versionName 1.21.0.
+
+To do after release: update the hosted privacy policy from
+`docs/PRIVACY-POLICY.md`. No Data safety change: Remote Config uses the same
+Firebase app-instance ID already declared.

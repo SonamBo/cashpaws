@@ -58,6 +58,9 @@ export default {
   ],
   quest: { unlockLevel: 8, steps: 7 },   // optional: opts in to Bell Quest
   analytics: { batch: ['bank'] },        // coin reasons too frequent to send one by one
+  remote: {                // tuning values Firebase Remote Config may change (docs/REMOTE-CONFIG.md)
+    free_sort_through: { default: 5, type: 'int', min: 1, max: 50, about: 'Levels up to this one start with a free Sort.' },
+  },
   sounds: {                // the game's own effects, played with host.sound(name)
     meow: (t, { ctx, bus, tone, noise }) => { /* Web Audio nodes into bus, from time t */ },
   },
@@ -104,6 +107,7 @@ await host.levelBreak()           // between a level's celebration and the next 
 host.levelLossWarning()           // before a chosen loss: { kicker, title, line, stat, ok, cancel, answer(yes) } or null
 host.coach.tip / spotlight / clear  // tutorial coach marks; 'progress' targets the shared progress bar
 host.flag(key), host.setFlag(key) // small remembered facts, such as a finished tutorial
+host.remote(key)                  // a value declared in `remote`: Firebase's if set there, else the default; fixed for the session
 await host.confirmLevelLoss()     // before a loss the player chose; false means don't
 
 host.stats                        // this game's counters so far, read-only
@@ -204,8 +208,11 @@ this work in a new game:
 - **`await host.levelBreak()`** after the level's celebration and before the
   next level starts. Bell Quest shows its step there, then the Ad break plays.
 
-The rules live in `www/shell/ads.js` (`INTERSTITIAL_FROM_LEVEL`,
-`AFTER_REWARDED_MS`). They are the same for every game built on this shell.
+The rules live in `www/shell/ads.js`. Since 1.19.0 each can be changed from
+Firebase Remote Config without an app update (`ads_interstitials`,
+`ads_interstitial_from`, `ads_interstitial_gap_s`, `ads_free_days`,
+`ads_after_rewarded_s`; see `docs/REMOTE-CONFIG.md`), per country too. The
+defaults are the same for every game built on this shell.
 
 ## Share, rating, cloud save
 

@@ -11,7 +11,7 @@ export function haptic(pattern) {
   try { navigator.vibrate?.(pattern); } catch { /* not supported */ }
 }
 
-export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach, sound }) {
+export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach, sound, config }) {
   const stats = (shell.gameStats[game.id] ||= {});
 
   return {
@@ -121,6 +121,16 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
 
     /** Tutorial coach marks: tip(), spotlight(), clear(). See coach.js. */
     coach,
+
+    /*
+     * A tuning value the game declared in its manifest's `remote` field,
+     * from Firebase Remote Config when set there, else the declared default.
+     * Fixed for the session. host.remote('free_sort_through') → 5.
+     */
+    remote: (key) => {
+      if (!config?.has(key)) return game.remote?.[key]?.default;
+      return config.get(key);
+    },
 
     /** Small facts a game remembers across launches, such as a finished tutorial. */
     flag: (key) => !!(shell.flags[game.id] || {})[key],

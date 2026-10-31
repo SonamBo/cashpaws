@@ -13,7 +13,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, posix } from 'node:path';
 const posixJoin = (from, spec) => posix.normalize(posix.join(posix.dirname(from), spec));
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fails = [];
@@ -419,6 +419,24 @@ if (existsSync(join(ROOT, 'www/games/money-sort'))) for (const v of [1, 5, 10, 2
   for (const r of refs) need(`www/${r}`, 'referenced by the shell');
   notes.push(`${refs.size} shell image references checked`);
 }
+
+/* --- Remote Config (1.19.0): the game's `remote` keys must be valid, with defaults inside their limits --- */
+{
+  const active = readFileSync(join(ROOT, 'www/games/active.js'), 'utf8').match(/from\s+['"]\.\/([^/'"]+)\//)?.[1];
+  try {
+    const { checkSpecs, SHELL_KEYS } = await import(pathToFileURL(join(ROOT, 'www/shell/config.js')).href);
+    const game = (await import(pathToFileURL(join(ROOT, `www/games/${active}/index.js`)).href)).default;
+    for (const p of [...checkSpecs(SHELL_KEYS), ...checkSpecs(game.remote || {})]) fails.push(`CONFIG   ${p}`);
+    for (const k of Object.keys(game.remote || {})) {
+      if (k in SHELL_KEYS) fails.push(`CONFIG   ${active} declares remote key ${k}, which the shell already owns`);
+    }
+    notes.push(`${Object.keys(SHELL_KEYS).length} shell and ${Object.keys(game.remote || {}).length} game Remote Config keys checked`);
+  } catch (e) {
+    notes.push(`Remote Config keys not checked (the game would not load in Node: ${String(e.message).slice(0, 80)})`);
+  }
+}
+needContains('android/app/build.gradle', 'firebase-config', 'Remote Config needs its Firebase library');
+need('android/app/src/main/java/com/pixelartgames/cashpaw/RemoteConfig.java', 'the Remote Config bridge (window.CashPawsConfig)');
 
 /* --- the version the app reports is the one Play sees: both from app.config.js --- */
 needContains('www/shell/main.js', 'APP.versionName', 'the shell must take its version from www/app.config.js');

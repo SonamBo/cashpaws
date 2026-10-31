@@ -31,9 +31,38 @@ export function migrateV1(saved) {
   return { ...saved, state: st, freeSorts: 0 };
 }
 
+/*
+ * Tuning values Firebase Remote Config may change (1.19.0; docs/REMOTE-CONFIG.md),
+ * each mapped onto the engine setting it overrides. Defaults equal the
+ * engine's DEFAULTS (test/games/money-sort/contract.js checks). Values a cat
+ * perk also sets (Sort's price, level-up pay) are left out: the perk's
+ * wording would stop being true.
+ */
+const REMOTE = {
+  free_sort_through: { default: 5, type: 'int', min: 1, max: 50, engine: 'freeSortThrough', about: 'Levels up to this one start with a free Sort.' },
+  flow_interval:     { default: 7, type: 'int', min: 4, max: 12, engine: 'flowInterval', about: 'Turns between inflows at the start of a level (more = easier).' },
+  junk_chance:       { default: 0.4, type: 'num', min: 0, max: 0.8, engine: 'junkChance', about: 'Odds a drop-5+ chip is a junk 5 (less = easier).' },
+  hard_junk_bonus:   { default: 0.2, type: 'num', min: 0, max: 0.5, engine: 'hardJunkBonus', about: 'Junk odds added per difficulty point above 1 (removed per point below).' },
+  hard_flow_speedup: { default: 1, type: 'num', min: 0, max: 3, engine: 'hardFlowSpeedup', about: 'Flow turns faster per difficulty point above 1 (slower per point below).' },
+  level_difficulty:  { default: '7/4:2, 8/4:0', type: 'string', engine: 'levelDifficulty', about: 'Difficulty per level; 1 is normal, 1.5+ is Hard (pays 2x), 0.5 or less a breather. "7/4:2" = 7, 11, 15... at 2; "3-5:0.5" a range; "20-:1.2" 20 and up. Later entries win; unlisted levels are 1.' },
+  assist_after_stuck:{ default: 2, type: 'int', min: 0, max: 20, engine: 'assistAfterStuck', about: 'Stuck boards on one level before it quietly plays easier until beaten. 0 = off.' },
+  assist_ease:       { default: 1, type: 'num', min: 0, max: 3, engine: 'assistEase', about: 'Difficulty points taken off a level once help is on.' },
+};
+
+/** The engine settings from Remote Config, for new Game({ config }). */
+function remoteEngineConfig(host) {
+  const out = {};
+  for (const [key, spec] of Object.entries(REMOTE)) {
+    const v = host.remote?.(key);
+    if (v !== undefined && v !== null) out[spec.engine] = v;
+  }
+  return out;
+}
+
 export default {
   id: 'money-sort',
   sounds: FX_SOUNDS,     // coin flights: landing clinks, cash-in chimes, lift-off swoosh (fx.js)
+  remote: REMOTE,
   name: 'Money Sort',
   saveVersion: 2,          // 2: shorter levels (1.6); older saves are rescaled on load
   // Bell Quest opens once level 7, the first Hard level, is beaten. A step is a
@@ -126,9 +155,13 @@ export default {
           // `level` is the level just reached; turns and seconds are for the one beaten.
           host.levelWon({
             level: e.level, kind: e.kind, beat_hard: !!e.beatHard, coins: e.coins, ...levelClock(),
+            assisted: !!e.assisted,          // the level just beaten had help switched on
             // the new level's modifiers, e.g. "locked,lucky", or "none"
             modifiers: Object.keys(e.mods || {}).filter((k) => e.mods[k]).join(',') || 'none',
           });
+        }
+        if (e.type === 'assist') {
+          host.track('assist_on', { level: e.level, stuck: e.stuck, difficulty: e.difficulty });
         }
         if (e.type === 'level-lost') {
           const m = levelModifiers(e.from, game.cfg);
@@ -419,7 +452,7 @@ export default {
 
     return {
       start(saved, version) {
-        const opts = { perk, wallet: host.wallet };
+        const opts = { perk, wallet: host.wallet, config: remoteEngineConfig(host) };
         if (saved && (version ?? 1) < 2) saved = migrateV1(saved);
         attach(saved ? Game.deserialize(saved, opts) : new Game(opts));
         view = new BoardView(root, game, host);

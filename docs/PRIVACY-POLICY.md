@@ -1,4 +1,4 @@
-# Privacy Policy — Cash Paws 1.18.0
+# Privacy Policy — Cash Paws 1.21.0
 
 > Published at https://pixelartgames000.github.io/privacy-policy/ from
 > `docs/privacy-policy/index.html`. Edit both together. Google Analytics data
@@ -55,6 +55,14 @@ to identify you. Google processes it for us under its terms:
 - How Google uses information from apps that use its services:
   https://policies.google.com/technologies/partner-sites
 - Firebase privacy and security: https://firebase.google.com/support/privacy
+
+**Game settings (Firebase Remote Config).** When it opens, the game downloads
+its current settings from Firebase, such as how difficult levels are, how much
+help it gives when you're stuck, and how often ads appear. To find the
+settings that make the game most enjoyable, we sometimes give different groups
+of players different settings and compare how each group plays, using the
+statistics above. This uses the same app-instance identifier; no other
+information is collected for it.
 
 Analytics data is kept for 14 months, then deleted automatically.
 

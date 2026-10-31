@@ -22,16 +22,27 @@
  *  - at least 3 minutes between two, counting from the app opening, so a new
  *    session never starts with one.
  */
+// Defaults. Since 1.19.0 each can be changed from Firebase Remote Config
+// (config.js: ads_interstitials, ads_interstitial_from, ads_interstitial_gap_s,
+// ads_free_days, ads_after_rewarded_s), passed in as `rules`.
 export const INTERSTITIAL_FROM_LEVEL = 11;      // the level just reached: "after level 10"
 export const AFTER_REWARDED_MS = 60000;
 export const AD_FREE_DAYS = 2;                  // the first day played and the next
 export const INTERSTITIAL_GAP_MS = 3 * 60000;
 
-/** Is `today` still within the first AD_FREE_DAYS local days from `firstDay`? Both YYYY-MM-DD. */
-export function inAdFreeDays(firstDay, today) {
-  if (!firstDay || !today) return false;
+export const DEFAULT_RULES = Object.freeze({
+  interstitials: true,
+  fromLevel: INTERSTITIAL_FROM_LEVEL,
+  gapMs: INTERSTITIAL_GAP_MS,
+  freeDays: AD_FREE_DAYS,
+  afterRewardedMs: AFTER_REWARDED_MS,
+});
+
+/** Is `today` still within the first `days` local days from `firstDay`? Both YYYY-MM-DD. */
+export function inAdFreeDays(firstDay, today, days = AD_FREE_DAYS) {
+  if (!firstDay || !today || !(days > 0)) return false;
   const [y, m, d] = firstDay.split('-').map(Number);
-  const end = new Date(y, m - 1, d + AD_FREE_DAYS, 12);
+  const end = new Date(y, m - 1, d + days, 12);
   const p = (n) => String(n).padStart(2, '0');
   return today < `${end.getFullYear()}-${p(end.getMonth() + 1)}-${p(end.getDate())}`;
 }
@@ -51,7 +62,8 @@ function nativeBridge() {
   try { return b && b.isEnabled() ? b : null; } catch { return null; }
 }
 
-export function createAds({ dev, confirm, track = () => {}, clock = () => Date.now() }) {
+export function createAds({ dev, confirm, track = () => {}, clock = () => Date.now(), rules = {} }) {
+  const R = { ...DEFAULT_RULES, ...rules };
   const native = nativeBridge();
   let lastInterstitial = clock();     // the app opening counts: no ad break in a session's first minutes
 
@@ -115,6 +127,9 @@ export function createAds({ dev, confirm, track = () => {}, clock = () => Date.n
     handlesAudio: !!native?.handlesAudio,
     rewarded,
 
+    /** The ad rules in force this session (defaults, or Remote Config's). */
+    rules: R,
+
     /** Seconds since the last rewarded ad (Infinity if none), for the testing card. */
     get sinceRewarded() { return Math.round((Date.now() - lastRewarded) / 1000); },
 
@@ -127,10 +142,11 @@ export function createAds({ dev, confirm, track = () => {}, clock = () => Date.n
      */
     interstitialDue(level, { firstDay = null, today = null } = {}) {
       const now = clock();
-      return level >= INTERSTITIAL_FROM_LEVEL
-        && !inAdFreeDays(firstDay, today)
-        && now - lastInterstitial >= INTERSTITIAL_GAP_MS
-        && now - lastRewarded >= AFTER_REWARDED_MS
+      return R.interstitials
+        && level >= R.fromLevel
+        && !inAdFreeDays(firstDay, today, R.freeDays)
+        && now - lastInterstitial >= R.gapMs
+        && now - lastRewarded >= R.afterRewardedMs
         && interstitial.available();
     },
 

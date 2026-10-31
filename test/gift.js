@@ -15,8 +15,9 @@ const at = (d, h, m = 0) => new Date(2026, 9, d, h, m).getTime();   // October 2
 
 /* ---- offering ---- */
 let g = G.emptyGift();
-ok('not before level 3 is beaten', !G.shouldOffer(g, 3));
-ok('offered on reaching level 4', G.shouldOffer(g, 4));
+ok('not before the first level is beaten', !G.shouldOffer(g, 1));
+ok('offered on reaching level 2', G.shouldOffer(g, 2));
+ok('a later level can be set (Remote Config)', !G.shouldOffer(G.emptyGift(), 3, 3) && G.shouldOffer(G.emptyGift(), 4, 3));
 ok('offer goes through', G.offer(g, { now: at(20, 18, 30), value: 225 }));
 ok('worth two Sorts, rounded to 50', g.coins === 450);
 ok('only once', !G.shouldOffer(g, 9) && !G.offer(g, { now: at(20, 19), value: 225 }));
