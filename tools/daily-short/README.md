@@ -4,6 +4,13 @@ Every evening `.github/workflows/daily-short.yml` renders the day's puzzle
 solution as a 1080×1920 YouTube Short with the game's sounds and music, and
 uploads it at about 22:05 India time, in the day's last two hours.
 
+Each Short runs like the BoardGameSite ones: a hook card that explains the
+rules to someone who has never played (3.6 s), "Pause and try it first!" over
+a 5-second countdown with soft ticks, the solve move by move, then the end
+card (SOLVED, the cat, the logo, "Play free on Google Play"). The timings are
+`TIMING.solution` in `www/games/money-sort/clip.js`; the player's share clip
+uses `TIMING.player` and has none of this.
+
 | File | What it does |
 |---|---|
 | `make-puzzles.mjs` | Makes `www/games/money-sort/puzzles.js`, the puzzle for every date to the end of 2029. Re-run with a later end date before then. |

@@ -288,4 +288,7 @@ export const FX_SOUNDS = Object.fromEntries([
   }]),
   // Lift-off: a short airy whoosh.
   ['swoosh', (t, { noise }) => noise(t, 0.2, { gain: 0.06, from: 700, to: 3400, q: 0.8 })],
+  // The daily Short's countdown: a soft wood-block tick, and a higher one on the last second.
+  ['tick', (t, { tone }) => tone(880, t, 0.05, { type: 'sine', gain: 0.07, slide: 0.7 })],
+  ['tock', (t, { tone }) => tone(1320, t, 0.08, { type: 'sine', gain: 0.08, slide: 0.7 })],
 ]);

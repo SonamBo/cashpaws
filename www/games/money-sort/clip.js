@@ -18,7 +18,9 @@ const TIMING = {
   // the player's clip: brisk, it's their own solve
   player: { intro: 1.5, lift: 0.1, fly: 0.38, settle: 0.12, bank: 0.5, outro: 2.8 },
   // the daily Short: time to read the puzzle, and to follow each move
-  solution: { intro: 3.2, lift: 0.14, fly: 0.5, settle: 0.2, bank: 0.6, outro: 3.4 },
+  // the daily Short: a hook that explains the rules, a 5 s countdown to try it,
+  // then the solve slow enough to follow, and the end card
+  solution: { hook: 3.6, timer: 5, intro: 8.6, lift: 0.14, fly: 0.5, settle: 0.2, bank: 0.6, outro: 4.6 },
 };
 
 const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
@@ -35,6 +37,10 @@ export function buildTimeline({ board, moves, mode = 'player' }) {
   const cues = [];
   let cols = board.map((c) => [...c]);
   let t = T.intro;
+  if (T.timer) {
+    cues.push({ t: 0.12, sound: 'open' });
+    for (let k = 0; k < T.timer; k++) cues.push({ t: T.hook + k, sound: k === T.timer - 1 ? 'tock' : 'tick' });
+  }
   for (const [from, to] of moves) {
     const r = applyMove(cols, from, to);
     if (!r) break;
@@ -214,12 +220,8 @@ export function drawFrame(ctx, W, H, tl, t, o) {
     text(ctx, `MOVES  ${used} / ${o.par}`, W / 2, H * 0.26 + 2 * s, { size: 54 * s, color: '#fff', weight: 900, max: 420 * s });
   }
 
-  // In the Short, a pause prompt over the intro.
-  if (solution && introing) {
-    const a = clamp01((t - 0.6) / 0.3) * clamp01((tl.T.intro - t) / 0.3);
-    pill(ctx, W / 2, H * 0.71, 640 * s, 110 * s, `rgba(235,122,41,${0.95 * a})`);
-    text(ctx, 'Pause and try it first!', W / 2, H * 0.71 + 2 * s, { size: 50 * s, color: '#fff', alpha: a });
-  }
+  // In the Short: the rules first, then a countdown to try it.
+  if (solution && introing) drawHook(ctx, W, H, tl, t, o, s);
 
   // The worn cat peeks up from the bottom while the board plays.
   const fade = outro ? 1 - clamp01((t - tl.end) / 0.35) : 1;
@@ -308,14 +310,63 @@ export function drawFrame(ctx, W, H, tl, t, o) {
     }
     const v = clamp01((t - tl.end - 0.6) / 0.4);
     if (imgs.logo?.width) {
-      const lw = W * 0.52, lh = lw * imgs.logo.height / imgs.logo.width;
+      const lw = W * (solution ? 0.4 : 0.52), lh = lw * imgs.logo.height / imgs.logo.width;
       ctx.globalAlpha = v;
-      ctx.drawImage(imgs.logo, W / 2 - lw / 2, H * 0.66, lw, lh);
+      ctx.drawImage(imgs.logo, W / 2 - lw / 2, H * (solution ? 0.6 : 0.66), lw, lh);
       ctx.globalAlpha = 1;
     } else text(ctx, 'Cash Paws', W / 2, H * 0.72, { size: 110 * s, alpha: v });
-    pill(ctx, W / 2, H * 0.9, 900 * s, 104 * s, `rgba(84,57,62,${v})`);
-    text(ctx, solution ? 'New puzzle every day · free on Google Play' : 'Can you beat me? Play Cash Paws', W / 2, H * 0.9 + 2 * s, { size: 42 * s, color: '#fff', weight: 800, alpha: v, max: 840 * s });
+    if (solution) {
+      text(ctx, 'A new puzzle every day', W / 2, H * 0.84, { size: 56 * s, color: '#785044', weight: 800, alpha: v });
+      pill(ctx, W / 2, H * 0.905, 820 * s, 112 * s, `rgba(235,122,41,${v})`);
+      text(ctx, 'Play free on Google Play', W / 2, H * 0.905 + 2 * s, { size: 52 * s, color: '#fff', weight: 900, alpha: v, max: 760 * s });
+    } else {
+      pill(ctx, W / 2, H * 0.9, 900 * s, 104 * s, `rgba(84,57,62,${v})`);
+      text(ctx, 'Can you beat me? Play Cash Paws', W / 2, H * 0.9 + 2 * s, { size: 42 * s, color: '#fff', weight: 800, alpha: v, max: 840 * s });
+    }
   }
+}
+
+/**
+ * The Short's opening: a card with the rules (viewers may never have played),
+ * then "Pause and try it first!" over a countdown ring.
+ */
+function drawHook(ctx, W, H, tl, t, o, s) {
+  const { hook, timer, intro } = tl.T;
+  const out = clamp01((intro - t) / 0.3);
+  const y = H * 0.745;
+  if (t < hook) {
+    const a = clamp01((t - 0.35) / 0.3) * clamp01((hook - t) / 0.25);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    roundRect(ctx, W * 0.07, y - 130 * s, W * 0.86, 260 * s, 40 * s);
+    ctx.fill();
+    ctx.strokeStyle = '#eb7a29'; ctx.lineWidth = 6 * s; ctx.stroke();
+    ctx.globalAlpha = 1;
+    text(ctx, 'HOW IT WORKS', W / 2, y - 78 * s, { size: 40 * s, color: '#eb7a29', alpha: a });
+    text(ctx, 'Move the top coins onto the', W / 2, y - 14 * s, { size: 46 * s, color: '#54393e', weight: 800, alpha: a, max: W * 0.8 });
+    text(ctx, 'same coin, or an empty tube.', W / 2, y + 42 * s, { size: 46 * s, color: '#54393e', weight: 800, alpha: a, max: W * 0.8 });
+    text(ctx, 'Four alike cash in!', W / 2, y + 100 * s, { size: 46 * s, color: '#3c6844', weight: 900, alpha: a });
+    return;
+  }
+  // The countdown.
+  const u = t - hook, a = clamp01(u / 0.25) * out;
+  const left = Math.max(1, Math.ceil(timer - u));
+  pill(ctx, W / 2, y - 100 * s, 640 * s, 104 * s, `rgba(235,122,41,${0.95 * a})`);
+  text(ctx, 'Pause and try it first!', W / 2, y - 98 * s, { size: 48 * s, color: '#fff', alpha: a });
+  const cy = y + 70 * s, r = 74 * s;
+  ctx.globalAlpha = a;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(W / 2, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 14 * s; ctx.lineCap = 'round';
+  ctx.strokeStyle = '#f0dcc0';
+  ctx.beginPath(); ctx.arc(W / 2, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = '#eb7a29';
+  ctx.beginPath(); ctx.arc(W / 2, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp01(1 - u / timer)); ctx.stroke();
+  ctx.globalAlpha = 1;
+  const beat = 1 + 0.12 * Math.max(0, 1 - (u % 1) / 0.25);
+  ctx.save(); ctx.translate(W / 2, cy); ctx.scale(beat, beat);
+  text(ctx, String(left), 0, 4 * s, { size: 92 * s, color: '#54393e', weight: 1000, alpha: a });
+  ctx.restore();
 }
 
 function confetti(ctx, W, H, t) {
