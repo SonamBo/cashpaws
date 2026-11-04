@@ -347,6 +347,12 @@
   animation: flow-badge 1000ms var(--ease) both;
 }
 
+.flow-badge.flow-note {
+  background: var(--green, #2f9e55);
+  white-space: nowrap;
+  animation-duration: 1600ms;
+}
+
 @keyframes flow-badge {
   0%   { opacity: 0; transform: translateY(6px) scale(.85); }
   15%  { opacity: 1; transform: none; }

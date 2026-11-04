@@ -17,14 +17,16 @@ const ICON_AD = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" str
 /**
  * Resolves 'sort', 'buy', 'ad' or 'drop'. Sort is offered only when it can
  * change anything. A player who can't afford it is offered, in this order,
- * coin packs (`buyOffer`, where the build sells them) and a free Sort for
- * watching an ad (`adOffer`, once an ad is actually available).
+ * a free Sort for watching an ad (`adOffer`, once an ad is actually
+ * available) and coin packs (`buyOffer`, where the build sells them and the
+ * player is past their first levels). Ad first since 1.22.0: a stuck new
+ * player asked to pay first mostly left.
  */
 export function stuckCard(host, e, vm, sortCost, adOffer = false, buyOffer = false) {
   return new Promise((resolve) => {
     const reason = !vm.sortCanHelp ? 'Sorting won\'t help'
       : !vm.canAffordSort ? 'Not enough coins'
-        : vm.freeSorts > 0 ? (vm.level > 1 ? 'This Sort is free' : 'First Sort is free') : 'Sort groups every value';
+        : vm.sortIsFree || vm.freeSorts > 0 ? (vm.level > 1 ? 'This Sort is free' : 'First Sort is free') : 'Sort groups every value';
 
     const card = host.cards.show(`
       <div class="ovl-stack">
@@ -43,11 +45,11 @@ export function stuckCard(host, e, vm, sortCost, adOffer = false, buyOffer = fal
                  <span class="ovl-cost">${sortCost === 'Free' ? '' : host.art.coin(16)}${sortCost}</span>
                </button>`
             : ''}
-          ${buyOffer
-            ? `<button class="ovl-btn primary" data-buy-coins>${host.art.coin(18)} Get coins</button>`
-            : ''}
           ${adOffer
-            ? `<button class="ovl-btn ${buyOffer ? 'alt' : 'primary'}" data-ad-sort>${ICON_AD} Watch an ad &middot; free Sort</button>`
+            ? `<button class="ovl-btn primary" data-ad-sort>${ICON_AD} Watch an ad &middot; free Sort</button>`
+            : ''}
+          ${buyOffer
+            ? `<button class="ovl-btn ${adOffer ? 'alt' : 'primary'}" data-buy-coins>${host.art.coin(18)} Get coins</button>`
             : ''}
           <button class="ovl-btn ${e.canSort || adOffer || buyOffer ? 'ghost' : 'primary'}" data-drop>Drop a level</button>
         </div>

@@ -58,7 +58,7 @@ code's package. Renaming them breaks every future update.
 |---|---|
 | The header, lobby line and best-level tracking | `host.progress({ title, fraction, figure, sub, level, summary })` on every change |
 | Ad breaks (interstitials, at each level's end past level 10) | report each win with `host.levelWon({ level })` (the level reached) and `await host.levelBreak()` before the next level starts |
-| Short of coins | `await host.shortOf({ price, what, ad, adLabel })`: coin packs first, then a rewarded ad; `host.shortHelps(ad)` keeps a button tappable |
+| Short of coins | `await host.shortOf({ price, what, ad, adLabel })`: a rewarded ad first, then coin packs (not in the quiet first levels, `quiet_levels`); `host.shortHelps(ad)` keeps a button tappable |
 | `level_up` / `level_lost` analytics and Bell Quest steps | `host.levelWon(info)` / `host.levelLost(info)`; `await host.levelBreak()` between a level's celebration and the next |
 | Bell Quest at all | `quest: { unlockLevel, steps }` in the manifest; `await host.confirmLevelLoss()` before any loss the player chooses |
 | Daily tasks | a `tasks` catalogue in the manifest, and `host.stat(key)` as things happen |

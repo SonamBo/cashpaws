@@ -1,8 +1,8 @@
 /**
- * What a brand-new player sees when their first board jams: a free Sort, not
- * a forced drop back to $0. Before 1.6, one new player in six hit exactly that
- * wall on level 1, around their twelfth move, with 50 coins against a
- * 150-coin Sort.
+ * What a brand-new player sees when their first board jams. Before 1.6, one
+ * new player in six hit a forced drop back to $0 on level 1; 1.6 gave them a
+ * free Sort on a stuck card. Since 1.22.0 there is no stuck card at all on the
+ * first ten levels: the board sorts itself, and Sort is free there.
  *
  * Needs the dev server: node serve.js 8080
  */
@@ -26,14 +26,14 @@ const [f, t] = await p.evaluate(() => {
   view.update(); return game.legalMoves()[0];
 });
 await p.click(`.tube[data-col="${f}"]`); await p.waitForTimeout(150);
-await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(1000);
-check('a jam on level 1 offers the free Sort', await p.locator('[data-do-sort]').count() === 1);
-check('and says so', (await p.locator('.ovl-locked .ovl-sub').first().textContent()).includes('First Sort is free'));
+await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(1400);
+check('a jam on level 1 shows no stuck card', await p.locator('.ovl-locked').count() === 0);
+const st = await p.evaluate(() => ({ status: game.status, level: game.level, moves: game.legalMoves().length, ev: game.events.map((e) => e.type).join(',') }));
+check('the board sorts itself and play goes on', st.status === 'playing' && st.moves > 0 && /rescue,sort/.test(st.ev), JSON.stringify(st));
+check('without costing a level', st.level >= 1);
+check('or coins', (await p.evaluate(() => Number(document.querySelector('.hdr [data-coins]').textContent))) >= 50);
+check('Sort is still free', (await p.locator('[data-sort-cost]').textContent()).trim() === 'Free');
 await p.locator('.device').screenshot({ path: '/tmp/newplayer-stuck.png' });
-await p.locator('[data-do-sort]').click(); await p.waitForTimeout(1400);
-check('taking it keeps the player on level 1 with their net worth', await p.evaluate(() => game.status === 'playing' && game.level === 1));
-check('and costs no coins', (await p.evaluate(() => Number(document.querySelector('.hdr [data-coins]').textContent))) >= 50);
-check('after which Sort shows its price again', (await p.locator('[data-sort-cost]').textContent()).trim() === '150');
 
 console.log(errs.length ? 'ERRORS: ' + errs.join(' | ') : 'no page errors');
 await b.close();

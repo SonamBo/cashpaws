@@ -10,6 +10,9 @@
  * player clears level 2, then again after levels 10 and 25 (Google shows it
  * only when its own quota allows, and never says whether they rated). Once
  * per milestone, never twice at one break, never in place of a choice.
+ * Since 1.22.0 never in the quiet first levels (Remote Config quiet_levels,
+ * main.js): the first ask then comes after them, once, for every milestone
+ * passed.
  */
 
 export const REVIEW_AT = [3, 11, 26];     // the level just reached: after clearing 2, 10 and 25

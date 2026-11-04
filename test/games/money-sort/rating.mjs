@@ -72,28 +72,28 @@ check('and the card stays up', await p.locator('.ovl.in [data-go]').count() === 
 await through();
 check('after level 1: no rating sheet', (await f()).reviews === 0);
 
-// Level 2 cleared: the rating sheet, after the card.
-await beat(2);
+// Levels 2 and 3 cleared: still no rating sheet. Since 1.22.0 the first ten
+// levels are quiet (Remote Config quiet_levels 10).
+await beat(2); await through();
+check('after level 2: no rating sheet in the quiet first levels', (await f()).reviews === 0);
+check('and the next level is on', await p.evaluate(() => game.level === 3 && game.status === 'playing'));
+await beat(3); await through();
+check('after level 3: still none', (await f()).reviews === 0);
+
+// Level 10 cleared: the first rating sheet, instead of the first Ad break.
+await beat(10);
 check('the rating sheet waits for the level-up card', (await f()).reviews === 0);
 await through();
-check('after level 2: the rating sheet is asked for', (await f()).reviews === 1);
-check('and the next level is on', await p.evaluate(() => game.level === 3 && game.status === 'playing'));
-
-await beat(3); await through();
-check('after level 3: not again', (await f()).reviews === 1);
-
-// Level 10 cleared: rating instead of the first Ad break; then Ad breaks as usual.
-await beat(10); await through();
-check('after level 10: the rating sheet, and no Ad break at that break', (await f()).reviews === 2 && (await f()).inter === 0, JSON.stringify(await f()));
+check('after level 10: the rating sheet, once, and no Ad break at that break', (await f()).reviews === 1 && (await f()).inter === 0, JSON.stringify(await f()));
 await p.evaluate(() => { window.__shift += 4 * 60000; });
 await beat(11); await through();
-check('after level 11: the Ad break, no rating', (await f()).reviews === 2 && (await f()).inter === 1);
+check('after level 11: the Ad break, no rating', (await f()).reviews === 1 && (await f()).inter === 1);
 
 // Level 25 cleared: the last one. Remembered across launches.
 await beat(25); await through();
-check('after level 25: the rating sheet once more', (await f()).reviews === 3);
+check('after level 25: the rating sheet once more', (await f()).reviews === 2);
 await p.evaluate(() => window.CashPaws.flush());
-check('milestones asked are saved', JSON.stringify(await p.evaluate(() => shell.review.asked)) === '[3,11,26]');
+check('milestones asked are saved (level 2\'s with level 10\'s)', JSON.stringify(await p.evaluate(() => shell.review.asked)) === '[3,11,26]');
 
 console.log(errs.length ? `page errors: ${errs.join(' | ')}` : 'no page errors');
 await b.close();

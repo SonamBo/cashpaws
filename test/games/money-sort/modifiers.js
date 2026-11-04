@@ -19,8 +19,8 @@ const game = (level, cols, extra = {}) => {
 /* ---- the schedule ---- */
 {
   const m = (l) => levelModifiers(l, DEFAULTS);
-  ok('nothing before level 12', [1, 5, 8, 11].every((l) => !m(l).lucky && !m(l).locked && !m(l).frozen));
-  ok('Lucky Paw on every breather from 12', [12, 16, 20, 24, 40].every((l) => levelKind(l) === 'breather' && m(l).lucky));
+  ok('nothing before level 16', [1, 5, 8, 11, 12, 15].every((l) => !m(l).lucky && !m(l).locked && !m(l).frozen));
+  ok('Lucky Paw on every breather from 16', [16, 20, 24, 40].every((l) => levelKind(l) === 'breather' && m(l).lucky));
   ok('but not on other levels', [13, 14, 15, 17].every((l) => !m(l).lucky));
   ok('locked tube arrives on 17, a normal level', levelKind(17) === 'normal' && m(17).locked);
   ok('and is tested on the next Hard level, 19', levelKind(19) === 'hard' && m(19).locked);
@@ -102,8 +102,8 @@ const game = (level, cols, extra = {}) => {
   const g25 = new Game({ seed: 3, level: 25, wallet: localWallet(0) });
   ok('a fresh level-25 board has frozen coins, never on top',
     g25.ice.length === 2 && g25.ice.every((f) => f.index < g25.columns[f.column].length - 1));
-  const g12 = new Game({ seed: 3, level: 12, wallet: localWallet(0) });
-  ok('a fresh level-12 board has one Lucky Paw', g12.columns.flat().filter((v) => v === WILD).length === 1);
+  const g16 = new Game({ seed: 3, level: 16, wallet: localWallet(0) });
+  ok('a fresh level-16 board has one Lucky Paw', g16.columns.flat().filter((v) => v === WILD).length === 1);
 
   const g = new Game({ seed: 9, level: 16, wallet: localWallet(0) });
   g.columns = g.columns.map(() => []);

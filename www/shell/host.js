@@ -82,14 +82,15 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
 
     /*
      * Short of coins: await host.shortOf({ price, what: 'a Sort', ad: 'rescue-sort',
-     * adLabel: 'Watch an ad · free Sort' }). The shell offers coin packs first,
-     * then the rewarded ad, and resolves 'coins' (enough now), 'ad' (watched)
-     * or null. host.shortHelps(ad) says whether it has anything to offer, so a
-     * button can stay tappable when the player is short.
+     * adLabel: 'Watch an ad · free Sort' }). The shell offers the rewarded ad
+     * first, then coin packs (not in the quiet first levels), and resolves
+     * 'coins' (enough now), 'ad' (watched) or null. host.shortHelps(ad) says
+     * whether it has anything to offer, so a button can stay tappable when the
+     * player is short.
      */
     shortOf: (o) => events.shortOf?.(o) ?? Promise.resolve(null),
     shortHelps: (ad) => !!events.shortHelps?.(ad),
-    /** Coin packs for real money: whether this build sells them, and the Shop's coin section. */
+    /** Coin packs for real money: whether they may be offered now (sold, past the quiet first levels), and the Shop's coin section. */
     coinsForSale: () => !!events.coinsForSale?.(),
     openCoins: (from) => events.openCoins?.(from) ?? Promise.resolve(),
 

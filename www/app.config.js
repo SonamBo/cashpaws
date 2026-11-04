@@ -5,8 +5,8 @@
 export default {
   "name": "Cash Paws",
   "applicationId": "com.pixelartgames.cashpaw",
-  "versionCode": 32,
-  "versionName": "1.21.0",
+  "versionCode": 33,
+  "versionName": "1.22.0",
   "privacyUrl": "https://pixelartgames000.github.io/privacy-policy/",
   "contactEmail": "pixelartgames000@gmail.com",
   "shareText": "Sorting cash with cats 🐾 Cash Paws",

@@ -21,7 +21,7 @@ const ok = (name, cond) => (cond ? pass++ : fails.push(name));
 }
 
 /* ---- Bell Quest ---- */
-ok('Money Sort opens it after the first Hard level', moneySort.quest.unlockLevel === 8 && moneySort.quest.steps === 7);
+ok('Money Sort opens it once the quiet first ten levels are beaten', moneySort.quest.unlockLevel === 11 && moneySort.quest.steps === 7);
 
 /* ---- Rewards Box: it reports its Sort price as the reward value ---- */
 {
