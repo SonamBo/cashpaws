@@ -20,8 +20,8 @@ await p.goto('http://localhost:8080/?dev=1&lobby=1', { waitUntil: 'domcontentloa
 await p.evaluate(() => { shell.gift.status = 'claimed'; shell.reminders.asked = true; });
 await p.click('[data-play]'); await p.waitForTimeout(500);
 
-// level 6 -> 7: warned that a Hard level is next
-await p.evaluate(() => { game.level = 6; game.netWorth = game.floor; view.update(); });
+// level 14 -> 15 (the first Hard level since 1.22.0): warned that a Hard level is next
+await p.evaluate(() => { game.level = 14; game.netWorth = game.floor; view.update(); });
 await p.click('#levelup'); await p.waitForTimeout(900);
 check('the level-up card warns a Hard level is next', (await gains()).includes('Hard level'));
 await p.locator('[data-go]').click(); await p.waitForTimeout(600);
@@ -29,7 +29,7 @@ check('the header says Hard', (await p.locator('[data-title]').textContent()).in
 check('the FLOW strip is marked', await p.locator('.ms-root.hard-level').count() === 1);
 await p.locator('.device').screenshot({ path: '/tmp/hard-level.png' });
 
-// 7 -> 8: double reward, and the breather announced
+// 15 -> 16: double reward, and the breather announced
 const c0 = await p.evaluate(() => wallet.coins);
 await p.click('#levelup'); await p.waitForTimeout(900);
 const g8 = await gains();
@@ -39,6 +39,7 @@ await p.locator('[data-go]').click(); await p.waitForTimeout(500);
 check('the breather is not marked Hard', !(await p.locator('[data-title]').textContent()).includes('Hard'));
 
 // 8 -> 9: face-down chips introduced, on a normal level
+await p.evaluate(() => { game.level = 8; game.netWorth = game.floor; view.update(); });
 await p.click('#levelup'); await p.waitForTimeout(900);
 check('level 9 introduces face-down chips', (await gains()).includes('face-down'));
 await p.locator('[data-go]').click(); await p.waitForTimeout(500);

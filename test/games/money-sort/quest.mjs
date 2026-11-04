@@ -53,16 +53,19 @@ await p.evaluate(() => localStorage.clear());
 /* ---- locked for a new player ---- */
 await boot();
 // The tutorial is for real first boards; it has its own test (test/ftue.mjs).
-await edit(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; CashPaws.flush(); });
+await edit(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; shell.gift.status = 'claimed'; shell.review.asked = [3, 11, 26]; CashPaws.flush(); });
 await boot();
 check('a new player sees no quest icon', await p.locator('[data-quest]').isHidden());
 check('and no popup', await card().count() === 0);
 check('the save starts with the quest locked', (await quest()).status === 'none');
 
 /* ---- unlock: the offer pops up on app open ---- */
-await edit(() => { shell.stats.bestLevel = 8; CashPaws.flush(); });
+await edit(() => { shell.stats.bestLevel = 10; CashPaws.flush(); });
 await boot();
-check('past level 7, the offer pops up on open', await card().count() === 1);
+check('not yet on level 10 (1.22.0: the first ten levels are quiet)', await card().count() === 0);
+await edit(() => { shell.stats.bestLevel = 11; CashPaws.flush(); });
+await boot();
+check('once level 10 is beaten, the offer pops up on open', await card().count() === 1);
 check('and it names the prize and the rule', /Beat 7 levels in a row/.test(await text('.ovl-quest.in')));
 const grandShown = await text('.ovl-quest.in .q-sign');
 check('the grand prize is ten Sorts', grandShown.replace(/\D/g, '') === String(Math.round(await p.evaluate(() => game.sortPrice) * 10 / 100) * 100), grandShown);
@@ -136,6 +139,7 @@ await pick('close');
 await p.click('[data-play]'); await p.waitForTimeout(500);
 const jam = async () => {
   const [f, t] = await p.evaluate(() => {
+    game.level = Math.max(game.level, 11); game.netWorth = Math.max(game.netWorth, game.floor); // past the gentle first levels (1.22.0)
     game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
     game.freeSorts = 0; game.status = 'playing'; game.selected = null; wallet.set(0);
     game.turnsUntilDrop = 6; game.undoSnapshot = null; view.update();

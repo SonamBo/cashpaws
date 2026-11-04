@@ -8,11 +8,12 @@
  *             grows net worth, and filling the bar levels you up. "Got it" ends it.
  *
  * Tips never block play: the player can ignore the hand. Only the last beat
- * waits for a tap. Anyone past level 1, or who has already banked, never sees
+ * waits for a tap. "Skip tutorial" shows only when Remote Config's
+ * tutorial_skip is on (off since 1.22.0). Anyone past level 1, or who has already banked, never sees
  * it; nor does anyone who finished it once (host.flag('ftue')).
  *
- * Level 1 deals one set of four coins across two tubes with one tube empty,
- * so the suggested move usually cashes in at once.
+ * Level 1 is short (cash-ins pay 3x there, engine starterPay) and can't jam
+ * (gentleThrough), so a new player's first board always ends in a level-up.
  */
 
 const TEXT = {
@@ -48,7 +49,9 @@ export function createTutorial({ host, getGame, getView, suggest }) {
       : game.selected === m[0] ? tube(m[1])
         : game.selected !== null ? tube(game.selected)     // put it back down first
           : [tube(m[0]), tube(m[1])];
-    host.coach.tip({ at: getView().el.rows, text: TEXT[step], hand, onSkip: skip });
+    // No Skip by default since 1.22.0: of 22 new players who skipped, almost
+    // none beat level 1. The tips never block play, and end at the first cash-in.
+    host.coach.tip({ at: getView().el.rows, text: TEXT[step], hand, onSkip: host.remote?.('tutorial_skip') ? skip : null });
   }
 
   function skip() {

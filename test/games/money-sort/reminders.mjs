@@ -24,7 +24,19 @@ const reminders = () => p.evaluate(() => ({ ...window.__reminders }));
 
 check('nothing scheduled before permission', Object.keys(await reminders()).length === 0);
 
-// Open the first box: the soft ask follows the reward.
+// A new player (the quiet first ten levels, 1.22.0) opening the box isn't asked.
+await p.click('[data-box]'); await p.waitForTimeout(400);
+await p.locator('.ovl.in [data-pick="open"]').click(); await p.waitForTimeout(500);
+await p.locator('.ovl.in [data-go]').click(); await p.waitForTimeout(500);
+check('a new player opening the box is not asked about reminders', await p.locator('.ovl.in').count() === 0
+  && await p.evaluate(() => shell.reminders.asked === false));
+
+// Past the quiet levels (here quiet_levels 5, so Bell Quest is still shut):
+// open the first box, and the soft ask follows the reward.
+await p.goto('http://localhost:8080/css/tokens.css');
+await p.evaluate(() => localStorage.clear());
+await p.goto('http://localhost:8080/?dev=1&lobby=1&cfg=quiet_levels:5'); await p.waitForTimeout(1000);
+await p.evaluate(() => { shell.stats.bestLevel = 6; });
 await p.click('[data-box]'); await p.waitForTimeout(400);
 await p.locator('.ovl.in [data-pick="open"]').click(); await p.waitForTimeout(500);
 await p.locator('.ovl.in [data-go]').click(); await p.waitForTimeout(500);
@@ -37,7 +49,7 @@ check('no quest reminder before Bell Quest unlocks', !r.quest);
 check('asked once only', await p.evaluate(() => shell.reminders.asked === true));
 
 // Unlock Bell Quest: the daily reminder appears.
-await p.evaluate(() => { shell.stats.bestLevel = 8; CashPaws.flush(); });
+await p.evaluate(() => { shell.stats.bestLevel = 11; CashPaws.flush(); });
 await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1200);
 r = await reminders();
 check('quest unlocked: a 7 pm reminder', r.quest && new Date(r.quest.at).getHours() === 19 && /Bell Quest/.test(r.quest.title), r.quest?.title);
@@ -56,7 +68,7 @@ await p.locator('[data-pick="close"]').click(); await p.waitForTimeout(300);
 // A player who said Not now is never asked again.
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
-await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(1000);
+await p.goto('http://localhost:8080/?dev=1&lobby=1&cfg=quiet_levels:0'); await p.waitForTimeout(1000);
 await p.evaluate(() => { window.__notifyPermissionState = 'ask'; });
 await p.click('[data-box]'); await p.waitForTimeout(400);
 await p.locator('.ovl.in [data-pick="open"]').click(); await p.waitForTimeout(500);

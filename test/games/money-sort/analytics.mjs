@@ -64,6 +64,7 @@ await p.waitForTimeout(400);
 await clear();
 const jam = async (coins) => {
   const [f, t] = await p.evaluate((c) => {
+    game.level = Math.max(game.level, 11); game.netWorth = Math.max(game.netWorth, game.floor); // past the gentle first levels (1.22.0)
     game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
     game.freeSorts = 0; game.status = 'playing'; game.selected = null; wallet.set(c);
     game.turnsUntilDrop = 6; game.undoSnapshot = null; view.update();
@@ -100,6 +101,8 @@ await p.evaluate(() => { const c = document.querySelector('.ovl.in [data-go]'); 
 await p.waitForTimeout(400);
 
 /* ---- lobby things ---- */
+// The stuck tests ran on level 11 (1.22.0): back to a new player, so Bell Quest stays shut for now.
+await p.evaluate(() => { shell.stats.bestLevel = 1; shell.quest.status = 'none'; });
 await p.click('[data-menu]'); await p.waitForTimeout(350);
 await p.locator('[data-pick="lobby"]').click(); await p.waitForTimeout(700);
 await clear();
@@ -114,7 +117,7 @@ await p.click('[data-tab="cats"]'); await p.waitForTimeout(300);
 check('tabs are screen views', (await named('screen_view')).some((e) => e.params.screen_name === 'cats'));
 
 /* ---- a quest step and the give-up prompt ---- */
-await p.evaluate(() => { shell.stats.bestLevel = 8; CashPaws.flush(); });
+await p.evaluate(() => { shell.stats.bestLevel = 11; CashPaws.flush(); });     // Bell Quest opens once level 10 is beaten
 await boot();
 await p.locator('.ovl-quest.in [data-pick="start"]').click(); await p.waitForTimeout(2200);
 check('quest_offer and quest_start', (await named('quest_offer')).length === 1 && (await named('quest_start'))[0]?.params.grand > 0);

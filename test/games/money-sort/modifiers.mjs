@@ -1,6 +1,6 @@
 /**
  * Level modifiers in the running app, each reached through a real level-up:
- * the Lucky Paw at 12, the locked tube at 17, frozen coins at 25.
+ * the Lucky Paw at 16 (12 before 1.22.0), the locked tube at 17, frozen coins at 25.
  *
  * Needs the dev server: node serve.js 8080
  */
@@ -44,8 +44,8 @@ async function levelUpTo(to) {
 }
 
 /* ---- Lucky Paw ---- */
-let card = await levelUpTo(12);
-check('level 12 announces the Lucky Paw', /New: Lucky Paw/.test(card), card.slice(0, 120));
+let card = await levelUpTo(16);
+check('level 16 announces the Lucky Paw', /New: Lucky Paw/.test(card), card.slice(0, 120));
 check('and one is on the board', await p.locator('.chip.lucky').count() === 1);
 await p.screenshot({ path: '/tmp/mod-lucky.png' });
 
