@@ -1506,3 +1506,123 @@ What to watch after release (GA, new users from the 1.17.0 date):
   every coin, so all are a little bigger). Readability variants with
   redrawn numbers were tried and not taken.
 - versionCode 30, versionName 1.19.0.
+## 1.21.0: Remote Config, difficulty per level, help when stuck, gift after level 1
+
+Retention review, 31 Oct (GA, installs 24–30 Oct; versions in use 1.19.0,
+1.17.0, 1.15.2; 1.20.0 not yet with players):
+- D1 fell to ~6% (4 of 65), from ~20%. Mostly the audience: the paid
+  campaign (cpc) ended 22 Oct; its players returned at ~22% (16 of 73).
+  Since 23 Oct installs are organic, worldwide, 1–3 min first sessions:
+  2 of 48 returned on day 1.
+- One device model (IN2025) counted 13 new users in a week: test reinstalls.
+  Test with the debug build, which reports to its own Firebase app.
+- Tomorrow's gift works where it's seen: 8 of the 22 players offered it came
+  back to open it (~36%). But it came after level 3, and of 70 new players
+  46 reached level 2, 25 level 3, 17 level 4. So it moves to after level 1.
+- Stuck boards are rare for new players (17 players all week, mostly on
+  levels 10–15): level 2's drop-off is attention, not difficulty.
+- Ads $0.33 for the week; ad loads failed for 19 players. 14 players tapped
+  a coin-pack price, none bought (`iap_result` status not yet reportable).
+
+Changes on top of the Remote Config work below (first built as a 1.19.0 that
+never shipped; renumbered after main's 1.19.0 and 1.20.0):
+- **Tomorrow's gift after the first level won** (`gift_after_level` 1, was 3).
+  Worth two Sorts at that point: 350 coins.
+
+What to watch (new players from this release's date; directional until
+~300 installs): `first_open` → `ftue_complete` → `level_up` level 2 →
+`gift_offer` → `reminders_permission` granted → `gift_claim`. Targets:
+gift offered to 60%+ of new players (was ~30%), gift claimed by 30%+ of
+those offered, organic D1 10%+. `config_ready` source should be `remote`
+or `cached` for most sessions once values are set in the console.
+
+
+Why: tuning retention needed a Play release for every number. The Block
+Blast breakdown (ayoships.com) showed the useful half of their system:
+server-set values and experiments. The unfair half (unwinnable hands timed
+to expensive ads) is deliberately not copied: every rule here only eases.
+
+- **Remote Config** (Firebase, from the BoM): `RemoteConfig.java`, bridge
+  `window.CashPawsConfig`; `www/shell/config.js` owns every default, type and
+  limit. Values are read once at launch and fixed for the session; a new
+  install waits up to 1.5 s for its first fetch, so first-day A/B tests reach
+  a player's first session. A bad console value is ignored. Release builds
+  fetch at most hourly, debug builds every launch.
+- **Shell keys:** `ads_interstitials`, `ads_interstitial_from`,
+  `ads_interstitial_gap_s`, `ads_free_days`, `ads_after_rewarded_s`,
+  `gift_enabled`, `gift_after_level`, `gift_value_share`. Games declare their
+  own in the manifest's `remote` and read them with `host.remote(key)`.
+- **Money Sort keys:** `free_sort_through`, `flow_interval`, `junk_chance`,
+  `level_difficulty`, `hard_junk_bonus`, `hard_flow_speedup`,
+  `assist_after_stuck`, `assist_ease` (`www/games/money-sort/REMOTE.md`).
+  Sort price and level-up pay left out: cat perks set them too.
+- **Difficulty per level:** one number per level from a table
+  (`levelDifficulty`, default `7/4:2, 8/4:0`). Hard levels and breathers are
+  now part of it: 1.5+ is Hard, 0.5 or less a breather. Each point moves
+  junk odds by `hardJunkBonus` and flow by `hardFlowSpeedup`. The default
+  gives exactly 1.18's Hard levels (checked for levels 1–299) and the same
+  flow everywhere; one change: breathers now also have less junk (0.2, was
+  0.4).
+- **Help when stuck:** every stuck board on a level counts; after 2 (by
+  default) the level plays one point easier until beaten. Quiet, no message;
+  the level keeps its label and pay. Counts survive drops and are saved.
+  Events: `assist_on`; `level_up` gains `assisted`.
+- Simulated players (pace.js, 300 games): reach level 8 81% (was 74%),
+  level 9 65% (59%); losses per game unchanged (2.62, was 2.63).
+- `config_ready` event after `app_boot` (source, wait, changed, rejected).
+  Settings → Ad status shows Remote Config's source and changed keys.
+- Docs: `docs/REMOTE-CONFIG.md` (console steps, per-country values, A/B
+  tests, sample size), GAME-MODULE.md, ANALYTICS.md, CLAUDE.md, privacy
+  policy (Remote Config and testing settings with groups of players).
+- Tests: `test/config.js` (39), `test/games/money-sort/difficulty.js` (33);
+  preflight checks every remote key and the bridge.
+- Not run here: the Android build (CI does it on the PR) and the Playwright
+  browser tests (no Chromium in this environment).
+- versionCode 32, versionName 1.21.0.
+
+To do after release: update the hosted privacy policy from
+`docs/PRIVACY-POLICY.md`. No Data safety change: Remote Config uses the same
+Firebase app-instance ID already declared.
+
+## 1.22.0: the first ten levels, quick and quiet
+
+Review, 4 Nov (GA, the 104 players who installed 31 Oct–4 Nov, 90% India,
+most from the paid campaign): D1 ~20% for paid installs, 0 of 23 organic.
+Where they went, by levels reached: beat level 1 71%, level 2 44%, level 3
+28%, level 5 16%, level 10 11%. 65% had already uninstalled.
+- 22 skipped the tutorial; skippers plus 8 who quit are the ~30 who never
+  beat level 1.
+- Levels took a bot that plays well 23 moves (level 1) and 24–37 (2–10),
+  and could jam from level 1.
+- The first session asked a lot: the gift card 63%, the rating sheet 43%,
+  the reminders question 44% (and Android's prompt 31%), "Not enough
+  coins" 40%, the coin shop 59%, Google Play's payment sheet 28%, and no
+  one paid. Only 3 watched a rewarded ad; ads failed to load for 19.
+
+Changes (each a Remote Config value, so it can be tuned or undone without
+an update):
+- **Short first levels** (`starter_pay`, default `1:3, 2-7:3, 8-10:2.5,
+  11-12:1.8, 13-14:1.4`): cash-ins pay up to 3×, easing off by level 15.
+  Targets unchanged, so saves are too. Bot: level 1 in 6 moves (was 23),
+  levels 2–10 in 8–16 (24–37); levels 1–10 in 114 moves, was 317.
+- **Can't jam** (`gentle_through` 10): a stuck board on levels 1–10 sorts
+  itself ("Shuffled for you"), or deals fresh coins when sorting can't help.
+  No stuck card, no lost level. Event `auto_rescue`.
+- **Sort free** (`sort_free_through` 10) on levels 1–10.
+- **No Skip in the tutorial** (`tutorial_skip` false).
+- **Quiet first levels** (shell, `quiet_levels` 10): no gift card, reminders
+  question, rating sheet or coin-pack offer until level 10 is beaten. The
+  Shop still sells coins to anyone who opens it.
+- **An ad before a coin pack** when something costs too much (shell
+  `shortOf`, Money Sort's stuck card). With nothing to offer, a short note
+  instead of a silent tap.
+- **Hard levels from 15** (`level_difficulty` `15/4:2, 16/4:0`, was from
+  7); Lucky Paw from 16 (was 12); Bell Quest opens once level 10 is beaten
+  (was 7).
+
+What to watch (new installs on 1.22.0; directional until ~300): beat
+level 1 85%+ (was 71%), level 3 60%+ (28%), level 10 30%+ (11%); D1 30%+
+for paid installs. `auto_rescue` per level; `level_up` seconds for levels
+1–10 (aim: under a minute each).
+
+- versionCode 33, versionName 1.22.0.

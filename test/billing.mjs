@@ -201,8 +201,15 @@ console.log('--- ?dev=1 stub, not enough coins ---');
   // Reveal the second cat, then try to buy it without enough coins.
   await p.evaluate(() => { window.stats.coinsEarned = 100000; window.wallet.set(10); });
   await p.click('[data-tab="cats"]'); await p.waitForTimeout(500);
+  // In the quiet first levels (1.22.0, quiet_levels 10) no coin packs are offered: a note says what's missing.
   await p.locator('[data-buy-cat]').nth(1).click(); await p.waitForTimeout(500);
-  check('a cat that costs too much offers coin packs', /Not enough coins/.test(await p.locator('.overlays .ovl').last().innerText().catch(() => '')));
+  const note = await p.evaluate(() => [...document.querySelectorAll('.toast')].map((t) => t.textContent).join(' '));
+  check('a new player short of coins for a cat gets no coin-pack card', await p.locator('.overlays .ovl.in').count() === 0);
+  check('but a note saying how many more', /more coins for/.test(note), note);
+  await p.waitForTimeout(2600);
+  await p.evaluate(() => { window.stats.bestLevel = 12; });
+  await p.locator('[data-buy-cat]').nth(1).click(); await p.waitForTimeout(500);
+  check('past level 10, a cat that costs too much offers coin packs', /Not enough coins/.test(await p.locator('.overlays .ovl').last().innerText().catch(() => '')));
   await p.locator('.overlays .ovl').last().getByText('Get coins').click(); await p.waitForTimeout(600);
   check('"Get coins" opens the Shop at its coin packs', await p.evaluate(() => {
     const s = document.querySelector('.panel-sheet');

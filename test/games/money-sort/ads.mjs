@@ -89,6 +89,7 @@ await ctx.close();
 ({ p, ctx } = await open({ bridge: { enabled: true, rewardNext: true } }));
 await p.click('[data-play]'); await p.waitForTimeout(400);
 const [f, to] = await p.evaluate(() => {
+  game.level = Math.max(game.level, 11); game.netWorth = Math.max(game.netWorth, game.floor); // past the gentle first levels (1.22.0)
   game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
   game.coins = 0; game.freeSorts = 0; game.status = 'playing'; game.selected = null; game.turnsUntilDrop = 6; game.undoSnapshot = null;
   view.update(); return game.legalMoves()[0];

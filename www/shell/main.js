@@ -10,11 +10,12 @@ import game from '../games/active.js';
 import APP from '../app.config.js';
 import * as store from './save.js';
 import { Wallet } from './wallet.js';
-import { createAds, INTERSTITIAL_FROM_LEVEL, AFTER_REWARDED_MS } from './ads.js';
+import { createAds } from './ads.js';
 import { createBilling } from './billing.js';
 import { createCloud } from './cloud.js';
 import { createSocial } from './social.js';
 import { createAnalytics } from './analytics.js';
+import { createConfig } from './config.js';
 import { createCoach } from './coach.js';
 import { createNotify, boxReminder, questReminder } from './notify.js';
 import { createSound } from './sound.js';
@@ -45,6 +46,7 @@ game.path = `games/${game.id}/`;
 let record;           // the whole save
 let shell;            // record.shell, the part the shell owns
 let wallet, header, lobby, panels, instance, ads, analytics, notify, sound, billing, cloud, social;
+let config;           // Remote Config values for this session (config.js)
 let screen = 'lobby';
 let currentLevel = 0;      // the installed game's level, from host.progress()
 let adBreakOn = false;
@@ -287,8 +289,9 @@ async function onLevelBreak() {
   const level = reachedLevel || currentLevel;
   if (screen !== 'game' || adBreakOn) return;
   if (await giftBreak(level)) return;                // no ad straight after the gift card
-  // The rating sheet after levels 2, 10 and 25; that break has no ad.
-  const at = social.reviewDue(level);
+  // The rating sheet after levels 2, 10 and 25, never in the quiet first
+  // levels (it then asks once, at the next break); that break has no ad.
+  const at = quiet(level) ? 0 : social.reviewDue(level);
   if (at) { await social.review(at); return; }
   if (ads.interstitialDue(level, adGate())) await runAdBreak(level);
 }
@@ -296,7 +299,7 @@ async function onLevelBreak() {
 /* ---------------------------------------------------------------- *
  * Tomorrow's gift (1.17.0) — the rules live in gift.js
  *
- * Once a new player beats level 3, a locked gift that opens tomorrow, with
+ * Once a new player beats their first level, a locked gift that opens tomorrow, with
  * the reminder offer right there. Opened on arriving in the lobby on any
  * later day, before any Bell Quest card.
  * ---------------------------------------------------------------- */
@@ -305,10 +308,12 @@ let giftOpen = false;
 
 /** At the break between levels: offer the gift, once. True if a card showed. */
 async function giftBreak(level) {
-  if (giftOpen || !G.shouldOffer(shell.gift, level)) return false;
+  if (giftOpen || !config.get('gift_enabled')) return false;
+  const after = Math.max(config.get('gift_after_level'), config.get('quiet_levels'));
+  if (!G.shouldOffer(shell.gift, level, after)) return false;
   giftOpen = true;
   try {
-    G.offer(shell.gift, { now: Date.now(), value: questValue() });
+    G.offer(shell.gift, { now: Date.now(), value: questValue(), share: config.get('gift_value_share') });
     save();
     const remind = canAskReminders();
     track('gift_offer', { level, coins: shell.gift.coins, remind });
@@ -469,7 +474,7 @@ function refreshReminders() {
 const canAskReminders = () => !!notify?.available && !shell.reminders.asked && notify.permission() === 'ask';
 
 async function offerReminders(reason) {
-  if (!canAskReminders()) return;
+  if (!canAskReminders() || quiet()) return;
   if (panels.open || anyCardOpen()) return;
   shell.reminders.asked = true;
   save();
@@ -568,6 +573,17 @@ const msSinceStart = () => Math.round(globalThis.performance?.now?.() ?? 0);
 /** Still on level 1: the app opens on the board, not the lobby. */
 const isNewPlayer = () => (shell.stats.bestLevel || 1) <= 1;
 
+/*
+ * The quiet first levels (1.22.0, Remote Config quiet_levels): until the
+ * player has beaten this many levels, nothing interrupts them. No gift card,
+ * no reminders question, no rating sheet, and no coin packs offered when
+ * something costs too much (the Shop still sells them to anyone who opens it).
+ * Of 104 new players in Oct-Nov 2026, 63% saw the gift card, 43% the rating
+ * sheet, 40% "Not enough coins" and 28% Google Play's payment sheet in their
+ * first session; 72% were gone before level 4.
+ */
+const quiet = (level = shell.stats.bestLevel || 1) => level <= config.get('quiet_levels');
+
 /** What the ad rules need to know about the player (ads.js interstitialDue). */
 const adGate = () => ({ firstDay: shell.stats.firstDay, today: localDay() });
 
@@ -589,6 +605,13 @@ async function boot() {
   // The first thing the page sends: installs that never reach app_ready
   // either stop before here (the app or WebView) or after (the page's boot).
   track('app_boot', { load_ms: msSinceStart(), new_player: isNewPlayer() });
+  // Tuning values: Firebase Remote Config's, else the defaults (config.js). Read
+  // once here; a first launch may wait up to 1.5 s for its first fetch.
+  config = createConfig({ dev: DEV, gameKeys: game.remote || {} });
+  track('config_ready', {
+    source: config.source, waited_ms: config.waited,
+    changed: Object.keys(config.changed).length, rejected: config.rejected.length,
+  });
   notify = createNotify({ dev: DEV });
   sound = createSound(shell.audio);
   // A soft tick on the shell's buttons (a game's own pieces make their own sounds).
@@ -628,7 +651,16 @@ async function boot() {
   await loadStyles(game);
   sound.register(game.sounds);
 
-  ads = createAds({ dev: DEV, confirm, track });
+  ads = createAds({
+    dev: DEV, confirm, track,
+    rules: {
+      interstitials: config.get('ads_interstitials'),
+      fromLevel: config.get('ads_interstitial_from'),
+      gapMs: config.get('ads_interstitial_gap_s') * 1000,
+      freeDays: config.get('ads_free_days'),
+      afterRewardedMs: config.get('ads_after_rewarded_s') * 1000,
+    },
+  });
   // Silence while an ad plays. On Android the full-screen ad sits over a
   // WebView that would otherwise keep playing; a bridge that knows exactly
   // when its ad starts (CrazyGames) does this itself.
@@ -639,7 +671,7 @@ async function boot() {
     ads.showInterstitial = async (...a) => { sound.hold('ad'); try { return await showInterstitial(...a); } finally { sound.release('ad'); } };
   }
   const host = createHost({
-    game, shell, wallet, header, ads, sound,
+    game, shell, wallet, header, ads, sound, config,
     onProgress: (p) => {
       if (Number.isFinite(p?.level)) currentLevel = p.level;
       lobby.update({ coins: wallet.coins, summary: shell.summaries[game.id] });
@@ -652,7 +684,7 @@ async function boot() {
     events: {
       levelWon: onLevelWon, levelLost: onLevelLost, levelBreak: onLevelBreak,
       levelLossWarning, confirmLevelLoss, track,
-      shortOf, shortHelps, openCoins, coinsForSale: () => !!billing?.enabled,
+      shortOf, shortHelps, openCoins, coinsForSale: packsOffered,
       shareFrom: (from) => (social?.canShare ? () => social.share(from) : null),
       lobbyButton: (id, o) => lobby.setExtra(id, o),
       shareFile: (o) => social?.shareFile(o) ?? Promise.resolve(false),
@@ -802,28 +834,35 @@ function onBillingNotice(kind, { coins, pack } = {}) {
   }
 }
 
-/** Whether shortOf() has anything to offer: coin packs, or a rewarded ad for this placement. */
-const shortHelps = (ad) => !!billing?.enabled || !!(ad && ads.rewarded.available(ad));
+/** Coin packs may be offered when something costs too much: sold here, and past the quiet first levels. */
+const packsOffered = () => !!billing?.enabled && !quiet();
+
+/** Whether shortOf() has anything to offer: a rewarded ad for this placement, or coin packs. */
+const shortHelps = (ad) => packsOffered() || !!(ad && ads.rewarded.available(ad));
 
 /**
- * Something costs more than the player has. One card, coin packs first, then
- * a rewarded ad (when the caller has a placement for one), then "Not now".
+ * Something costs more than the player has. One card: a rewarded ad (when the
+ * caller has a placement for one), then coin packs (past the quiet first
+ * levels), then "Not now". Ad first since 1.22.0. With neither, a short note.
  * Resolves 'coins' (the player now has enough), 'ad' (watched to the end)
  * or null. Games reach it as host.shortOf().
  */
 async function shortOf({ price, what, ad = null, adLabel = 'Watch an ad instead' } = {}) {
-  const canBuy = !!billing?.enabled;
+  const canBuy = packsOffered();
   const canAd = !!(ad && ads.rewarded.available(ad));
-  if (!canBuy && !canAd) return null;
   const need = Math.max(1, price - wallet.coins);
+  if (!canBuy && !canAd) {
+    toast(`${coinIcon(18)} <span>${fmtCoins(need)} more coins for ${what}</span>`, 2400);
+    return null;
+  }
   track('coins_short', { what, need, buy: canBuy, ad: canAd });
   const pick = await choose({
     kicker: 'Not enough coins',
     title: `${fmtCoins(need)} more for ${what}`,
-    line: canBuy && canAd ? 'Coin pack or a short ad' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
+    line: canBuy && canAd ? 'A short ad or a coin pack' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
     choices: [
-      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: true },
-      canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: !canBuy },
+      canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: true },
+      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: !canAd },
     ].filter(Boolean),
   });
   if (pick === 'coins') { await openCoins('short'); return wallet.coins >= price ? 'coins' : null; }
@@ -896,6 +935,16 @@ function cloudLine() {
     + (c.error ? `<br><small>${c.error}</small>` : '');
 }
 
+/** Remote Config, for the testing card: where values came from and what differs from the defaults. */
+function configLine() {
+  if (!config) return '';
+  const st = config.status();
+  const diff = Object.entries(config.changed).map(([k, from]) => `${k} = ${config.get(k)}${from === 'dev' ? ' (dev)' : ''}`);
+  return `<b>Remote Config</b>: ${config.enabled ? `values ${config.source}` : 'not in this build (defaults)'}`
+    + `${st ? `, last fetch ${st.last}` : ''}${diff.length ? `<br><small>${diff.join(' · ')}</small>` : ''}`
+    + `${config.rejected.length ? `<br><small>Ignored (bad values): ${config.rejected.join(', ')}</small>` : ''}`;
+}
+
 async function adStatus() {
   for (;;) {
     const s = ads.status();
@@ -908,7 +957,8 @@ async function adStatus() {
         `<b>SDK started</b>: ${s.started ? 'yes' : 'no'}`,
         `<b>Rewarded</b> ${tail(s.rewardedUnit)}: ${explainAd(s.rewarded)}`,
         `<b>Interstitial</b> ${tail(s.interstitialUnit)}: ${explainAd(s.interstitial)}`,
-        `<b>Ad break</b>: at each level end from level ${INTERSTITIAL_FROM_LEVEL}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${AFTER_REWARDED_MS / 1000} s)`,
+        `<b>Ad break</b>: ${ads.rules.interstitials ? `at each level end from level ${ads.rules.fromLevel}, ${ads.rules.gapMs / 1000} s apart, none in the first ${ads.rules.freeDays} days` : 'off (Remote Config)'}; now on ${currentLevel}. Last rewarded ad ${Number.isFinite(ads.sinceRewarded) ? `${ads.sinceRewarded} s ago` : 'never'} (skips within ${ads.rules.afterRewardedMs / 1000} s)`,
+        configLine(),
         billingLine(),
         cloudLine(),
       ].join('<br>');

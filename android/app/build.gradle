@@ -138,6 +138,8 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:34.19.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-crashlytics'
+    // Remote Config (1.19.0): tuning values and A/B tests from the Firebase console.
+    implementation 'com.google.firebase:firebase-config'
     // webkit gives WebViewAssetLoader, which serves the game from a real https
     // origin. On file:// the WebView refuses ES modules and sandboxes storage.
     implementation 'androidx.webkit:webkit:1.12.1'

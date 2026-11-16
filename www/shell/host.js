@@ -11,7 +11,7 @@ export function haptic(pattern) {
   try { navigator.vibrate?.(pattern); } catch { /* not supported */ }
 }
 
-export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach, sound }) {
+export function createHost({ game, shell, wallet, header, ads, onProgress, onStat, save, exit, dev, events = {}, coach, sound, config }) {
   const stats = (shell.gameStats[game.id] ||= {});
 
   return {
@@ -82,14 +82,15 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
 
     /*
      * Short of coins: await host.shortOf({ price, what: 'a Sort', ad: 'rescue-sort',
-     * adLabel: 'Watch an ad · free Sort' }). The shell offers coin packs first,
-     * then the rewarded ad, and resolves 'coins' (enough now), 'ad' (watched)
-     * or null. host.shortHelps(ad) says whether it has anything to offer, so a
-     * button can stay tappable when the player is short.
+     * adLabel: 'Watch an ad · free Sort' }). The shell offers the rewarded ad
+     * first, then coin packs (not in the quiet first levels), and resolves
+     * 'coins' (enough now), 'ad' (watched) or null. host.shortHelps(ad) says
+     * whether it has anything to offer, so a button can stay tappable when the
+     * player is short.
      */
     shortOf: (o) => events.shortOf?.(o) ?? Promise.resolve(null),
     shortHelps: (ad) => !!events.shortHelps?.(ad),
-    /** Coin packs for real money: whether this build sells them, and the Shop's coin section. */
+    /** Coin packs for real money: whether they may be offered now (sold, past the quiet first levels), and the Shop's coin section. */
     coinsForSale: () => !!events.coinsForSale?.(),
     openCoins: (from) => events.openCoins?.(from) ?? Promise.resolve(),
 
@@ -121,6 +122,16 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
 
     /** Tutorial coach marks: tip(), spotlight(), clear(). See coach.js. */
     coach,
+
+    /*
+     * A tuning value the game declared in its manifest's `remote` field,
+     * from Firebase Remote Config when set there, else the declared default.
+     * Fixed for the session. host.remote('free_sort_through') → 5.
+     */
+    remote: (key) => {
+      if (!config?.has(key)) return game.remote?.[key]?.default;
+      return config.get(key);
+    },
 
     /** Small facts a game remembers across launches, such as a finished tutorial. */
     flag: (key) => !!(shell.flags[game.id] || {})[key],

@@ -4,6 +4,17 @@ Sent with `host.track()`. The main game's events (`board_stuck`,
 `stuck_choice`, `sort_used`, `undo_used`) are listed in `docs/ANALYTICS.md`,
 from before this file existed. New ones go here.
 
+## The first levels (1.22.0)
+
+| Event | Extra parameters | When |
+|---|---|---|
+| `auto_rescue` | level, how (`sort`: the board sorted itself; `refill`: sorting couldn't help, fresh coins) | A board jams on a gentle level (Remote Config `gentle_through`, default 10). It replaces `board_stuck` and the stuck card there. |
+
+`sort_used` with how `free` now also counts Sorts on levels where every Sort
+is free (`sort_free_through`). Questions: how often the first levels would
+have jammed (`auto_rescue` by level), and whether players who saw one keep
+going (`level_up` after it).
+
 ## Puzzle of the Day (1.20.0)
 
 Every event carries: number (the puzzle's number, #1 = 25 Oct 2026), day

@@ -13,6 +13,7 @@ async function stuck(p, coins) {
   await p.waitForFunction(() => !document.body.classList.contains('busy'), null, { timeout: 5000 }).catch(() => {});
   await p.waitForTimeout(300);
   const [f, t] = await p.evaluate((c) => {
+    game.level = Math.max(game.level, 11); game.netWorth = Math.max(game.netWorth, game.floor); // past the gentle first levels (1.22.0)
     game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
     game.coins = c; if (window.wallet) wallet.coins = c; game.freeSorts = 0; game.status = 'playing'; game.selected = null;
     game.turnsUntilDrop = 6; game.undoSnapshot = null; view.update();

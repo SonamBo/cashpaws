@@ -58,7 +58,7 @@ code's package. Renaming them breaks every future update.
 |---|---|
 | The header, lobby line and best-level tracking | `host.progress({ title, fraction, figure, sub, level, summary })` on every change |
 | Ad breaks (interstitials, at each level's end past level 10) | report each win with `host.levelWon({ level })` (the level reached) and `await host.levelBreak()` before the next level starts |
-| Short of coins | `await host.shortOf({ price, what, ad, adLabel })`: coin packs first, then a rewarded ad; `host.shortHelps(ad)` keeps a button tappable |
+| Short of coins | `await host.shortOf({ price, what, ad, adLabel })`: a rewarded ad first, then coin packs (not in the quiet first levels, `quiet_levels`); `host.shortHelps(ad)` keeps a button tappable |
 | `level_up` / `level_lost` analytics and Bell Quest steps | `host.levelWon(info)` / `host.levelLost(info)`; `await host.levelBreak()` between a level's celebration and the next |
 | Bell Quest at all | `quest: { unlockLevel, steps }` in the manifest; `await host.confirmLevelLoss()` before any loss the player chooses |
 | Daily tasks | a `tasks` catalogue in the manifest, and `host.stat(key)` as things happen |
@@ -68,6 +68,7 @@ code's package. Renaming them breaks every future update.
 | A first-time tutorial | `host.coach.*` with `host.flag` / `host.setFlag` to remember it ran |
 | The game's own events | `host.track(name, params)`. List them in `www/games/<id>/EVENTS.md`, not in `docs/ANALYTICS.md` |
 | Coins | `host.wallet.earn(n, reason)` / `spend(n, reason)`; never keep a separate currency |
+| Tuning from Firebase (no app update) | declare keys in the manifest's `remote` (default, type, limits) and read them with `host.remote(key)`. The shell's own (ads, the gift) are in `www/shell/config.js`; see `docs/REMOTE-CONFIG.md` |
 | Share on the level-up card | `host.celebrate({ ..., share: true })`. The shell's Share button sits in the lobby and Settings already |
 | A lobby button of its own (a daily challenge, an event) | `host.lobbyButton(id, { icon, pill, badge, news })`, and `openFromLobby(id)` on the instance |
 | Share a clip or picture it made | `await host.shareFile({ blob, name, text, from })`; `host.canShareFile()` to offer it |

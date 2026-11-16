@@ -58,6 +58,9 @@ export default {
   ],
   quest: { unlockLevel: 8, steps: 7 },   // optional: opts in to Bell Quest
   analytics: { batch: ['bank'] },        // coin reasons too frequent to send one by one
+  remote: {                // tuning values Firebase Remote Config may change (docs/REMOTE-CONFIG.md)
+    free_sort_through: { default: 5, type: 'int', min: 1, max: 50, about: 'Levels up to this one start with a free Sort.' },
+  },
   sounds: {                // the game's own effects, played with host.sound(name)
     meow: (t, { ctx, bus, tone, noise }) => { /* Web Audio nodes into bus, from time t */ },
   },
@@ -104,6 +107,7 @@ await host.levelBreak()           // between a level's celebration and the next 
 host.levelLossWarning()           // before a chosen loss: { kicker, title, line, stat, ok, cancel, answer(yes) } or null
 host.coach.tip / spotlight / clear  // tutorial coach marks; 'progress' targets the shared progress bar
 host.flag(key), host.setFlag(key) // small remembered facts, such as a finished tutorial
+host.remote(key)                  // a value declared in `remote`: Firebase's if set there, else the default; fixed for the session
 await host.confirmLevelLoss()     // before a loss the player chose; false means don't
 
 host.stats                        // this game's counters so far, read-only
@@ -204,8 +208,11 @@ this work in a new game:
 - **`await host.levelBreak()`** after the level's celebration and before the
   next level starts. Bell Quest shows its step there, then the Ad break plays.
 
-The rules live in `www/shell/ads.js` (`INTERSTITIAL_FROM_LEVEL`,
-`AFTER_REWARDED_MS`). They are the same for every game built on this shell.
+The rules live in `www/shell/ads.js`. Since 1.19.0 each can be changed from
+Firebase Remote Config without an app update (`ads_interstitials`,
+`ads_interstitial_from`, `ads_interstitial_gap_s`, `ads_free_days`,
+`ads_after_rewarded_s`; see `docs/REMOTE-CONFIG.md`), per country too. The
+defaults are the same for every game built on this shell.
 
 ## Share, rating, cloud save
 
@@ -245,14 +252,18 @@ download otherwise. `host.canShareFile()` says whether to offer the button.
 ## Short of coins
 
 When the player can't afford something, `await host.shortOf({ price, what,
-ad, adLabel })` shows one card: coin packs first (where the build sells
-them), then a rewarded ad for `ad`'s placement, then "Not now". It resolves
-`'coins'` (they now have enough: go ahead and charge), `'ad'` (watched to the
-end: give it free) or `null`. `host.shortHelps(ad)` says whether there is
-anything to offer, so a button can stay tappable while the player is short.
-Money Sort's Sort button and stuck card use it. `host.openCoins()` opens the
-Shop's coin packs and resolves when it closes; `host.coinsForSale()` says
-whether this build sells any.
+ad, adLabel })` shows one card: a rewarded ad for `ad`'s placement first,
+then coin packs (where the build sells them, and not in a new player's quiet
+first levels: Remote Config `quiet_levels`), then "Not now". With nothing to
+offer it shows a short note ("290 more coins for Mittens") and resolves
+`null`. It resolves `'coins'` (they now have enough: go ahead and charge),
+`'ad'` (watched to the end: give it free) or `null`. `host.shortHelps(ad)`
+says whether there is anything to offer, so a button can stay tappable while
+the player is short. Money Sort's Sort button and stuck card use it.
+`host.openCoins()` opens the Shop's coin packs and resolves when it closes;
+`host.coinsForSale()` says whether coin packs may be offered now (sold, and
+past the quiet first levels). Ad first since 1.22.0: of 104 new players,
+28% opened Google Play's payment sheet in their first session and none paid.
 
 ## Stats: two kinds
 

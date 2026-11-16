@@ -80,12 +80,19 @@ await p.click('[data-play]'); await p.waitForTimeout(900);
 check('a returning player past level 1 never sees it', await p.locator('.coach-bubble').count() === 0
   && await p.evaluate(() => shell.flags['money-sort']?.ftue === true));
 
-// Skip: the bubble's "Skip tutorial" ends it for good.
+// No Skip by default (1.22.0, Remote Config tutorial_skip false).
 await p.goto('http://localhost:8080/css/tokens.css');
 await p.evaluate(() => localStorage.clear());
 await boot();
 await p.click('[data-play]'); await p.waitForTimeout(900);
-check('the tutorial offers a skip', await p.locator('.coach-skip').count() === 1);
+check('by default the tips have no Skip', await p.locator('.coach-bubble').count() === 1 && await p.locator('.coach-skip').count() === 0);
+
+// With tutorial_skip on, the bubble's "Skip tutorial" ends it for good.
+await p.goto('http://localhost:8080/css/tokens.css');
+await p.evaluate(() => localStorage.clear());
+await p.goto('http://localhost:8080/?dev=1&lobby=1&cfg=tutorial_skip:true'); await p.waitForTimeout(1000);
+await p.click('[data-play]'); await p.waitForTimeout(900);
+check('tutorial_skip on: the tutorial offers a skip', await p.locator('.coach-skip').count() === 1);
 await p.locator('.coach-skip').click(); await p.waitForTimeout(400);
 check('skipping clears it and remembers', await p.locator('.coach-bubble').count() === 0
   && await p.evaluate(() => shell.flags['money-sort']?.ftue === true));

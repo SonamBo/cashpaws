@@ -16,7 +16,8 @@ const check = (label, ok, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? '  — ' + detail : ''}`);
 };
 
-async function stuckWith(coins, dev) {
+// Past the first ten levels (1.22.0): there, a jam sorts itself and Sort is free.
+async function stuckWith(coins, dev, level = 11) {
   const p = await b.newPage({ viewport: { width: 1160, height: 1060 } });
   p.on('pageerror', (e) => errs.push(e.message));
   await p.goto('http://localhost:8080/css/tokens.css');
@@ -25,12 +26,13 @@ async function stuckWith(coins, dev) {
   await p.waitForTimeout(800);
   await p.click('[data-play]'); await p.waitForTimeout(400);
   // One legal move exists; making it jams the board.
-  const [f, t] = await p.evaluate((c) => {
+  const [f, t] = await p.evaluate(([c, lv]) => {
+    game.level = lv; game.netWorth = game.floor;
     game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
     game.coins = c; game.freeSorts = 0; game.status = 'playing'; game.selected = null;
     game.turnsUntilDrop = 6; game.undoSnapshot = null; view.update();
     return game.legalMoves()[0];
-  }, coins);
+  }, [coins, level]);
   await p.click(`.tube[data-col="${f}"]`); await p.waitForTimeout(150);
   await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(900);
   return p;
@@ -69,6 +71,14 @@ console.log('--- broke, in the real app (no ad network yet) ---');
 p = await stuckWith(0, false);
 check('no ad button while ads do not exist', await p.locator('[data-ad-sort]').count() === 0);
 check('dropping a level is the way out', await p.locator('[data-drop]').count() === 1);
+await p.close();
+
+console.log('--- the same jam on level 3, broke (1.22.0: gentle levels) ---');
+p = await stuckWith(0, true, 3);
+check('no stuck card', await p.locator('.ovl-locked').count() === 0);
+const st = await p.evaluate(() => ({ s: game.status, l: game.level, m: game.legalMoves().length, ev: game.events.slice(-8).map((e) => e.type).join(',') }));
+check('the board sorted itself and play goes on', st.s === 'playing' && st.l >= 3 && st.m > 0 && /rescue,sort/.test(st.ev), JSON.stringify(st));
+check('for free', (await p.evaluate(() => wallet.coins)) >= 0 && (await p.evaluate(() => gameStats.adSorts || 0)) === 0);
 await p.close();
 
 console.log(errs.length ? 'ERRORS: ' + errs.join(' | ') : 'no page errors');
