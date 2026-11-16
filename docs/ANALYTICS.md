@@ -123,9 +123,11 @@ don't count towards `coinsEarned`, which reveals cats.
 | `lobby_button` | id (a game's own lobby button was tapped, e.g. `daily-puzzle`, since 1.20.0) |
 | `review_request` | at: 3, 11 or 26 (the level just reached: after clearing 2, 10, 25) |
 | `review_done` | at, asked (Google's sheet finished; it never says whether it showed or they rated) |
+| `language_set` | language (`es`, `hi`…: the player picked another language in Settings; apps that list `languages` only) |
 
 **User properties** are attached to every event: `game`, `best_level`,
-`cat_worn`, `cats_owned`, `days_played` and `quest_wins`.
+`cat_worn`, `cats_owned`, `days_played` and `quest_wins`; and `language` in an
+app that offers more than one.
 
 ## Set up once in the Firebase console
 

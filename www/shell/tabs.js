@@ -11,17 +11,18 @@ import { CATS, unlockProgress, perkIn } from './cats.js';
 import { cat, coinIcon, icons } from './art.js';
 import { asset } from './assets.js';
 import { progressOf, isDone, allDone, REWARD, BONUS, STREAK_SHOWN } from './daily.js';
+import { tr, trOr, num } from './i18n.js';
 
 const priceTag = (owned, price) => owned
-  ? `<span class="tag on">${icons.check(14)} Owned</span>`
+  ? `<span class="tag on">${icons.check(14)} ${tr('owned')}</span>`
   : `<span class="tag">${coinIcon(14)} ${price}</span>`;
 
-const fmt = (n) => Number(n).toLocaleString('en-US');
+const fmt = num;
 
 function catsPanel({ game, shell }) {
   return `
-    <h2>Cats</h2>
-    <p class="panel-sub">Wear one at a time. Each tweaks the game.</p>
+    <h2>${tr('tab.cats')}</h2>
+    <p class="panel-sub">${tr('cats.sub')}</p>
     <ul class="cards">
       ${CATS.map((c) => {
         const owned = shell.cats.owned.includes(c.id);
@@ -29,12 +30,12 @@ function catsPanel({ game, shell }) {
         const { revealed, have, need } = unlockProgress(c, shell.stats);
         const perk = perkIn(game, c.id);
         const state = !revealed ? 'locked' : active ? 'active' : '';
-        const tag = active ? '<span class="tag on">Wearing</span>'
+        const tag = active ? `<span class="tag on">${tr('cats.wearing')}</span>`
           : !revealed ? `<span class="tag">${icons.lock(14)}</span>`
           : priceTag(owned, c.price);
         const line = !revealed
-          ? `<span class="cat-lock">${c.unlock.label} &middot; ${fmt(Math.min(have, need))}/${fmt(need)}</span>`
-          : `<span class="cat-perk">${perk ? perk.text : c.id === 'patch' ? 'No perk. Classic play.' : 'Looks only'}</span>`;
+          ? `<span class="cat-lock">${tr('cats.unlock', { n: fmt(c.unlock.need) })} &middot; ${fmt(Math.min(have, need))}/${fmt(need)}</span>`
+          : `<span class="cat-perk">${perk ? perk.text : c.id === 'patch' ? tr('cats.noPerk') : tr('cats.looksOnly')}</span>`;
         const bar = !revealed
           ? `<span class="cat-bar"><i style="width:${Math.min(100, (have / need) * 100).toFixed(0)}%"></i></span>`
           : '';
@@ -60,13 +61,13 @@ function shopPanel({ game, shell, billing }) {
         <li class="card ${active ? 'active' : ''}" data-buy-cosmetic="${s.id}">
           <span class="card-art">${s.preview ? `<img class="art" src="${asset(game.path + s.preview)}" width="34" alt="">` : ''}</span>
           <span class="card-main"><b>${s.name}</b><span>${s.note || ''}</span></span>
-          ${active ? '<span class="tag on">In use</span>' : priceTag(owned, s.price)}
+          ${active ? `<span class="tag on">${tr('shop.inUse')}</span>` : priceTag(owned, s.price)}
         </li>`;
       }).join('')}
-    </ul>` : '<p class="panel-sub">Nothing here yet</p>';
+    </ul>` : `<p class="panel-sub">${tr('shop.empty')}</p>`;
   return `
-    <h2>Shop</h2>
-    <p class="panel-sub">${game.shopBlurb || 'Looks only'}</p>
+    <h2>${tr('tab.shop')}</h2>
+    <p class="panel-sub">${game.shopBlurb || tr('cats.looksOnly')}</p>
     ${list}
     ${coinsSection(billing)}`;
 }
@@ -78,27 +79,27 @@ const stack = (i) => `<span class="pack-art n${Math.min(4, i + 1)}">${
 function coinsSection(billing) {
   if (!billing?.enabled) {
     return `
-    <h3 data-coins-section>Coins</h3>
-    <p class="panel-sub">Earned by playing. Nothing sold for real money.</p>`;
+    <h3 data-coins-section>${tr('shop.coins')}</h3>
+    <p class="panel-sub">${tr('shop.coins.free')}</p>`;
   }
   const packs = billing.packs();
   const body = billing.state === 'loading'
-    ? '<p class="panel-sub">Loading prices…</p>'
+    ? `<p class="panel-sub">${tr('shop.loading')}</p>`
     : billing.state !== 'ready'
-      ? '<p class="panel-sub">Unavailable right now. Check your connection.</p>'
+      ? `<p class="panel-sub">${tr('shop.unavailable')}</p>`
       : `<ul class="cards packs">
       ${packs.map((p, i) => `
         <li class="card pack ${p.tag ? 'tagged' : ''}">
-          ${p.tag ? `<span class="pack-tag">${p.tag}</span>` : ''}
+          ${p.tag ? `<span class="pack-tag">${trOr(`pack.tag.${p.tag}`, p.tag)}</span>` : ''}
           <span class="card-art">${stack(i)}</span>
-          <span class="card-main"><b>${fmt(p.coins)} coins</b><span>${p.name || ''}${p.bonus ? ` &middot; <em class="pack-bonus">+${p.bonus}% extra</em>` : ''}</span></span>
-          ${p.price ? `<button class="buy" data-buy-pack="${p.id}">${p.price}</button>` : '<span class="tag">Unavailable</span>'}
+          <span class="card-main"><b>${tr('coins.n', { n: fmt(p.coins) })}</b><span>${trOr(`pack.name.${p.id}`, p.name || '')}${p.bonus ? ` &middot; <em class="pack-bonus">${tr('shop.extra', { n: p.bonus })}</em>` : ''}</span></span>
+          ${p.price ? `<button class="buy" data-buy-pack="${p.id}">${p.price}</button>` : `<span class="tag">${tr('shop.packUnavailable')}</span>`}
         </li>`).join('')}
     </ul>`;
   return `
-    <h3 data-coins-section>Get coins</h3>
+    <h3 data-coins-section>${tr('shop.getCoins')}</h3>
     ${body}
-    <p class="panel-sub small">Paid via Google Play. Coins stay on this phone.</p>`;
+    <p class="panel-sub small">${tr('shop.paidVia')}</p>`;
 }
 
 function progressPanel({ game, shell, instance }) {
@@ -106,10 +107,10 @@ function progressPanel({ game, shell, instance }) {
   const owned = shell.cats.owned.length;
   const extra = instance?.progressRows?.() || null;
   const tiles = [
-    { value: fmt(s.coinsEarned), label: 'coins earned' },
-    { value: s.bestLevel, label: 'best level' },
-    { value: `${owned}/${CATS.length}`, label: 'cats' },
-    { value: s.daysPlayed, label: 'days played' },
+    { value: fmt(s.coinsEarned), label: tr('progress.coinsEarned') },
+    { value: s.bestLevel, label: tr('progress.bestLevel') },
+    { value: `${owned}/${CATS.length}`, label: tr('progress.cats') },
+    { value: s.daysPlayed, label: tr('progress.days') },
     ...(extra?.tiles || []),
   ];
   const table = extra?.table ? `
@@ -120,8 +121,8 @@ function progressPanel({ game, shell, instance }) {
       </tbody>
     </table>` : '';
   return `
-    <h2>Progress</h2>
-    <p class="panel-sub">${extra?.blurb || 'Lifetime totals'}</p>
+    <h2>${tr('tab.progress')}</h2>
+    <p class="panel-sub">${extra?.blurb || tr('progress.sub')}</p>
     <div class="stat-grid">
       ${tiles.map((t) => `<div><b>${t.value}</b><span>${t.label}</span></div>`).join('')}
     </div>
@@ -134,24 +135,24 @@ function untilMidnight(now = new Date()) {
   return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
 }
 
-const TIER_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+const tierLabel = (tier) => tr(`tier.${tier}`);
 
 function dailyPanel({ game, shell, stats }) {
   const d = shell.daily;
   if (!d.tasks.length) {
-    return `<h2>Daily</h2><p class="panel-sub">No daily tasks yet</p>`;
+    return `<h2>${tr('tab.daily')}</h2><p class="panel-sub">${tr('daily.none')}</p>`;
   }
   const rows = d.tasks.map((t, i) => {
     const have = progressOf(t, stats);
     const done = isDone(t, stats);
     const right = t.claimed
-      ? `<span class="tag on">${icons.check(14)} Claimed</span>`
+      ? `<span class="tag on">${icons.check(14)} ${tr('claimed')}</span>`
       : done
-        ? `<button class="claim" data-claim="${i}">Claim ${coinIcon(14)} ${REWARD[t.tier]}</button>`
+        ? `<button class="claim" data-claim="${i}">${tr('claim')} ${coinIcon(14)} ${REWARD[t.tier]}</button>`
         : `<span class="tag">${coinIcon(14)} ${REWARD[t.tier]}</span>`;
     return `
       <li class="card task ${t.claimed ? 'claimed' : done ? 'done' : ''}">
-        <span class="task-tier tier-${t.tier}">${TIER_LABEL[t.tier]}</span>
+        <span class="task-tier tier-${t.tier}">${tierLabel(t.tier)}</span>
         <span class="card-main">
           <b>${t.text}</b>
           <span class="cat-bar"><i style="width:${((have / t.target) * 100).toFixed(0)}%"></i></span>
@@ -163,31 +164,31 @@ function dailyPanel({ game, shell, stats }) {
 
   const allClaimed = d.tasks.every((t) => t.claimed);
   const bonusRight = d.bonusClaimed
-    ? `<span class="tag on">${icons.check(14)} Claimed</span>`
+    ? `<span class="tag on">${icons.check(14)} ${tr('claimed')}</span>`
     : allDone(d, stats) && allClaimed
-      ? `<button class="claim" data-claim-bonus>Claim ${coinIcon(14)} ${BONUS}</button>`
+      ? `<button class="claim" data-claim-bonus>${tr('claim')} ${coinIcon(14)} ${BONUS}</button>`
       : `<span class="tag">${coinIcon(14)} ${BONUS}</span>`;
 
   const shown = Math.min(d.streak, STREAK_SHOWN);
   const stamps = Array.from({ length: STREAK_SHOWN }, (_, i) =>
     `<span class="stamp ${i < shown ? 'on' : ''}">${i < shown ? cat('face', 30, 'stamp-cat') : ''}</span>`).join('');
   const streakLine = d.streak === 0
-    ? 'Finish all 3 to start a streak'
+    ? tr('daily.streak.start')
     : d.bonusClaimed
-      ? `${d.streak}-day streak · back tomorrow`
-      : `${d.streak}-day streak · finish today's 3`;
+      ? tr('daily.streak.tomorrow', { n: d.streak })
+      : tr('daily.streak.today', { n: d.streak });
 
   return `
-    <h2>Daily</h2>
-    <p class="panel-sub">New tasks in ${untilMidnight()}</p>
+    <h2>${tr('tab.daily')}</h2>
+    <p class="panel-sub">${tr('daily.newIn', { time: untilMidnight() })}</p>
     <ul class="cards">${rows}
       <li class="card task bonus ${d.bonusClaimed ? 'claimed' : ''}">
         <span class="task-tier tier-bonus">${icons.gift(18)}</span>
-        <span class="card-main"><b>All 3 done</b><span>Bonus</span></span>
+        <span class="card-main"><b>${tr('daily.all3')}</b><span>${tr('daily.bonus')}</span></span>
         ${bonusRight}
       </li>
     </ul>
-    <h3>Streak</h3>
+    <h3>${tr('daily.streak')}</h3>
     <div class="streak">${stamps}</div>
     <p class="panel-sub">${streakLine}</p>`;
 }
@@ -223,7 +224,7 @@ export class Panels {
     const keep = this.open === tab ? this.el.scrollTop : 0;   // a redraw (a purchase, prices arriving) keeps the place
     this.el.innerHTML = `
       <div class="panel-head">
-        <button data-close aria-label="Close">${icons.close(20)}</button>
+        <button data-close aria-label="${tr('close')}">${icons.close(20)}</button>
       </div>
       <div class="panel-inner">${body}</div>`;
     this.el.querySelector('[data-close]').addEventListener('click', () => this.onClose());

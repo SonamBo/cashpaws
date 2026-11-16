@@ -5,6 +5,7 @@
 
 import { cat, coinIcon, logo } from './art.js';
 import { asset } from './assets.js';
+import { locale } from './i18n.js';
 import { celebrate, setback, confirm, show, dismiss, wait } from './overlays.js';
 
 export function haptic(pattern) {
@@ -119,6 +120,8 @@ export function createHost({ game, shell, wallet, header, ads, onProgress, onSta
       logo: (width) => logo(width),       // the app's title art, for a game's own cards and clips
     },
     asset: (path) => asset(game.path + path),
+    /** The app's language, e.g. 'en' or 'pt': the same as <html lang>. A change reloads the page. */
+    locale,
 
     /** Tutorial coach marks: tip(), spotlight(), clear(). See coach.js. */
     coach,

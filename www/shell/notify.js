@@ -14,12 +14,13 @@
  */
 
 import { catsLeft, formatLeft, grandPrize } from './quest.js';
+import { tr, num } from './i18n.js';
 
 const H = 3600000;
 export const QUEST_HOUR = 19;              // 7 pm, the phone's local time
 export const QUEST_MIN_GAP = 4 * H;        // never nag someone who just played
 
-const fmt = (n) => Number(n).toLocaleString('en-US');
+const fmt = num;
 
 /** The next `hour`:00 local that is at least `gap` from now. */
 export function nextDaily(now, hour = QUEST_HOUR, gap = QUEST_MIN_GAP) {
@@ -33,8 +34,8 @@ export function boxReminder(box, now) {
   if (!box || box.nextAt <= now + 60000) return null;      // ready already: the lobby shows it
   return {
     at: box.nextAt,
-    title: 'Your Rewards Box is ready',
-    body: 'Open it for coins',
+    title: tr('note.box.title'),
+    body: tr('note.box.body'),
   };
 }
 
@@ -48,26 +49,26 @@ export function questReminder(q, now, value) {
     if (daily < q.endsAt - 30 * 60000) {
       return {
         at: daily,
-        title: `Bell Quest: step ${q.step} of ${q.steps}`,
-        body: `${left} more level${left === 1 ? '' : 's'} · ${cats} cats · ${fmt(q.grand)} coins · ${formatLeft(q.endsAt - daily)} left`,
+        title: tr('note.quest.step.title', { step: q.step, steps: q.steps }),
+        body: tr('note.quest.step.body', { n: left, cats, coins: fmt(q.grand), time: formatLeft(q.endsAt - daily) }),
       };
     }
     const lastCall = q.endsAt - 2 * H;
     if (lastCall < now + 30 * 60000) return null;             // too late to be useful
     return {
       at: lastCall,
-      title: 'Bell Quest ends in 2 hours',
-      body: `Step ${q.step} of ${q.steps} · ${cats} cats left`,
+      title: tr('note.quest.ends.title'),
+      body: tr('note.quest.ends.body', { step: q.step, steps: q.steps, cats }),
     };
   }
   const at = nextDaily(now);
   if (q.status === 'won') {
-    return { at, title: 'Your Bell Quest prize is waiting', body: `Claim your share of ${fmt(q.grand)}` };
+    return { at, title: tr('note.quest.won.title'), body: tr('note.quest.won.body', { coins: fmt(q.grand) }) };
   }
   return {                                                    // offer, lost or expired: a new one is ready
     at,
-    title: 'A new Bell Quest is ready',
-    body: `7 levels in a row · ${fmt(grandPrize(value))} coins to share`,
+    title: tr('note.quest.new.title'),
+    body: tr('note.quest.new.body', { coins: fmt(grandPrize(value)) }),
   };
 }
 

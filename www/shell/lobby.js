@@ -5,6 +5,7 @@
 
 import { coinIcon, icons, logo, tagline, catHero } from './art.js';
 import { bell } from './questui.js';
+import { tr } from './i18n.js';
 
 export class LobbyView {
   constructor(root) {
@@ -18,13 +19,13 @@ export class LobbyView {
           <span class="coins-add">+</span>
         </div>
         <span class="hdr-spacer"></span>
-        <button class="icon-btn box-btn" data-box aria-label="Rewards box">
+        <button class="icon-btn box-btn" data-box aria-label="${tr('lobby.box')}">
           ${icons.gift(22)}<i class="nav-dot" data-box-dot hidden></i>
         </button>
-        <button class="icon-btn" data-share aria-label="Share" hidden>${icons.share(22)}</button>
-        <button class="icon-btn" data-settings aria-label="Settings">${icons.gear(22)}</button>
+        <button class="icon-btn" data-share aria-label="${tr('share')}" hidden>${icons.share(22)}</button>
+        <button class="icon-btn" data-settings aria-label="${tr('lobby.settings')}">${icons.gear(22)}</button>
       </header>
-      <button class="quest-btn" data-quest hidden aria-label="Bell Quest">
+      <button class="quest-btn" data-quest hidden aria-label="${tr('quest.name')}">
         <span class="quest-disc">${bell(40)}<i class="quest-badge" data-quest-badge hidden></i></span>
         <span class="quest-pill" data-quest-pill></span>
       </button>
@@ -34,16 +35,16 @@ export class LobbyView {
         ${tagline(190)}
         ${catHero(252)}
         <button class="play" data-play>
-          <span data-play-label>Play</span>
+          <span data-play-label>${tr('play')}</span>
           <small data-play-sub></small>
         </button>
       </main>
       <nav class="nav" data-nav>
-        <button class="on" data-tab="home">${icons.home(22)}<span>Home</span></button>
-        <button data-tab="daily">${icons.daily(22)}<span>Daily</span><i class="nav-dot" data-daily-dot hidden></i></button>
-        <button data-tab="cats">${icons.cat(22)}<span>Cats</span></button>
-        <button data-tab="progress">${icons.bars(22)}<span>Progress</span></button>
-        <button data-tab="shop">${icons.shop(22)}<span>Shop</span></button>
+        <button class="on" data-tab="home">${icons.home(22)}<span>${tr('tab.home')}</span></button>
+        <button data-tab="daily">${icons.daily(22)}<span>${tr('tab.daily')}</span><i class="nav-dot" data-daily-dot hidden></i></button>
+        <button data-tab="cats">${icons.cat(22)}<span>${tr('tab.cats')}</span></button>
+        <button data-tab="progress">${icons.bars(22)}<span>${tr('tab.progress')}</span></button>
+        <button data-tab="shop">${icons.shop(22)}<span>${tr('tab.shop')}</span></button>
       </nav>`;
 
     const $ = (s) => root.querySelector(s);
@@ -78,7 +79,7 @@ export class LobbyView {
   /** A run in progress says Continue, with the game's own summary under it. */
   update({ coins, summary }) {
     this.el.coins.textContent = coins;
-    this.el.playLabel.textContent = summary ? 'Continue' : 'Play';
+    this.el.playLabel.textContent = summary ? tr('continue') : tr('play');
     this.el.playSub.textContent = summary || '';
   }
 

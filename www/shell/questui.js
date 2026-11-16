@@ -11,9 +11,10 @@ import { cat, catFace, coinIcon, icons } from './art.js';
 import { asset } from './assets.js';
 import { show, dismiss, wait } from './overlays.js';
 import { catsLeft, formatLeft, RIVALS } from './quest.js';
+import { tr, num } from './i18n.js';
 
 const RIVAL_FACES = ['mittens', 'marmalade', 'pepper', 'biscuit', 'patch'];
-const fmt = (n) => Number(n).toLocaleString('en-US');
+const fmt = num;
 
 /** A cat's collar bell. `size` is its width; it is a touch taller than wide. */
 export const bell = (size = 40) =>
@@ -52,8 +53,8 @@ function card(html, after = null, pickSel = '[data-pick]') {
 const head = (sub) => `
   <div class="q-head">
     <span class="q-head-bell">${bell(34)}</span>
-    <h2 class="q-title">Bell Quest</h2>
-    <button class="q-close" data-pick="close" aria-label="Close">${icons.close(18)}</button>
+    <h2 class="q-title">${tr('quest.name')}</h2>
+    <button class="q-close" data-pick="close" aria-label="${tr('close')}">${icons.close(18)}</button>
   </div>
   ${sub ? `<p class="q-lead">${sub}</p>` : ''}`;
 
@@ -66,10 +67,10 @@ export function introCard({ grand, steps, hours }) {
         ${prizePile(grand, 170)}
         ${cat('cheer', 150, 'q-hero-cat')}
       </div>
-      <p class="q-kicker">Grand prize</p>
-      <p class="q-lead"><b>Beat ${steps} levels in a row.</b> Finishers share the prize.</p>
-      <p class="q-timer">${icons.daily(14)} ${hours} hours</p>
-      <button class="ovl-btn primary" data-pick="start">Start</button>
+      <p class="q-kicker">${tr('quest.grand')}</p>
+      <p class="q-lead">${tr('quest.intro', { n: steps })}</p>
+      <p class="q-timer">${icons.daily(14)} ${tr('quest.hours', { n: hours })}</p>
+      <button class="ovl-btn primary" data-pick="start">${tr('quest.start')}</button>
     </div>`);
 }
 
@@ -77,12 +78,12 @@ export function introCard({ grand, steps, hours }) {
 export async function findingCard({ grand }) {
   const el = show(`
     <div class="q-card q-finding" data-pick="go">
-      <p class="q-kicker">Bell Quest</p>
+      <p class="q-kicker">${tr('quest.name')}</p>
       ${prizePile(grand, 170)}
-      <p class="q-lead">Finding cats</p>
+      <p class="q-lead">${tr('quest.finding')}</p>
       <p class="q-count"><b data-n>1</b>/${RIVALS + 1}</p>
       <div class="q-heap" data-heap></div>
-      <p class="q-tap" data-tap hidden>Tap to continue</p>
+      <p class="q-tap" data-tap hidden>${tr('quest.tap')}</p>
     </div>`, 'quest');
   const n = el.querySelector('[data-n]');
   const heap = el.querySelector('[data-heap]');
@@ -122,15 +123,15 @@ export function pathCard({ q, now, first = false, advanced = false, from = null,
   const here = stones[q.step];
   // Arriving from an earlier stone: start there, then hop (CSS eases the move).
   const start = from !== null && from < q.step ? stones[Math.max(0, from)] : here;
-  const lead = advanced && q.step > 0 ? 'Next step!' : `${steps} levels in a row`;
+  const lead = advanced && q.step > 0 ? tr('quest.nextStep') : tr('quest.inARow', { n: steps });
   return card(`
     <div class="q-card q-path-card">
       ${head(lead)}
       <div class="q-stats">
-        <div><span>Levels</span><b>${q.step}/${steps}</b></div>
-        <div><span>Cats</span><b>${left}/${RIVALS + 1}</b></div>
+        <div><span>${tr('quest.levels')}</span><b>${q.step}/${steps}</b></div>
+        <div><span>${tr('quest.cats')}</span><b>${left}/${RIVALS + 1}</b></div>
       </div>
-      <p class="q-timer">${icons.daily(14)} ${formatLeft(q.endsAt - now)} left</p>
+      <p class="q-timer">${icons.daily(14)} ${tr('quest.left', { time: formatLeft(q.endsAt - now) })}</p>
       <div class="q-path">
         <div class="q-path-prize">${prizePile(q.grand, 104)}</div>
         ${stones.map(stone).join('')}
@@ -140,11 +141,11 @@ export function pathCard({ q, now, first = false, advanced = false, from = null,
         </div>
       </div>
       ${first ? `<ul class="q-rules">
-        <li>${RIVALS + 1} cats start the quest</li>
-        <li>Drop a level and you're out</li>
-        <li>Finishers split the prize</li>
+        <li>${tr('quest.rule.start', { n: RIVALS + 1 })}</li>
+        <li>${tr('quest.rule.out')}</li>
+        <li>${tr('quest.rule.split')}</li>
       </ul>` : ''}
-      <button class="ovl-btn primary" data-pick="play">${icons.play(18)} ${inGame ? 'Continue' : 'Play'}</button>
+      <button class="ovl-btn primary" data-pick="play">${icons.play(18)} ${inGame ? tr('continue') : tr('play')}</button>
     </div>`, hop);
 }
 
@@ -160,14 +161,14 @@ function hop(el) {
 export function wonCard({ share, grand, others }) {
   return card(`
     <div class="q-card q-won">
-      <p class="q-kicker">Bell Quest complete</p>
+      <p class="q-kicker">${tr('quest.complete')}</p>
       ${prizePile(grand, 190)}
       <p class="ovl-figure q-share">${coinIcon(28)} +${fmt(share)}</p>
       <p class="q-lead">${others
-        ? `Shared with ${others} other cat${others === 1 ? '' : 's'}`
-        : '<b>All yours!</b>'}</p>
+        ? tr('quest.sharedWith', { n: others })
+        : `<b>${tr('quest.allYours')}</b>`}</p>
       ${others ? `<div class="q-row">${faces(Math.min(others, 8), 30)}</div>` : ''}
-      <button class="ovl-btn primary" data-pick="claim">Claim</button>
+      <button class="ovl-btn primary" data-pick="claim">${tr('claim')}</button>
     </div>`);
 }
 
@@ -178,12 +179,12 @@ export function overCard({ reason, step, steps, left }) {
     <div class="q-card q-over">
       ${head('')}
       ${cat('slump', 170, 'q-over-cat')}
-      <h3 class="ovl-h">${expired ? 'Time ran out' : 'Knocked out'}</h3>
+      <h3 class="ovl-h">${expired ? tr('quest.timeUp') : tr('quest.knockedOut')}</h3>
       <p class="q-lead">${expired
-        ? `Reached step ${step} of ${steps}`
-        : `Out on step ${step + 1} of ${steps}`}</p>
-      <button class="ovl-btn primary" data-pick="again">New quest</button>
-      <button class="ovl-btn ghost" data-pick="close">Later</button>
+        ? tr('quest.reached', { step, steps })
+        : tr('quest.outOn', { step: step + 1, steps })}</p>
+      <button class="ovl-btn primary" data-pick="again">${tr('quest.new')}</button>
+      <button class="ovl-btn ghost" data-pick="close">${tr('later')}</button>
     </div>`);
 }
 
