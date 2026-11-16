@@ -7,6 +7,7 @@
 import { cat, icons } from './art.js';
 import { startParty, reducedMotion } from './party.js';
 import APP from '../app.config.js';
+import { tr, num, LANGUAGE_NAMES } from './i18n.js';
 
 export const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 export const PRIVACY_URL = APP.privacyUrl;
@@ -52,7 +53,7 @@ const STAR = `<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient 
  * star ('star'), firework ('boom') and the opening ('open'), so the host can
  * play sound and buzz in time. Reduced motion: the same card, standing still.
  */
-function juicyCelebrate({ headline = 'LEVEL UP!', ribbon = '', kicker, title, figure, reward, go, onShare, onBeat = () => {} }) {
+function juicyCelebrate({ headline = tr('cel.levelUp'), ribbon = '', kicker, title, figure, reward, go, onShare, onBeat = () => {} }) {
   const gains = [].concat(reward || []).filter(Boolean);
   const card = show(`
     <canvas class="cel-party" aria-hidden="true"></canvas>
@@ -70,7 +71,7 @@ function juicyCelebrate({ headline = 'LEVEL UP!', ribbon = '', kicker, title, fi
         ${figure ? `<p class="ovl-figure cel-figure">${figure}</p>` : ''}
         ${gains.length ? `<ul class="ovl-gains">${gains.map((r, i) => `<li style="--i:${i}">${r}</li>`).join('')}</ul>` : ''}
         <button class="ovl-btn primary" data-go>${go}</button>
-        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} Share</button>` : ''}
+        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} ${tr('share')}</button>` : ''}
       </div>
     </div>`, 'milestone ovl-party');
   card.querySelector('[data-share]')?.addEventListener('click', (e) => { e.stopPropagation(); onShare(); });
@@ -96,7 +97,7 @@ function juicyCelebrate({ headline = 'LEVEL UP!', ribbon = '', kicker, title, fi
 }
 
 /** Sage, the worn cat cheering. A level, a record, whatever the game calls a win. */
-export function celebrate({ kicker = 'Well done', title, figure = '', reward = '', go = 'Keep going', onShare = null, juicy = false, headline, ribbon, onBeat }) {
+export function celebrate({ kicker = tr('cel.wellDone'), title, figure = '', reward = '', go = tr('cel.keepGoing'), onShare = null, juicy = false, headline, ribbon, onBeat }) {
   if (juicy) return juicyCelebrate({ headline, ribbon, kicker, title, figure, reward, go, onShare, onBeat });
   const card = show(`
     <div class="ovl-stack">
@@ -107,7 +108,7 @@ export function celebrate({ kicker = 'Well done', title, figure = '', reward = '
         ${figure ? `<p class="ovl-figure">${figure}</p>` : ''}
         ${reward && reward.length ? `<ul class="ovl-gains">${[].concat(reward).map((r) => `<li>${r}</li>`).join('')}</ul>` : ''}
         <button class="ovl-btn primary" data-go>${go}</button>
-        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} Share</button>` : ''}
+        ${onShare ? `<button class="ovl-share" data-share>${icons.share(16)} ${tr('share')}</button>` : ''}
       </div>
     </div>`, 'milestone');
   // Sharing leaves the card up: the player still taps Keep going after.
@@ -116,7 +117,7 @@ export function celebrate({ kicker = 'Well done', title, figure = '', reward = '
 }
 
 /** Taupe, the worn cat slumped. Whatever the game calls a loss. */
-export function setback({ kicker = 'Unlucky', title, figure = '', line = '', go = 'Try again' }) {
+export function setback({ kicker = tr('setback.unlucky'), title, figure = '', line = '', go = tr('setback.tryAgain') }) {
   const card = show(`
     <div class="ovl-stack">
       ${cat('slump', 210, 'cat-lying')}
@@ -132,7 +133,7 @@ export function setback({ kicker = 'Unlucky', title, figure = '', line = '', go 
 }
 
 /** Two buttons. Resolves true on confirm, false on cancel. */
-export function confirm({ kicker, title, line, ok, cancel = 'Back' }) {
+export function confirm({ kicker, title, line, ok, cancel = tr('back') }) {
   return new Promise((resolve) => {
     const card = show(`
       <div class="ovl-body">
@@ -175,7 +176,7 @@ export function ask({ kicker, title, line, ok, cancel }) {
  * A card with several ways out, best first: [{ id, label, primary }], then a
  * plain cancel. Resolves the chosen id, or null.
  */
-export function choose({ kicker, title, line, choices, cancel = 'Not now' }) {
+export function choose({ kicker, title, line, choices, cancel = tr('notNow') }) {
   return new Promise((resolve) => {
     const card = show(`
       <div class="ovl-stack">
@@ -207,9 +208,9 @@ export function adBreak(ms = 2000) {
     <div class="ovl-stack">
       ${cat('cheer', 210, 'ovl-cheer')}
       <div class="ovl-card ad-break" role="status" aria-live="assertive">
-        <p class="ovl-kicker">Thanks for playing</p>
-        <h2 class="ovl-h">Ad break</h2>
-        <p class="ovl-sub">Back in a moment</p>
+        <p class="ovl-kicker">${tr('ad.thanks')}</p>
+        <h2 class="ovl-h">${tr('ad.break')}</h2>
+        <p class="ovl-sub">${tr('ad.back')}</p>
         <div class="ad-break-bar"><i style="animation-duration:${ms}ms"></i></div>
       </div>
     </div>`, 'milestone');
@@ -238,13 +239,13 @@ function pickMenu(kicker, title, items, note = '') {
 
 /** The pause menu. Restart only appears if the game says it can restart. */
 export function pauseMenu({ canRestart, title }) {
-  return pickMenu('Paused', title, [
-    `<button class="primary" data-pick="resume">${icons.play(20)}<span>Resume</span></button>`,
-    `<button data-pick="progress">${icons.bars(20)}<span>Progress</span></button>`,
-    `<button data-pick="cats">${icons.cat(20)}<span>Cats</span></button>`,
-    `<button data-pick="shop">${icons.shop(20)}<span>Shop</span></button>`,
-    canRestart ? `<button data-pick="restart">${icons.restart(20)}<span>Restart</span></button>` : '',
-    `<button data-pick="lobby">${icons.home(20)}<span>Back to lobby</span></button>`,
+  return pickMenu(tr('pause.title'), title, [
+    `<button class="primary" data-pick="resume">${icons.play(20)}<span>${tr('pause.resume')}</span></button>`,
+    `<button data-pick="progress">${icons.bars(20)}<span>${tr('tab.progress')}</span></button>`,
+    `<button data-pick="cats">${icons.cat(20)}<span>${tr('tab.cats')}</span></button>`,
+    `<button data-pick="shop">${icons.shop(20)}<span>${tr('tab.shop')}</span></button>`,
+    canRestart ? `<button data-pick="restart">${icons.restart(20)}<span>${tr('pause.restart')}</span></button>` : '',
+    `<button data-pick="lobby">${icons.home(20)}<span>${tr('pause.lobby')}</span></button>`,
   ]);
 }
 
@@ -253,43 +254,53 @@ export function pauseMenu({ canRestart, title }) {
  * opens a tab, and the Android shell hands any outside address to the phone's
  * browser, since the app itself has no internet permission.
  */
-export function settings({ title, note, privacy = false, reminders = null, version = '', audio = null, share = false, cloud = null }) {
+export function settings({ title, note, privacy = false, reminders = null, version = '', audio = null, share = false, cloud = null, language = null }) {
   // `version`: tapped 5 times, it resolves 'adstatus' (a tester's readout).
   // `privacy` only when Google's consent SDK says this player must be offered
   // their choices (the US "do not sell or share" link). The form is Google's.
-  const picked = pickMenu('Settings', title, [
+  const picked = pickMenu(tr('settings.title'), title, [
     `<a class="menu-link" href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
-       ${icons.lock(20)}<span>Privacy Policy</span>${icons.external(16)}
+       ${icons.lock(20)}<span>${tr('settings.privacy')}</span>${icons.external(16)}
      </a>`,
     !privacy ? '' : `
-     <button data-pick="privacy">${icons.lock(20)}<span>Do not sell or share my info</span></button>`,
+     <button data-pick="privacy">${icons.lock(20)}<span>${tr('settings.doNotSell')}</span></button>`,
     audio === null ? '' : `
      <button class="menu-toggle" data-pick="sfx" role="switch" aria-checked="${audio.sfx}">
-       ${icons.speaker(20)}<span>Sound effects</span>
+       ${icons.speaker(20)}<span>${tr('settings.sfx')}</span>
        <i class="switch ${audio.sfx ? 'on' : ''}"></i>
      </button>
      <button class="menu-toggle" data-pick="music" role="switch" aria-checked="${audio.music}">
-       ${icons.music(20)}<span>Music</span>
+       ${icons.music(20)}<span>${tr('settings.music')}</span>
        <i class="switch ${audio.music ? 'on' : ''}"></i>
      </button>`,
     reminders === null ? '' : `
      <button class="menu-toggle" data-pick="reminders" role="switch" aria-checked="${reminders}">
-       ${icons.daily(20)}<span>Reminders: Rewards Box and Bell Quest</span>
+       ${icons.daily(20)}<span>${tr('settings.reminders')}</span>
        <i class="switch ${reminders ? 'on' : ''}"></i>
      </button>`,
     cloud === null ? '' : cloud.signedIn
-      ? `<button data-pick="cloud">${icons.cloud(20)}<span>Backed up · ${cloud.player || 'Play Games'}</span></button>`
-      : `<button data-pick="cloud">${icons.cloud(20)}<span>Back up with Play Games</span></button>`,
-    !share ? '' : `<button data-pick="share">${icons.share(20)}<span>Share ${title}</span></button>`,
-    `<button data-pick="erase">${icons.undo(20)}<span>Erase all progress</span></button>`,
-    `<button class="primary" data-pick="close">${icons.play(20)}<span>Done</span></button>`,
+      ? `<button data-pick="cloud">${icons.cloud(20)}<span>${tr('settings.backedUp', { who: cloud.player || 'Play Games' })}</span></button>`
+      : `<button data-pick="cloud">${icons.cloud(20)}<span>${tr('settings.backUp')}</span></button>`,
+    language === null ? '' : `<button data-pick="language">${icons.globe(20)}<span>${tr('settings.language')}</span><em class="menu-value">${LANGUAGE_NAMES[language] || language}</em></button>`,
+    !share ? '' : `<button data-pick="share">${icons.share(20)}<span>${tr('settings.share', { name: title })}</span></button>`,
+    `<button data-pick="erase">${icons.undo(20)}<span>${tr('settings.erase')}</span></button>`,
+    `<button class="primary" data-pick="close">${icons.play(20)}<span>${tr('settings.done')}</span></button>`,
   ], (note ? `<p class="ovl-sub settings-note">${note}</p>` : '')
-    + (version ? `<p class="settings-version">Version ${version}</p>` : ''));
+    + (version ? `<p class="settings-version">${tr('settings.version', { v: version })}</p>` : ''));
   const v = [...layer.querySelectorAll('.settings-version')].pop();
   let taps = 0;
   // Runs before the card's own click handler, so the 5th tap becomes a pick.
   v?.addEventListener('click', () => { if (++taps >= 5) v.dataset.pick = 'adstatus'; });
   return picked;
+}
+
+/** The language list, from Settings. Resolves the language picked, or null. */
+export async function languageMenu({ languages, current }) {
+  const pick = await pickMenu(tr('settings.title'), tr('settings.language'), [
+    ...languages.map((l) => `<button class="${l === current ? 'primary' : ''}" data-pick="${l}" lang="${l}">${l === current ? icons.check(20) : icons.globe(20)}<span>${LANGUAGE_NAMES[l] || l}</span></button>`),
+    `<button data-pick="">${icons.close(20)}<span>${tr('back')}</span></button>`,
+  ]);
+  return pick || null;
 }
 
 /**
@@ -317,20 +328,20 @@ export function toast(html, ms = 2600) {
  * on offer. `ready: true` opens it. Resolves 'remind', 'ok' or 'open'.
  */
 export function giftCard({ ready, coins, remind = false }) {
-  const amount = Number(coins).toLocaleString('en-US');
+  const amount = num(coins);
   return new Promise((resolve) => {
     const card = show(`
       <div class="ovl-stack">
         <div class="ovl-card box-card gift-card">
-          <p class="ovl-kicker">${ready ? 'Welcome back' : 'Come back tomorrow'}</p>
+          <p class="ovl-kicker">${ready ? tr('gift.kicker.ready') : tr('gift.kicker.wait')}</p>
           <div class="box-art ${ready ? 'ready' : 'locked'}">${icons.gift(64)}${ready ? '' : `<span class="gift-lock">${icons.lock(22)}</span>`}</div>
-          <h2 class="ovl-h">${ready ? 'Your gift is ready' : 'A gift opens tomorrow'}</h2>
-          <p class="ovl-sub">${ready ? `${amount} coins, as promised` : `${amount} coins, free. Just open the app tomorrow.`}</p>
+          <h2 class="ovl-h">${ready ? tr('gift.title.ready') : tr('gift.title.wait')}</h2>
+          <p class="ovl-sub">${ready ? tr('gift.line.ready', { n: amount }) : tr('gift.line.wait', { n: amount })}</p>
           ${ready
-            ? '<button class="ovl-btn primary" data-pick="open">Open it</button>'
+            ? `<button class="ovl-btn primary" data-pick="open">${tr('box.open')}</button>`
             : remind
-              ? '<button class="ovl-btn primary" data-pick="remind">Remind me tomorrow</button><button class="ovl-btn ghost" data-pick="ok">I\'ll remember</button>'
-              : '<button class="ovl-btn primary" data-pick="ok">Got it</button>'}
+              ? `<button class="ovl-btn primary" data-pick="remind">${tr('gift.remind')}</button><button class="ovl-btn ghost" data-pick="ok">${tr('gift.remember')}</button>`
+              : `<button class="ovl-btn primary" data-pick="ok">${tr('gift.gotIt')}</button>`}
         </div>
       </div>`, ready ? 'milestone' : 'menu');
     card.addEventListener('click', async (ev) => {
@@ -347,17 +358,17 @@ export function boxCard({ ready, wait: waitText, adOffer, adsLeft }) {
     const card = show(`
       <div class="ovl-stack">
         <div class="ovl-card box-card">
-          <p class="ovl-kicker">Rewards box</p>
+          <p class="ovl-kicker">${tr('box.kicker')}</p>
           <div class="box-art ${ready ? 'ready' : ''}">${icons.gift(64)}</div>
-          <h2 class="ovl-h">${ready ? 'Your box is ready' : `Next box in ${waitText}`}</h2>
+          <h2 class="ovl-h">${ready ? tr('box.ready') : tr('box.nextIn', { time: waitText })}</h2>
           <p class="ovl-sub">${ready
-            ? 'Grows as you level up'
-            : `New box every 4h${adOffer ? ` · ad opens it now (${adsLeft} left today)` : ''}`}</p>
-          ${ready ? '<button class="ovl-btn primary" data-pick="open">Open it</button>' : ''}
+            ? tr('box.grows')
+            : `${tr('box.every')}${adOffer ? ` · ${tr('box.adNow', { n: adsLeft })}` : ''}`}</p>
+          ${ready ? `<button class="ovl-btn primary" data-pick="open">${tr('box.open')}</button>` : ''}
           ${!ready && adOffer
-            ? '<button class="ovl-btn primary" data-pick="ad">Watch an ad &middot; open now</button>'
+            ? `<button class="ovl-btn primary" data-pick="ad">${tr('box.watch')}</button>`
             : ''}
-          <button class="ovl-btn ghost" data-pick="close">${ready ? 'Later' : 'Close'}</button>
+          <button class="ovl-btn ghost" data-pick="close">${ready ? tr('later') : tr('close')}</button>
         </div>
       </div>`, 'menu');
     card.addEventListener('click', async (ev) => {

@@ -1001,6 +1001,8 @@ img.art { user-select: none; -webkit-user-drag: none; }
 /* A settings row with a switch: the US "do not sell or share" opt-out. */
 .menu-toggle { display: flex; align-items: center; gap: var(--s3); text-align: left; }
 .menu-toggle span { flex: 1; font-size: var(--fs-sm); line-height: 1.3; }
+/* A row that shows its current value on the right (Language). */
+.menu button .menu-value { flex: 0 0 auto; font-style: normal; font-weight: 700; font-size: var(--fs-sm); opacity: .7; }
 .switch {
   flex: 0 0 auto;
   width: 42px; height: 24px;

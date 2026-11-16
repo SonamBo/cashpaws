@@ -213,6 +213,21 @@ testing card (Settings → tap the version 5 times) has a **Play Games** line.
   10 and 25 (once each). Google decides whether it actually shows and never
   says whether they rated; it only works in builds installed from Play.
 
+## 7e. Languages (optional)
+
+The shell is translated into English, Spanish, Portuguese (Brazil), Hindi,
+German and French. List the ones your app offers in `www/app.config.js`,
+default first:
+
+```json
+"languages": ["en", "es", "pt", "hi", "de", "fr"]
+```
+
+Players get the phone's language when it is on the list, and a Language row in
+Settings. Leave the field out for an English-only app. Your game's own text is
+yours to translate (`docs/GAME-MODULE.md`, Languages); offer a language only
+once the game has it too.
+
 ## 8. CrazyGames (optional, any time)
 
 The same game runs on CrazyGames with no extra code. Every push runs the

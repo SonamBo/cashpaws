@@ -24,6 +24,8 @@ function bridge() {
 }
 
 /** How far along a save is, for comparing two of them. */
+import { tr, num } from './i18n.js';
+
 export function progressOf(rec) {
   const s = rec?.shell || {};
   return (s.stats?.bestLevel || 0) * 1e7 + Math.min(9999999, s.stats?.coinsEarned || 0);
@@ -81,14 +83,14 @@ export function createCloud({ read, write, ask, track = () => {}, onChange = () 
     const fromElsewhere = cloud?.shell && cloud.shell.device !== local.shell.device;
     if (fromElsewhere && progressOf(cloud) > progressOf(local)) {
       const lvl = cloud.shell.stats?.bestLevel || 1;
-      const coins = Number(cloud.shell.coins || 0).toLocaleString('en-US');
+      const coins = num(cloud.shell.coins || 0);
       track('cloud_restore_offer', { level: lvl, local_level: local.shell.stats.bestLevel });
       const yes = await ask({
-        kicker: 'Saved game found',
-        title: `Continue from level ${lvl}?`,
-        line: `${coins} coins · from your Google account`,
-        ok: 'Continue',
-        cancel: 'Start fresh',
+        kicker: tr('cloud.kicker'),
+        title: tr('cloud.title', { n: lvl }),
+        line: tr('cloud.line', { n: coins }),
+        ok: tr('continue'),
+        cancel: tr('cloud.fresh'),
       });
       track('cloud_restore', { restored: yes });
       if (yes) {

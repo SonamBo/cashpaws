@@ -18,6 +18,8 @@ const HAND = `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"
     c0 7-4.7 12-11.5 12h-2.3c-3.7 0-6.3-1.4-8.6-4.2l-6-7.5a3.2 3.2 0 0 1 4.8-4.2Z"
     fill="#fff" stroke="#3f3a37" stroke-width="2.6" stroke-linejoin="round"/></svg>`;
 
+import { tr } from './i18n.js';
+
 export function createCoach(app) {
   const layer = document.createElement('div');
   layer.className = 'coach';
@@ -101,7 +103,7 @@ export function createCoach(app) {
     clear();
     const target = resolveAt(at);
     if (!target) return;
-    layer.innerHTML = `<div class="coach-bubble">${text}${onSkip ? '<button class="coach-skip" type="button">Skip tutorial</button>' : ''}</div>`;
+    layer.innerHTML = `<div class="coach-bubble">${text}${onSkip ? '<button class="coach-skip" type="button">' + tr('coach.skip') + '</button>' : ''}</div>`;
     if (onSkip) layer.querySelector('.coach-skip').addEventListener('click', () => { clear(); onSkip(); }, { once: true });
     place(layer.firstElementChild, target);
     if (hand) {

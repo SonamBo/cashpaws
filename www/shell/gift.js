@@ -15,6 +15,7 @@
  */
 
 import { localDay } from './daily.js';
+import { tr, num } from './i18n.js';
 
 export const GIFT_AFTER_LEVEL = 1;         // offered once level 1 is beaten (1.21.0; was 3: most new players left before level 4).
                                            // Since 1.22.0 the shell also waits for the quiet first levels (quiet_levels, 10).
@@ -98,11 +99,11 @@ export function giftReminder(gift, now) {
   if (!at) return null;
   const first = localDay(new Date(at)) <= nextDay(gift.day);
   return first
-    ? { at, title: 'Your gift is ready', body: `${fmt(gift.coins)} coins are waiting. Tap to open.` }
-    : { at, title: 'Your gift is still waiting', body: `${fmt(gift.coins)} coins, saved for you` };
+    ? { at, title: tr('note.gift.title'), body: tr('note.gift.body', { n: fmt(gift.coins) }) }
+    : { at, title: tr('note.gift.again.title'), body: tr('note.gift.again.body', { n: fmt(gift.coins) }) };
 }
 
-const fmt = (n) => Number(n).toLocaleString('en-US');
+const fmt = num;
 
 function nextDay(day) {
   const [y, m, d] = day.split('-').map(Number);

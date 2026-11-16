@@ -135,6 +135,7 @@ host.art.logo(width)              // the app's title art, as an <img>, for a gam
 host.art.coin(width)
 host.asset(path)                  // this game's file, e.g. 'img/chip-5.png' — always
                                   // go through this; the single-file build depends on it
+host.locale()                     // the app's language: 'en', 'es', 'pt', 'hi', 'de' or 'fr'
 
 host.sound(name)                  // an effect: tap, lift, drop, bank, levelup, flow, sort,
                                   // undo, error, coin, open, unlock, or one of the game's own
@@ -145,6 +146,29 @@ host.save()                       // save now, e.g. after something important
 host.exit()                       // back to the lobby
 host.dev                          // true under ?dev=1
 ```
+
+## Languages
+
+The shell's own words (the lobby, Settings, the Shop, Bell Quest, reminders…)
+come from `www/shell/strings/<lang>.js`, in English, Spanish, Portuguese,
+Hindi, German and French. An app offers the ones it lists in
+`www/app.config.js`:
+
+```json
+"languages": ["en", "es", "pt", "hi", "de", "fr"]
+```
+
+The first is the default; the phone's language is used when the app offers it,
+and Settings gets a Language row. Without `languages` the app is English only.
+
+A game brings its own words for its own screens, and for what it puts in the
+manifest (task text, perk text, cosmetic names, `shopBlurb`). The language is
+on `<html lang>` before the game's module runs, so the manifest can be written
+in it; inside `create()` it is `host.locale()`. Changing the language reloads
+the page, so nothing has to redraw itself. Keep the strings in the game's own
+folder. A new shell string goes in `strings/en.js` first, then every other
+table: `node test/i18n.js` fails while one is missing or has lost a
+`{placeholder}`.
 
 ## What the shell owns, so a game does not have to
 

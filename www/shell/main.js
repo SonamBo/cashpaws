@@ -6,6 +6,7 @@
  * This file must never import from a game's folder.
  */
 
+import { tr, num, locale, setLocale, languages } from './i18n.js';      // first: it sets <html lang> before the game's module runs
 import game from '../games/active.js';
 import APP from '../app.config.js';
 import * as store from './save.js';
@@ -26,7 +27,7 @@ import { Panels } from './tabs.js';
 import { CATS, catById, unlockProgress, perkIn } from './cats.js';
 import { setWornCat, icons, coinIcon } from './art.js';
 import {
-  mountOverlays, anyCardOpen, confirm, ask, choose, pauseMenu, settings, toast, boxCard, giftCard, celebrate, adBreak,
+  mountOverlays, anyCardOpen, confirm, ask, choose, pauseMenu, settings, languageMenu, toast, boxCard, giftCard, celebrate, adBreak,
 } from './overlays.js';
 import { localDay, ensureDay, claimable, claimTask, claimBonus, newlyDone } from './daily.js';
 import { isReady, msUntil, formatWait, openBox, adOpensLeft, DEFAULT_VALUE } from './rewards.js';
@@ -99,7 +100,7 @@ function refreshDaily() {
 function onStat(before, after) {
   if (shell.daily.game !== game.id) return;
   for (const t of newlyDone(shell.daily, before, after)) {
-    toast(`${icons.check(16)} <span>Task done &middot; ${t.text}</span>`);
+    toast(`${icons.check(16)} <span>${tr('task.done')} &middot; ${t.text}</span>`);
   }
   lobby.setDailyBadge(claimable(shell.daily, after));
 }
@@ -150,10 +151,10 @@ async function onBox() {
   refreshBox();
   save();
   await celebrate({
-    kicker: 'Rewards box',
-    title: `+${won.coins} coins`,
-    reward: won.big ? 'A big one!' : '',
-    go: 'Nice',
+    kicker: tr('box.kicker'),
+    title: tr('coins.plus', { n: won.coins }),
+    reward: won.big ? tr('box.big') : '',
+    go: tr('nice'),
   });
   refreshReminders();
   await offerReminders('box');
@@ -192,7 +193,7 @@ function refreshQuest() {
   const q = shell.quest;
   if (!questOn() || q.status === 'none') { lobby.setQuest({ visible: false }); return; }
   const pill = {
-    offer: 'New!', won: 'Claim!', lost: 'Over', expired: 'Over',
+    offer: tr('quest.pill.new'), won: tr('quest.pill.claim'), lost: tr('quest.pill.over'), expired: tr('quest.pill.over'),
     active: Q.formatShort(q.endsAt - Date.now()),
   }[q.status];
   lobby.setQuest({
@@ -391,7 +392,7 @@ function onLevelLost(info = {}) {
   track('level_lost', info);
   if (!questOn() || !Q.knockOut(shell.quest)) return;
   track('quest_knockout', { step: shell.quest.step });
-  toast(`${bell(20)} <span>Out of Bell Quest</span>`, 3200);
+  toast(`${bell(20)} <span>${tr('quest.out')}</span>`, 3200);
   refreshQuest();
   save();
 }
@@ -406,13 +407,12 @@ function levelLossWarning() {
   const q = shell.quest;
   if (!questOn() || !Q.isActive(q)) return null;
   return {
-    kicker: 'Bell Quest',
-    title: 'Give up quest?',
-    line: `Dropping a level ends it. `
-        + `${Q.catsLeft(q)} cats are still in, sharing ${q.grand.toLocaleString('en-US')} coins.`,
-    stat: { label: `Step ${q.step + 1} of ${q.steps}`, value: `${Q.catsLeft(q)} cats` },
-    ok: 'Drop anyway',
-    cancel: 'Keep quest',
+    kicker: tr('quest.name'),
+    title: tr('quest.giveUp.title'),
+    line: tr('quest.giveUp.line', { cats: Q.catsLeft(q), coins: num(q.grand) }),
+    stat: { label: tr('quest.stepOf', { step: q.step + 1, steps: q.steps }), value: tr('quest.nCats', { n: Q.catsLeft(q) }) },
+    ok: tr('quest.giveUp.ok'),
+    cancel: tr('quest.giveUp.cancel'),
     answer: (gaveUp) => track('quest_give_up_prompt', { step: q.step, gave_up: gaveUp }),
   };
 }
@@ -479,11 +479,11 @@ async function offerReminders(reason) {
   shell.reminders.asked = true;
   save();
   const yes = await ask({
-    kicker: 'Reminders',
-    title: reason === 'box' ? 'Remind you when it refills?' : 'Remind you to keep going?',
-    line: 'Your gift, the Rewards Box, and a daily Bell Quest update. Nothing else.',
-    ok: 'Remind me',
-    cancel: 'Not now',
+    kicker: tr('remind.kicker'),
+    title: reason === 'box' ? tr('remind.title.box') : tr('remind.title.other'),
+    line: tr('remind.line'),
+    ok: tr('remind.ok'),
+    cancel: tr('notNow'),
   });
   track('reminders_offer', { reason, yes });
   if (!yes) return;
@@ -508,7 +508,7 @@ async function toggleReminders() {
     const perm = notify.permission();
     if (perm === 'ask') shell.reminders.on = await notify.request();
     else if (perm === 'granted') shell.reminders.on = true;
-    else toast(`Turn on notifications in phone settings`, 3600);
+    else toast(tr('remind.turnOn'), 3600);
   }
   track('reminders_toggle', { on: remindersOn() });
   save();
@@ -557,6 +557,7 @@ function flushCoins() {
 /** Facts that stay attached to every later event. */
 function refreshUser() {
   analytics.setUser('game', game.id);
+  if (languages().length > 1) analytics.setUser('language', locale());
   analytics.setUser('best_level', shell.stats.bestLevel);
   analytics.setUser('cat_worn', shell.cats.worn);
   analytics.setUser('days_played', shell.stats.daysPlayed);
@@ -823,14 +824,14 @@ function openCoins(from = 'pill') {
   return closed;
 }
 
-const fmtCoins = (n) => Number(n).toLocaleString('en-US');
+const fmtCoins = num;
 
 function onBillingNotice(kind, { coins, pack } = {}) {
   if (kind === 'granted') {
     sound.play('celebrate');
-    toast(`${coinIcon(18)} <span>+${fmtCoins(coins)} coins · Thank you!</span>`, 3200);
+    toast(`${coinIcon(18)} <span>${tr('iap.thanks', { n: fmtCoins(coins) })}</span>`, 3200);
   } else if (kind === 'pending') {
-    toast(`<span>Payment pending · coins arrive once confirmed</span>`, 3600);
+    toast(`<span>${tr('iap.pending')}</span>`, 3600);
   }
 }
 
@@ -847,22 +848,22 @@ const shortHelps = (ad) => packsOffered() || !!(ad && ads.rewarded.available(ad)
  * Resolves 'coins' (the player now has enough), 'ad' (watched to the end)
  * or null. Games reach it as host.shortOf().
  */
-async function shortOf({ price, what, ad = null, adLabel = 'Watch an ad instead' } = {}) {
+async function shortOf({ price, what, ad = null, adLabel = tr('short.adInstead') } = {}) {
   const canBuy = packsOffered();
   const canAd = !!(ad && ads.rewarded.available(ad));
   const need = Math.max(1, price - wallet.coins);
   if (!canBuy && !canAd) {
-    toast(`${coinIcon(18)} <span>${fmtCoins(need)} more coins for ${what}</span>`, 2400);
+    toast(`${coinIcon(18)} <span>${tr('short.toast', { n: fmtCoins(need), what })}</span>`, 2400);
     return null;
   }
   track('coins_short', { what, need, buy: canBuy, ad: canAd });
   const pick = await choose({
-    kicker: 'Not enough coins',
-    title: `${fmtCoins(need)} more for ${what}`,
-    line: canBuy && canAd ? 'A short ad or a coin pack' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
+    kicker: tr('short.kicker'),
+    title: tr('short.title', { n: fmtCoins(need), what }),
+    line: canBuy && canAd ? tr('short.line.both') : canBuy ? tr('short.line.buy') : tr('short.line.ad'),
     choices: [
       canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: true },
-      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: !canAd },
+      canBuy && { id: 'coins', label: `${coinIcon(18)} ${tr('shop.getCoins')}`, primary: !canAd },
     ].filter(Boolean),
   });
   if (pick === 'coins') { await openCoins('short'); return wallet.coins >= price ? 'coins' : null; }
@@ -890,16 +891,15 @@ async function onPause() {
 /*
  * What Settings says about ads and data has to be true of the build it is in.
  * With ads on, the note says so and the US opt-out appears; without keys, the
- * app shows no ads and sends nothing, and says that instead.
+ * app shows no ads and sends nothing, and says that instead. The words are in
+ * strings/<lang>.js (settings.note.*); the web build has its own (@web).
+ * Firebase is only mentioned where it is true: the Android app.
  */
-const SETTINGS_NOTE_ADS = 'Free, with ads. Optional ads give rewards; past level 10, '
-  + 'an Ad break at each level end. {buy} '
-  + 'Ads by Google AdMob (see Privacy Policy).';
-const SETTINGS_NOTE_NO_ADS = 'No ads. {buy} Progress saved on this phone.';
-const SETTINGS_BUY = 'Optional coin packs via Google Play.';
-const SETTINGS_NO_BUY = 'No purchases.';
-// Only said where it is true: the Android app, where Firebase is built in.
-const SETTINGS_NOTE_ANALYTICS = ' Gameplay stats and crash reports go to Google Firebase.';
+function settingsNote() {
+  const buy = billing.enabled ? tr('settings.buy') : tr('settings.noBuy');
+  return tr(ads.enabled ? 'settings.note.ads' : 'settings.note.noAds', { buy })
+    + (analytics.enabled ? ` ${tr('settings.note.analytics')}` : '');
+}
 
 /**
  * Ad status: for testing on a phone. Says what AdMob last answered, in plain
@@ -971,9 +971,8 @@ async function onSettings() {
   if (panels.open) return;
   const pick = await settings({
     title: APP.name,
-    note: (ads.enabled ? SETTINGS_NOTE_ADS : SETTINGS_NOTE_NO_ADS)
-      .replace('{buy}', billing.enabled ? SETTINGS_BUY : SETTINGS_NO_BUY)
-      + (analytics.enabled ? SETTINGS_NOTE_ANALYTICS : ''),
+    note: settingsNote(),
+    language: languages().length > 1 ? locale() : null,
     privacy: ads.enabled && ads.privacyRequired(),
     reminders: notify.available ? remindersOn() : null,
     audio: { sfx: sound.sfx, music: sound.music },
@@ -982,9 +981,19 @@ async function onSettings() {
     cloud: cloud.enabled ? { signedIn: cloud.signedIn, player: cloud.player } : null,
   });
   if (pick === 'share') { social.share('settings'); return onSettings(); }
+  if (pick === 'language') {
+    const next = await languageMenu({ languages: languages(), current: locale() });
+    if (next && next !== locale() && setLocale(next)) {
+      track('language_set', { language: next });
+      flushCoins(); save();
+      location.reload();           // every screen is drawn once, in one language
+      return;
+    }
+    return onSettings();
+  }
   if (pick === 'cloud') {
     if (!cloud.signedIn) cloud.signIn();
-    else toast(`<span>Progress backed up to ${cloud.player || 'your Google account'}</span>`, 2400);
+    else toast(`<span>${tr('settings.backedUpTo', { who: cloud.player || tr('settings.googleAccount') })}</span>`, 2400);
     return;
   }
   if (pick === 'sfx' || pick === 'music') {
@@ -1007,10 +1016,10 @@ async function onSettings() {
   }
   if (pick !== 'erase') return;
   const yes = await confirm({
-    kicker: 'Settings',
-    title: 'Erase everything?',
-    line: 'Coins, cats and progress. Can\'t be undone.',
-    ok: 'Erase',
+    kicker: tr('settings.title'),
+    title: tr('erase.title'),
+    line: tr('erase.line'),
+    ok: tr('erase.ok'),
   });
   if (!yes) return;
   track('progress_erased', { best_level: shell.stats.bestLevel });
@@ -1030,8 +1039,8 @@ async function buy(kind, id, button) {
   if (kind === 'pack') {
     if (button) button.disabled = true;
     const status = await billing.buy(id);
-    if (status === 'error') toast('<span>Purchase failed. Try again later.</span>', 3200);
-    else if (status === 'owned') toast('<span>Finishing an earlier purchase…</span>', 3000);
+    if (status === 'error') toast(`<span>${tr('iap.failed')}</span>`, 3200);
+    else if (status === 'owned') toast(`<span>${tr('iap.finishing')}</span>`, 3000);
     if (panels.open === 'shop') panels.show('shop', panelContext());
     return;
   }

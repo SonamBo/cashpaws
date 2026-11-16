@@ -6,6 +6,7 @@
  */
 
 import { cat, coinIcon, icons } from './art.js';
+import { tr } from './i18n.js';
 
 export class Header {
   constructor(root, { onPause, onCoins = () => {} }) {
@@ -19,7 +20,7 @@ export class Header {
             <span class="coins-add">+</span>
           </div>
           <span class="hdr-spacer"></span>
-          <button class="pause-btn" data-menu aria-label="Menu">${icons.pause(20)}</button>
+          <button class="pause-btn" data-menu aria-label="${tr('menu')}">${icons.pause(20)}</button>
         </div>
         <h1 class="level-title" data-title></h1>
         <div class="bar" data-bar>

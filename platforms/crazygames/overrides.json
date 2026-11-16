@@ -1,26 +1,11 @@
 {
-  "_about": "Text changes the web build makes to its COPY of the shell; the source is never edited. Each 'find' must occur exactly once in its file, or the build stops, so a shell change that affects the web wording is caught. {keys} becomes the game's keysHelp from its web.json. A game's own changes go in its web.json. config: the web page's privacy policy, and no coin packs (no Google Play to sell them through).",
+  "_about": "Text changes the web build makes to its COPY of the shell; the source is never edited. The shell's own web wording lives in its string tables as keys ending in @web (shell/strings/<lang>.js), switched on here for every language at once. Each 'find' must occur exactly once in its file, or the build stops, so a shell change that affects the web wording is caught. {keys} becomes the game's keysHelp from its web.json. A game's own changes go in its web.json. config: the web page's privacy policy, and no coin packs (no Google Play to sell them through).",
   "replace": [
     {
-      "why": "PC wording",
-      "file": "shell/questui.js",
-      "find": "Tap to continue",
-      "replace": "Click to continue"
-    },
-    {
-      "why": "On the web, CrazyGames serves the ads, and Ad breaks only follow level-ups",
-      "file": "shell/main.js",
-      "builds": [
-        "full"
-      ],
-      "find": "const SETTINGS_NOTE_ADS = 'Free, with ads. Optional ads give rewards; past level 10, '\n  + 'an Ad break at each level end. {buy} '\n  + 'Ads by Google AdMob (see Privacy Policy).';",
-      "replace": "const SETTINGS_NOTE_ADS = 'Free, with ads by CrazyGames. Optional ads give rewards; past level 10, '\n  + 'an Ad break may follow a level. {buy} {keys}';"
-    },
-    {
-      "why": "A browser, not a phone; and the keys",
-      "file": "shell/main.js",
-      "find": "const SETTINGS_NOTE_NO_ADS = 'No ads. {buy} Progress saved on this phone.';",
-      "replace": "const SETTINGS_NOTE_NO_ADS = 'No ads. {buy} Progress saved in this browser. {keys}';"
+      "file": "shell/i18n.js",
+      "find": "const PLATFORM = { variant: '', keys: '' };",
+      "replace": "const PLATFORM = { variant: '@web', keys: '{keys}' };",
+      "why": "PC wording"
     }
   ],
   "config": {
