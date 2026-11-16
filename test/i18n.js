@@ -8,6 +8,7 @@ import { readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tr, trOr, num, useLocale, languages, locale, LANGUAGE_NAMES } from '../www/shell/i18n.js';
+import APP from '../www/app.config.js';
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), '../www/shell/strings');
 let pass = 0;
@@ -38,7 +39,10 @@ for (const [lang, table] of Object.entries(tables)) {
 }
 
 /* ---- English reads as it did before the tables ---- */
-ok('an app without `languages` is English only', languages().join() === 'en' && locale() === 'en');
+const offered = APP.languages || ['en'];
+ok('the app offers what its config lists, English only without `languages`', languages().join() === offered.filter((l) => tables[l]).join());
+ok('the language in use is one the app offers', languages().includes(locale()));
+useLocale('en');
 ok('plain text', tr('settings.erase') === 'Erase all progress');
 ok('placeholders fill', tr('quest.stepOf', { step: 3, steps: 7 }) === 'Step 3 of 7');
 ok('plural: one', tr('quest.sharedWith', { n: 1 }) === 'Shared with 1 other cat');
