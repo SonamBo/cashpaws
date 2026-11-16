@@ -252,14 +252,18 @@ download otherwise. `host.canShareFile()` says whether to offer the button.
 ## Short of coins
 
 When the player can't afford something, `await host.shortOf({ price, what,
-ad, adLabel })` shows one card: coin packs first (where the build sells
-them), then a rewarded ad for `ad`'s placement, then "Not now". It resolves
-`'coins'` (they now have enough: go ahead and charge), `'ad'` (watched to the
-end: give it free) or `null`. `host.shortHelps(ad)` says whether there is
-anything to offer, so a button can stay tappable while the player is short.
-Money Sort's Sort button and stuck card use it. `host.openCoins()` opens the
-Shop's coin packs and resolves when it closes; `host.coinsForSale()` says
-whether this build sells any.
+ad, adLabel })` shows one card: a rewarded ad for `ad`'s placement first,
+then coin packs (where the build sells them, and not in a new player's quiet
+first levels: Remote Config `quiet_levels`), then "Not now". With nothing to
+offer it shows a short note ("290 more coins for Mittens") and resolves
+`null`. It resolves `'coins'` (they now have enough: go ahead and charge),
+`'ad'` (watched to the end: give it free) or `null`. `host.shortHelps(ad)`
+says whether there is anything to offer, so a button can stay tappable while
+the player is short. Money Sort's Sort button and stuck card use it.
+`host.openCoins()` opens the Shop's coin packs and resolves when it closes;
+`host.coinsForSale()` says whether coin packs may be offered now (sold, and
+past the quiet first levels). Ad first since 1.22.0: of 104 new players,
+28% opened Google Play's payment sheet in their first session and none paid.
 
 ## Stats: two kinds
 

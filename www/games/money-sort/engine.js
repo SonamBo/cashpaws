@@ -23,9 +23,19 @@ export const DEFAULTS = Object.freeze({
   junkChance: 0.4,        // odds a drop-5+ chip is a junk 5
   freeSorts: 1,           // a new player's first Sort costs nothing
   freeSortThrough: 5,     // and each level up to this one starts with a free Sort (1.17.0)
+  // The first session (1.22.0, docs/LEVEL-DESIGN.md "1.22"). Of 104 new
+  // players, 29% never beat level 1 and 72% were gone before level 4: levels
+  // took 25-37 moves, could jam from level 1, and a jam asked for coins.
+  sortFreeThrough: 10,    // every Sort is free on levels up to this one
+  gentleThrough: 10,      // levels up to this one can't jam: a stuck board sorts itself, free
+  // Cash-ins pay this many times their value on early levels, so they finish
+  // in a handful of moves; it eases off so level 11 isn't a cliff. Same format
+  // as levelDifficulty. Net worth targets are unchanged, so saves are too.
+  starterPay: '1:3, 2-7:3, 8-10:2.5, 11-12:1.8, 13-14:1.4',
   // Level rhythm, after the Pixel Flow deconstruction (docs/LEVEL-DESIGN.md):
-  // a Hard level every fourth level from 7, each followed by an easier one.
-  hardFrom: 7,
+  // a Hard level every fourth level from 15 (from 7 before 1.22.0), each
+  // followed by an easier one.
+  hardFrom: 15,
   hardEvery: 4,
   // Difficulty per level (1.19.0), one number each: 1 is a normal level. Each
   // point above 1 adds hardJunkBonus to the junk odds and takes hardFlowSpeedup
@@ -33,9 +43,9 @@ export const DEFAULTS = Object.freeze({
   // or more is a Hard level (labelled, pays 2×); 0.5 or less is a breather.
   // Format: "level:points" entries, later ones win; "7/4" means 7, 11, 15…;
   // "3-5" a range; "20-" level 20 and up. Unlisted levels are 1.
-  // This default is the rhythm above: Hard every fourth level from 7, the
+  // This default is the rhythm above: Hard every fourth level from 15, the
   // level after each a breather.
-  levelDifficulty: '7/4:2, 8/4:0',
+  levelDifficulty: '15/4:2, 16/4:0',
   hardJunkBonus: 0.2,     // junk odds per difficulty point (a Hard level at 2: +0.2)
   hardFlowSpeedup: 1,     // flow turns per difficulty point (a Hard level at 2: one turn faster)
   // Help when stuck (1.19.0): after this many stuck boards on one level the
@@ -48,7 +58,7 @@ export const DEFAULTS = Object.freeze({
   mysteryChance: 0.08,    // odds a chip the flow covers turns face down
   // Level modifiers (docs/LEVEL-DESIGN.md). Each arrives on a normal level and
   // is tested by the next Hard one; after that it turns up on some levels.
-  luckyFrom: 12,          // a Lucky Paw coin on every breather from here
+  luckyFrom: 16,          // a Lucky Paw coin on every breather from here (12 before Hard levels moved to 15)
   lockFrom: 17,           // a locked tube
   lockNeed: 2,            // cash-ins to open it
   frozenFrom: 25,         // frozen coins
@@ -149,14 +159,24 @@ export function parseDifficulty(text) {
   return out;
 }
 
-/** A level's difficulty points from the table: 1 unless a rule says otherwise. */
-export function levelDifficulty(level, cfg = DEFAULTS) {
-  let points = 1;
-  for (const r of parseDifficulty(cfg.levelDifficulty).rules) {
+/** A level's value from a "level:points" table (see parseDifficulty): `fallback` unless a rule says otherwise. */
+export function levelTableValue(text, level, fallback = 1) {
+  let points = fallback;
+  for (const r of parseDifficulty(text).rules) {
     const hit = r.every ? level >= r.from && (level - r.from) % r.every === 0 : level >= r.from && level <= r.to;
     if (hit) points = r.points;
   }
   return points;
+}
+
+/** A level's difficulty points from the table: 1 unless a rule says otherwise. */
+export function levelDifficulty(level, cfg = DEFAULTS) {
+  return levelTableValue(cfg.levelDifficulty, level);
+}
+
+/** What a cash-in pays on this level, as a multiple of its value: 1 to 4 (cfg.starterPay). */
+export function starterPay(level, cfg = DEFAULTS) {
+  return Math.max(1, levelTableValue(cfg.starterPay, level));
 }
 
 /** What kind of level this is, from its difficulty: 'hard' (1.5+), 'breather' (0.5 or less), or 'normal'. */
@@ -251,6 +271,7 @@ export class Game {
     this.moveEarned = 0;      // coins the last move's resolution paid out
     this.freeSorts = options.freeSorts ?? this.cfg.freeSorts;
     this.stuckOn = {};          // level -> stuck boards on it, until it's beaten (help when stuck)
+    this.rescuing = false;      // a gentle level's free Sort is running (rescue)
     this.lifetimeBanks = 0;
 
     this.columns = [];
@@ -342,7 +363,14 @@ export class Game {
     return Math.round(raw / 5) * 5;
   }
 
-  get canAffordSort() { return this.freeSorts > 0 || this.coins >= this.sortPrice; }
+  /** Every Sort costs nothing on the first levels (cfg.sortFreeThrough). */
+  get sortIsFree() { return this.level <= this.cfg.sortFreeThrough; }
+  /** A gentle level never jams: a stuck board sorts itself (cfg.gentleThrough). */
+  get gentle() { return this.level <= this.cfg.gentleThrough; }
+  /** Cash-ins on this level pay this many times their value (cfg.starterPay). */
+  get pay() { return starterPay(this.level, this.cfg); }
+
+  get canAffordSort() { return this.sortIsFree || this.freeSorts > 0 || this.coins >= this.sortPrice; }
   /** Sorting only helps while some tube still holds more than one value. */
   get sortCanHelp() {
     return this.ice.length > 0
@@ -690,7 +718,7 @@ export class Game {
     for (let i = 0; i < this.columnCount; i++) {
       const value = this.bankableValue(i);
       if (!value) continue;
-      const amount = bankValue(value, this.cfg);
+      const amount = Math.round(bankValue(value, this.cfg) * this.pay);
       this.columns[i] = [];
       this.ice = this.ice.filter((f) => f.column !== i);
       this.netWorth += amount;
@@ -698,7 +726,7 @@ export class Game {
       this.lifetimeBanks++;
       banked++;
       this.history.length = 0;
-      this.emit({ type: 'bank', column: i, value, amount, coins: this.cfg.coinsPerBank });
+      this.emit({ type: 'bank', column: i, value, amount, pay: this.pay, coins: this.cfg.coinsPerBank });
     }
     if (banked) this.afterBanks(banked);
     return banked;
@@ -846,6 +874,7 @@ export class Game {
     const stuck = this.forcedStuck;
     this.forcedStuck = false;
     if (!this.isDeadlocked() && !stuck) return false;
+    if (this.gentle) { this.rescue(); return false; }
     this.status = 'locked';
     this.selected = null;
     const wasAssisted = this.assisted;
@@ -864,6 +893,24 @@ export class Game {
       cost: this.sortPrice,
     });
     return true;
+  }
+
+  /**
+   * A gentle level has jammed (1.22.0): no stuck card, no coins, no lost
+   * level. The board sorts itself for free, or, when sorting can't help (or
+   * didn't), deals fresh coins as a cleared board would. Net worth is kept.
+   */
+  rescue() {
+    const how = this.sortCanHelp && !this.rescuing ? 'sort' : 'refill';
+    this.emit({ type: 'rescue', how, level: this.level });
+    if (how === 'sort') {
+      this.rescuing = true;
+      try { this.sort({ free: true }); } finally { this.rescuing = false; }
+    } else {
+      this.status = 'playing';
+      this.selected = null;
+      this.refill();
+    }
   }
 
   /** Fresh chips on a board the player has cleared. The flow clock carries on. */
@@ -931,7 +978,7 @@ export class Game {
     // Sorting shakes the ice loose.
     if (this.ice.length) this.emit({ type: 'thaw', freed: this.ice.map((f) => ({ column: f.column, index: f.index })), cracked: [] });
     this.ice = [];
-    if (free) { /* paid with an ad */ }
+    if (free || this.sortIsFree) { /* paid with an ad, given, or free on an early level */ }
     else if (this.freeSorts > 0) this.freeSorts -= 1;
     else this.wallet.spend(this.sortPrice, 'sort');
     this.selected = null;
@@ -939,7 +986,7 @@ export class Game {
     this.history.length = 0;
     this.forcedStuck = false;
     this.status = 'playing';
-    this.emit({ type: 'sort', coins: this.coins });
+    this.emit({ type: 'sort', coins: this.coins, auto: !!this.rescuing });
 
     this.bankAll();
     this.checkLevelUp();

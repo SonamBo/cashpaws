@@ -289,8 +289,9 @@ async function onLevelBreak() {
   const level = reachedLevel || currentLevel;
   if (screen !== 'game' || adBreakOn) return;
   if (await giftBreak(level)) return;                // no ad straight after the gift card
-  // The rating sheet after levels 2, 10 and 25; that break has no ad.
-  const at = social.reviewDue(level);
+  // The rating sheet after levels 2, 10 and 25, never in the quiet first
+  // levels (it then asks once, at the next break); that break has no ad.
+  const at = quiet(level) ? 0 : social.reviewDue(level);
   if (at) { await social.review(at); return; }
   if (ads.interstitialDue(level, adGate())) await runAdBreak(level);
 }
@@ -308,7 +309,8 @@ let giftOpen = false;
 /** At the break between levels: offer the gift, once. True if a card showed. */
 async function giftBreak(level) {
   if (giftOpen || !config.get('gift_enabled')) return false;
-  if (!G.shouldOffer(shell.gift, level, config.get('gift_after_level'))) return false;
+  const after = Math.max(config.get('gift_after_level'), config.get('quiet_levels'));
+  if (!G.shouldOffer(shell.gift, level, after)) return false;
   giftOpen = true;
   try {
     G.offer(shell.gift, { now: Date.now(), value: questValue(), share: config.get('gift_value_share') });
@@ -472,7 +474,7 @@ function refreshReminders() {
 const canAskReminders = () => !!notify?.available && !shell.reminders.asked && notify.permission() === 'ask';
 
 async function offerReminders(reason) {
-  if (!canAskReminders()) return;
+  if (!canAskReminders() || quiet()) return;
   if (panels.open || anyCardOpen()) return;
   shell.reminders.asked = true;
   save();
@@ -570,6 +572,17 @@ const msSinceStart = () => Math.round(globalThis.performance?.now?.() ?? 0);
 
 /** Still on level 1: the app opens on the board, not the lobby. */
 const isNewPlayer = () => (shell.stats.bestLevel || 1) <= 1;
+
+/*
+ * The quiet first levels (1.22.0, Remote Config quiet_levels): until the
+ * player has beaten this many levels, nothing interrupts them. No gift card,
+ * no reminders question, no rating sheet, and no coin packs offered when
+ * something costs too much (the Shop still sells them to anyone who opens it).
+ * Of 104 new players in Oct-Nov 2026, 63% saw the gift card, 43% the rating
+ * sheet, 40% "Not enough coins" and 28% Google Play's payment sheet in their
+ * first session; 72% were gone before level 4.
+ */
+const quiet = (level = shell.stats.bestLevel || 1) => level <= config.get('quiet_levels');
 
 /** What the ad rules need to know about the player (ads.js interstitialDue). */
 const adGate = () => ({ firstDay: shell.stats.firstDay, today: localDay() });
@@ -671,7 +684,7 @@ async function boot() {
     events: {
       levelWon: onLevelWon, levelLost: onLevelLost, levelBreak: onLevelBreak,
       levelLossWarning, confirmLevelLoss, track,
-      shortOf, shortHelps, openCoins, coinsForSale: () => !!billing?.enabled,
+      shortOf, shortHelps, openCoins, coinsForSale: packsOffered,
       shareFrom: (from) => (social?.canShare ? () => social.share(from) : null),
       lobbyButton: (id, o) => lobby.setExtra(id, o),
       shareFile: (o) => social?.shareFile(o) ?? Promise.resolve(false),
@@ -821,28 +834,35 @@ function onBillingNotice(kind, { coins, pack } = {}) {
   }
 }
 
-/** Whether shortOf() has anything to offer: coin packs, or a rewarded ad for this placement. */
-const shortHelps = (ad) => !!billing?.enabled || !!(ad && ads.rewarded.available(ad));
+/** Coin packs may be offered when something costs too much: sold here, and past the quiet first levels. */
+const packsOffered = () => !!billing?.enabled && !quiet();
+
+/** Whether shortOf() has anything to offer: a rewarded ad for this placement, or coin packs. */
+const shortHelps = (ad) => packsOffered() || !!(ad && ads.rewarded.available(ad));
 
 /**
- * Something costs more than the player has. One card, coin packs first, then
- * a rewarded ad (when the caller has a placement for one), then "Not now".
+ * Something costs more than the player has. One card: a rewarded ad (when the
+ * caller has a placement for one), then coin packs (past the quiet first
+ * levels), then "Not now". Ad first since 1.22.0. With neither, a short note.
  * Resolves 'coins' (the player now has enough), 'ad' (watched to the end)
  * or null. Games reach it as host.shortOf().
  */
 async function shortOf({ price, what, ad = null, adLabel = 'Watch an ad instead' } = {}) {
-  const canBuy = !!billing?.enabled;
+  const canBuy = packsOffered();
   const canAd = !!(ad && ads.rewarded.available(ad));
-  if (!canBuy && !canAd) return null;
   const need = Math.max(1, price - wallet.coins);
+  if (!canBuy && !canAd) {
+    toast(`${coinIcon(18)} <span>${fmtCoins(need)} more coins for ${what}</span>`, 2400);
+    return null;
+  }
   track('coins_short', { what, need, buy: canBuy, ad: canAd });
   const pick = await choose({
     kicker: 'Not enough coins',
     title: `${fmtCoins(need)} more for ${what}`,
-    line: canBuy && canAd ? 'Coin pack or a short ad' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
+    line: canBuy && canAd ? 'A short ad or a coin pack' : canBuy ? 'Get a coin pack' : 'Watch a short ad',
     choices: [
-      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: true },
-      canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: !canBuy },
+      canAd && { id: 'ad', label: `${icons.play(16)} ${adLabel}`, primary: true },
+      canBuy && { id: 'coins', label: `${coinIcon(18)} Get coins`, primary: !canAd },
     ].filter(Boolean),
   });
   if (pick === 'coins') { await openCoins('short'); return wallet.coins >= price ? 'coins' : null; }

@@ -76,7 +76,7 @@ to the background.
 | `do_not_sell` | on |
 | `ftue_step` | step: `move`, `stack`, `bank` (each beat of the first-time tutorial as it starts) |
 | `ftue_complete` | (the player tapped Got it on the progress-bar spotlight) |
-| `gift_offer` | level, coins, remind (whether "Remind me tomorrow" was offered): tomorrow's gift, once after the first level won (after level 3 before 1.21.0) |
+| `gift_offer` | level, coins, remind (whether "Remind me tomorrow" was offered): tomorrow's gift, once after the quiet first levels are beaten (`quiet_levels`, 10, since 1.22.0; after the first level won in 1.21.0, after level 3 before) |
 | `gift_claim` | coins, days (local days since the offer; 1 = next day), from_reminder |
 | `reminders_offer` | reason (`gift`/`box`/`quest`), yes (the in-game ask, or the gift card's buttons) |
 | `reminders_permission` | granted (Android's own prompt), reason |
@@ -103,7 +103,7 @@ to the background.
 | `iap_view` | from: `tab` (the Shop tab), `pill` (the + on the coin counter), `short` ("Get coins" when something cost too much). Only once Play has returned prices. |
 | `iap_start` | product, coins (the player tapped a price) |
 | `iap_result` | product, status: `purchased`, `pending`, `cancelled`, `owned` (an earlier purchase being finished), `error` |
-| `coins_short` | what (`a Sort`, a cat or chip set), need, buy (coin packs offered), ad (an ad offered): the "Not enough coins" card. Coin packs come first, then the ad. |
+| `coins_short` | what (`a Sort`, a cat or chip set), need, buy (coin packs offered), ad (an ad offered): the "Not enough coins" card. The ad comes first, then coin packs (1.22.0; packs first before). Not sent when there is nothing to offer, which includes a new player in the quiet first levels with no ad available. |
 | `iap_granted` | product, coins, quantity, order (`yes`/`no`): coins actually added, once per purchase |
 | `in_app_purchase` | Logged by Firebase itself for every Google Play purchase, with the price and currency. **Revenue reports come from this one**; the shell sends no revenue of its own, so nothing is counted twice. |
 

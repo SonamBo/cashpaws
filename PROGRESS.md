@@ -1583,3 +1583,46 @@ to expensive ads) is deliberately not copied: every rule here only eases.
 To do after release: update the hosted privacy policy from
 `docs/PRIVACY-POLICY.md`. No Data safety change: Remote Config uses the same
 Firebase app-instance ID already declared.
+
+## 1.22.0: the first ten levels, quick and quiet
+
+Review, 4 Nov (GA, the 104 players who installed 31 Oct–4 Nov, 90% India,
+most from the paid campaign): D1 ~20% for paid installs, 0 of 23 organic.
+Where they went, by levels reached: beat level 1 71%, level 2 44%, level 3
+28%, level 5 16%, level 10 11%. 65% had already uninstalled.
+- 22 skipped the tutorial; skippers plus 8 who quit are the ~30 who never
+  beat level 1.
+- Levels took a bot that plays well 23 moves (level 1) and 24–37 (2–10),
+  and could jam from level 1.
+- The first session asked a lot: the gift card 63%, the rating sheet 43%,
+  the reminders question 44% (and Android's prompt 31%), "Not enough
+  coins" 40%, the coin shop 59%, Google Play's payment sheet 28%, and no
+  one paid. Only 3 watched a rewarded ad; ads failed to load for 19.
+
+Changes (each a Remote Config value, so it can be tuned or undone without
+an update):
+- **Short first levels** (`starter_pay`, default `1:3, 2-7:3, 8-10:2.5,
+  11-12:1.8, 13-14:1.4`): cash-ins pay up to 3×, easing off by level 15.
+  Targets unchanged, so saves are too. Bot: level 1 in 6 moves (was 23),
+  levels 2–10 in 8–16 (24–37); levels 1–10 in 114 moves, was 317.
+- **Can't jam** (`gentle_through` 10): a stuck board on levels 1–10 sorts
+  itself ("Shuffled for you"), or deals fresh coins when sorting can't help.
+  No stuck card, no lost level. Event `auto_rescue`.
+- **Sort free** (`sort_free_through` 10) on levels 1–10.
+- **No Skip in the tutorial** (`tutorial_skip` false).
+- **Quiet first levels** (shell, `quiet_levels` 10): no gift card, reminders
+  question, rating sheet or coin-pack offer until level 10 is beaten. The
+  Shop still sells coins to anyone who opens it.
+- **An ad before a coin pack** when something costs too much (shell
+  `shortOf`, Money Sort's stuck card). With nothing to offer, a short note
+  instead of a silent tap.
+- **Hard levels from 15** (`level_difficulty` `15/4:2, 16/4:0`, was from
+  7); Lucky Paw from 16 (was 12); Bell Quest opens once level 10 is beaten
+  (was 7).
+
+What to watch (new installs on 1.22.0; directional until ~300): beat
+level 1 85%+ (was 71%), level 3 60%+ (28%), level 10 30%+ (11%); D1 30%+
+for paid installs. `auto_rescue` per level; `level_up` seconds for levels
+1–10 (aim: under a minute each).
+
+- versionCode 33, versionName 1.22.0.

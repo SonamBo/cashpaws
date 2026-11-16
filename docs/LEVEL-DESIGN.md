@@ -156,3 +156,27 @@ mouse thief. Candidates after that: a tube that only takes one value.
 - `tools/tune.mjs` — the harness that produced every number here.
 - `test/sim.js` — rules, including the rhythm and face-down chips.
 - `test/rhythm.mjs`, `test/newplayer.mjs` — both in the running app.
+
+## 1.22: the first ten levels
+
+Measured on real players, not bots: of 104 new players (31 Oct–4 Nov 2026),
+71% beat level 1, 44% level 2, 28% level 3, 11% level 10. The first ten
+levels took a good bot about 317 moves, roughly 20 minutes for a person;
+Pixel Flow's take about 7. A board could jam from level 1, and a jam with no
+coins asked for money.
+
+| | 1.21 | 1.22 |
+|---|---|---|
+| Cash-in pay, levels 1–7 / 8–10 / 11–12 / 13–14 | 1× | 3× / 2.5× / 1.8× / 1.4× |
+| A jam on levels 1–10 | stuck card: Sort, ad, coins or drop | sorts itself, free (`gentle_through`) |
+| Sort on levels 1–10 | one free, then 150+ coins | always free (`sort_free_through`) |
+| First Hard level | 7 | 15 |
+| Lucky Paw | breathers from 12 | breathers from 16 |
+| Bot moves, level 1 / levels 1–10 | 23 / 317 | 6 / 114 |
+
+Pay rather than targets: the net worth a level needs is unchanged, so saves,
+the Progress table and every level after 14 stay as they were. The pay
+eases off over 8–14 so level 15 isn't a cliff; levels 11–14 still take a
+good bot 21–34 moves, against 35–51 before. New chips (levels 3, 5), tubes
+(even levels) and face-down chips (9) arrive as before, so each early level
+still brings something.

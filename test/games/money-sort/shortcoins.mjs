@@ -46,7 +46,8 @@ async function openGame() {
   await p.goto('http://localhost:8080/css/tokens.css');
   await p.evaluate(() => localStorage.clear());
   await p.goto('http://localhost:8080/?dev=1&lobby=1'); await p.waitForTimeout(900);
-  await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; });
+  // Past the quiet first ten levels (1.22.0): before them no coin packs are offered.
+  await p.evaluate(() => { shell.flags['money-sort'] = { ftue: true }; shell.reminders.asked = true; shell.stats.bestLevel = 12; });
   await p.evaluate(() => window.CashPaws.onBack()); await p.waitForTimeout(300);
   await p.click('[data-play]'); await p.waitForTimeout(500);
   return { ctx, p };
@@ -59,6 +60,7 @@ console.log('--- the Sort button, short of coins ---');
 {
   const { ctx, p } = await openGame();
   await p.evaluate(() => {
+    game.level = 11; game.netWorth = game.floor;      // Sort is free on levels 1-10
     game.columns = [[5, 10, 20], [10, 20], [20, 5], [10, 5], []];
     game.freeSorts = 0; game.status = 'playing'; game.selected = null; game.locked = null; game.ice = [];
     wallet.set(0); view.update();
@@ -68,7 +70,7 @@ console.log('--- the Sort button, short of coins ---');
   await p.click('[data-sort]'); await p.waitForTimeout(700);
   if (process.env.SHOTS) await p.screenshot({ path: process.env.SHOTS + '/short-sort.png' });
   const o = await order(p);
-  check('tapping it offers coin packs first, then the ad', o[0] === 'coins' && o[1] === 'ad' && o.includes('cancel'), o.join(' > '));
+  check('tapping it offers the ad first, then coin packs', o[0] === 'ad' && o[1] === 'coins' && o.includes('cancel'), o.join(' > '));
   await p.locator('[data-choice="coins"]').click(); await p.waitForTimeout(600);
   check('"Get coins" opens the Shop at its coin packs', await p.evaluate(() => document.querySelector('.panel-sheet').classList.contains('in')));
   const price = await p.evaluate(() => game.sortPrice);
@@ -95,6 +97,7 @@ console.log('--- the stuck card, short of coins ---');
 {
   const { ctx, p } = await openGame();
   const [f, t] = await p.evaluate(() => {
+    game.level = Math.max(game.level, 11); game.netWorth = Math.max(game.netWorth, game.floor); // past the gentle first levels (1.22.0)
     game.columns = [[5, 10, 20], [10, 20, 50, 20], [20, 50, 5, 10], [50, 5, 10, 5], [5, 20, 10, 5]];
     game.freeSorts = 0; game.status = 'playing'; game.selected = null; game.locked = null; game.ice = [];
     game.turnsUntilDrop = 6; game.undoSnapshot = null; wallet.set(0); view.update();
@@ -104,7 +107,7 @@ console.log('--- the stuck card, short of coins ---');
   await p.click(`.tube[data-col="${t}"]`); await p.waitForTimeout(900);
   if (process.env.SHOTS) await p.screenshot({ path: process.env.SHOTS + '/short-stuck.png' });
   const o = await p.locator('.ovl-locked .ovl-card button').evaluateAll((bs) => bs.map((x) => Object.keys(x.dataset)[0]));
-  check('the stuck card offers coins, then the ad, then dropping a level', o.join() === 'buyCoins,adSort,drop', o.join());
+  check('the stuck card offers the ad, then coins, then dropping a level', o.join() === 'adSort,buyCoins,drop', o.join());
   await p.locator('[data-buy-coins]').click(); await p.waitForTimeout(600);
   await p.locator('.panel-sheet [data-close]').click(); await p.waitForTimeout(700);
   check('closing the Shop without buying brings the card back', await p.locator('.ovl-locked [data-buy-coins]').count() === 1);

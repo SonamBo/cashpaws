@@ -13,12 +13,12 @@ let pass = 0;
 const fails = [];
 const ok = (name, cond) => (cond ? pass++ : fails.push(name));
 
-/* ---- the default table is 1.18's rhythm ---- */
-const old = (l) => { if (l < 7) return 'normal'; const k = (l - 7) % 4; return k === 0 ? 'hard' : k === 1 ? 'breather' : 'normal'; };
+/* ---- the default table: 1.18's rhythm, starting at 15 (1.22.0) instead of 7 ---- */
+const rhythm = (l) => { if (l < 15) return 'normal'; const k = (l - 15) % 4; return k === 0 ? 'hard' : k === 1 ? 'breather' : 'normal'; };
 let same = true;
-for (let l = 1; l < 300; l++) if (levelKind(l) !== old(l)) same = false;
-ok('default table: Hard and breather levels exactly as in 1.18', same);
-ok('default: normal 1, Hard 2, breather 0', levelDifficulty(5) === 1 && levelDifficulty(11) === 2 && levelDifficulty(12) === 0);
+for (let l = 1; l < 300; l++) if (levelKind(l) !== rhythm(l)) same = false;
+ok('default table: Hard every fourth level from 15, a breather after each', same);
+ok('default: normal 1, Hard 2, breather 0', levelDifficulty(5) === 1 && levelDifficulty(15) === 2 && levelDifficulty(16) === 0);
 
 /* ---- parsing ---- */
 const t = parseDifficulty('1-3:0.5, 9:1.5, 20-:1.2, x:2, 4/0:1, 5:7');
@@ -35,15 +35,15 @@ ok('empty table: everything normal', levelKind(11, { ...DEFAULTS, levelDifficult
 /* ---- what the points do ---- */
 const at = (level, extra = {}) => new Game({ seed: 1, level, config: extra });
 ok('normal level: flow and junk as configured', at(5).currentInterval === 7 && Math.abs(at(5).junkOdds - 0.4) < 1e-9);
-ok('Hard level: one turn faster, +0.2 junk (as 1.18)', at(11).currentInterval === 6 && Math.abs(at(11).junkOdds - 0.6) < 1e-9);
-ok('breather: one turn slower (as 1.18), less junk', at(12).currentInterval === 8 && Math.abs(at(12).junkOdds - 0.2) < 1e-9);
+ok('Hard level: one turn faster, +0.2 junk (as 1.18)', at(15).currentInterval === 6 && Math.abs(at(15).junkOdds - 0.6) < 1e-9);
+ok('breather: one turn slower (as 1.18), less junk', at(16).currentInterval === 8 && Math.abs(at(16).junkOdds - 0.2) < 1e-9);
 ok('difficulty 3: two turns faster', at(5, { levelDifficulty: '5:3' }).currentInterval === 5);
 ok('flow never faster than 3 turns', at(5, { levelDifficulty: '5:4', flowInterval: 4 }).currentInterval === 3);
 ok('junk odds stay within 0 and 0.9', at(5, { levelDifficulty: '5:4', junkChance: 0.8 }).junkOdds === 0.9 && at(5, { levelDifficulty: '5:0', junkChance: 0.1 }).junkOdds === 0);
 
 /* ---- help when stuck ---- */
 {
-  const g = at(11);
+  const g = at(15);
   const seen = [];
   g.on((e) => seen.push(e));
   g.forcedStuck = true; g.checkLock();
@@ -60,11 +60,11 @@ ok('junk odds stay within 0 and 0.9', at(5, { levelDifficulty: '5:4', junkChance
   const back = Game.deserialize(saved, {});
   ok('stuck counts survive a save', back.stuckHere === 3 && back.assisted);
 
-  g.netWorth = netWorthFloor(12, g.cfg);
+  g.netWorth = netWorthFloor(16, g.cfg);
   g.checkLevelUp();
   const up = seen.find((e) => e.type === 'levelup');
   ok('level-up reports the level was helped', up?.assisted === true);
-  ok('beating the level clears its count', g.level === 12 && g.stuckHere === 0 && !g.assisted && !(11 in g.stuckOn));
+  ok('beating the level clears its count', g.level === 16 && g.stuckHere === 0 && !g.assisted && !(15 in g.stuckOn));
 }
 {
   const g = at(15, { assistAfterStuck: 0 });
@@ -72,7 +72,7 @@ ok('junk odds stay within 0 and 0.9', at(5, { levelDifficulty: '5:4', junkChance
   ok('assist_after_stuck 0 switches help off', !g.assisted && g.difficulty === 2);
 }
 {
-  const g = at(9, { assistAfterStuck: 1, assistEase: 3 });
+  const g = at(13, { assistAfterStuck: 1, assistEase: 3 });
   g.forcedStuck = true; g.checkLock();
   ok('difficulty never goes below 0', g.assisted && g.difficulty === 0);
 }
@@ -91,7 +91,9 @@ ok('old saves without stuck counts load', Game.deserialize({ ...at(5).serialize(
 const R = moneySort.remote;
 ok('Money Sort remote keys are valid', checkSpecs(R).length === 0);
 ok('every remote default equals the engine default',
-   Object.values(R).every((s) => s.default === DEFAULTS[s.engine]));
+   Object.values(R).filter((s) => s.engine).every((s) => s.default === DEFAULTS[s.engine]));
+ok('the first-session keys are there (1.22.0)', ['sort_free_through', 'gentle_through', 'starter_pay', 'tutorial_skip'].every((k) => k in R));
+ok('a tutorial without Skip by default', R.tutorial_skip.default === false && !R.tutorial_skip.engine);
 ok('a typed table comes through as text', parseValue(R.level_difficulty, '1-5:0.8, 7/4:2').value === '1-5:0.8, 7/4:2');
 
 console.log(`Difficulty tests: ${pass}/${pass + fails.length} passed`);

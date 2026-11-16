@@ -42,6 +42,7 @@ export function vmOf(g) {
     canUndo: g.canUndo,
     canAffordSort: g.canAffordSort,
     freeSorts: g.freeSorts,
+    sortIsFree: g.sortIsFree,
     kind: g.kind,
     sortPrice: g.sortPrice,
     sortCanHelp: g.sortCanHelp,
@@ -308,7 +309,7 @@ export class BoardView {
       this.markLifted(tube, vm.columns[i] || [], vm.capacity, vm.selected === i);
     });
 
-    this.el.sortCost.textContent = vm.freeSorts > 0 ? 'Free' : vm.sortPrice;   // rises with the level
+    this.el.sortCost.textContent = vm.sortIsFree || vm.freeSorts > 0 ? 'Free' : vm.sortPrice;   // rises with the level
     this.root.classList.toggle('hard-level', vm.kind === 'hard');
     this.el.undo.disabled = !vm.canUndo;
     // Short of coins, Sort stays tappable while the shell has a way to help
@@ -508,6 +509,15 @@ export class BoardView {
       this.el.flow.appendChild(badge);
       setTimeout(() => badge.remove(), 1000);
     }
+  }
+
+  /** A short word on the flow strip, such as a gentle level sorting itself. */
+  note(text) {
+    const badge = document.createElement('span');
+    badge.className = 'flow-badge flow-note';
+    badge.textContent = text;
+    this.el.flow.appendChild(badge);
+    setTimeout(() => badge.remove(), 1600);
   }
 
   /** Green pulse and a rising figure when a column banks. */

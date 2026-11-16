@@ -34,6 +34,7 @@ export const SHELL_KEYS = Object.freeze({
   gift_enabled:              { default: true, type: 'bool', about: 'Tomorrow\'s gift for new players.' },
   gift_after_level:          { default: 1, type: 'int', min: 1, max: 100, about: 'The gift is offered once this level is beaten.' },
   gift_value_share:          { default: 2, type: 'num', min: 0.25, max: 20, about: 'The gift is worth this many of the game\'s reward value (Money Sort: Sorts).' },
+  quiet_levels:              { default: 10, type: 'int', min: 0, max: 100, about: 'A new player\'s first levels have no interruptions: tomorrow\'s gift, the reminders question, the rating sheet and coin-pack offers wait until this level is beaten. 0 = off.' },
 });
 
 const NAME = /^[a-zA-Z][a-zA-Z0-9_]{0,99}$/;

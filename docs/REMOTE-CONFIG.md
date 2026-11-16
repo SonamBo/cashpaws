@@ -39,6 +39,7 @@ keys in its manifest's `remote` field and reads them with `host.remote(key)`
 | `gift_enabled` | `true` | true/false | Tomorrow's gift for new players. |
 | `gift_after_level` | `1` | 1–100 | The gift is offered once this level is beaten. |
 | `gift_value_share` | `2` | 0.25–20 | The gift is worth this many of the game's reward value. |
+| `quiet_levels` | `10` | 0–100 | A new player's first levels have no interruptions: tomorrow's gift, the reminders question, the rating sheet and coin-pack offers wait until this level is beaten (1.22.0). The gift comes at whichever is later, this or `gift_after_level`. `0` = off. |
 
 A game's own keys are listed in its folder (Cash Paws:
 `www/games/money-sort/REMOTE.md`).

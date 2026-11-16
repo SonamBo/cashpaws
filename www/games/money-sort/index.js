@@ -40,11 +40,16 @@ export function migrateV1(saved) {
  */
 const REMOTE = {
   free_sort_through: { default: 5, type: 'int', min: 1, max: 50, engine: 'freeSortThrough', about: 'Levels up to this one start with a free Sort.' },
+  // The first session (1.22.0): short, unloseable early levels, no coins asked.
+  sort_free_through: { default: 10, type: 'int', min: 0, max: 50, engine: 'sortFreeThrough', about: 'Every Sort is free on levels up to this one. 0 = off.' },
+  gentle_through:    { default: 10, type: 'int', min: 0, max: 50, engine: 'gentleThrough', about: 'Levels up to this one can\'t jam: a stuck board sorts itself (or deals fresh coins), free, with no stuck card. 0 = off.' },
+  starter_pay:       { default: '1:3, 2-7:3, 8-10:2.5, 11-12:1.8, 13-14:1.4', type: 'string', engine: 'starterPay', about: 'Cash-ins pay this many times their value on early levels (1 to 4), so they finish in fewer moves. Same format as level_difficulty; unlisted levels pay 1x.' },
+  tutorial_skip:     { default: false, type: 'bool', about: 'Show "Skip tutorial" in the first tips. Off: the tips stay until the first cash-in (they never block play).' },
   flow_interval:     { default: 7, type: 'int', min: 4, max: 12, engine: 'flowInterval', about: 'Turns between inflows at the start of a level (more = easier).' },
   junk_chance:       { default: 0.4, type: 'num', min: 0, max: 0.8, engine: 'junkChance', about: 'Odds a drop-5+ chip is a junk 5 (less = easier).' },
   hard_junk_bonus:   { default: 0.2, type: 'num', min: 0, max: 0.5, engine: 'hardJunkBonus', about: 'Junk odds added per difficulty point above 1 (removed per point below).' },
   hard_flow_speedup: { default: 1, type: 'num', min: 0, max: 3, engine: 'hardFlowSpeedup', about: 'Flow turns faster per difficulty point above 1 (slower per point below).' },
-  level_difficulty:  { default: '7/4:2, 8/4:0', type: 'string', engine: 'levelDifficulty', about: 'Difficulty per level; 1 is normal, 1.5+ is Hard (pays 2x), 0.5 or less a breather. "7/4:2" = 7, 11, 15... at 2; "3-5:0.5" a range; "20-:1.2" 20 and up. Later entries win; unlisted levels are 1.' },
+  level_difficulty:  { default: '15/4:2, 16/4:0', type: 'string', engine: 'levelDifficulty', about: 'Difficulty per level; 1 is normal, 1.5+ is Hard (pays 2x), 0.5 or less a breather. "7/4:2" = 7, 11, 15... at 2; "3-5:0.5" a range; "20-:1.2" 20 and up. Later entries win; unlisted levels are 1.' },
   assist_after_stuck:{ default: 2, type: 'int', min: 0, max: 20, engine: 'assistAfterStuck', about: 'Stuck boards on one level before it quietly plays easier until beaten. 0 = off.' },
   assist_ease:       { default: 1, type: 'num', min: 0, max: 3, engine: 'assistEase', about: 'Difficulty points taken off a level once help is on.' },
 };
@@ -53,6 +58,7 @@ const REMOTE = {
 function remoteEngineConfig(host) {
   const out = {};
   for (const [key, spec] of Object.entries(REMOTE)) {
+    if (!spec.engine) continue;           // read by the game itself, not the engine
     const v = host.remote?.(key);
     if (v !== undefined && v !== null) out[spec.engine] = v;
   }
@@ -65,9 +71,10 @@ export default {
   remote: REMOTE,
   name: 'Money Sort',
   saveVersion: 2,          // 2: shorter levels (1.6); older saves are rescaled on load
-  // Bell Quest opens once level 7, the first Hard level, is beaten. A step is a
-  // level-up; dropping a level knocks you out, a Sort does not.
-  quest: { unlockLevel: 8, steps: 7 },
+  // Bell Quest opens once level 10 is beaten, when the quiet first levels end
+  // (1.22.0; before, once level 7, then the first Hard level, was beaten). A
+  // step is a level-up; dropping a level knocks you out, a Sort does not.
+  quest: { unlockLevel: 11, steps: 7 },
   // Coin reasons that fire many times a level; analytics sums them per level.
   analytics: { batch: ['bank', 'undo-reversal'] },
   styles: ['style.css'],
@@ -160,6 +167,10 @@ export default {
             modifiers: Object.keys(e.mods || {}).filter((k) => e.mods[k]).join(',') || 'none',
           });
         }
+        if (e.type === 'rescue') {
+          // A gentle level jammed and sorted itself (1.22.0): what would have been a stuck card.
+          host.track('auto_rescue', { level: e.level, how: e.how });
+        }
         if (e.type === 'assist') {
           host.track('assist_on', { level: e.level, stuck: e.stuck, difficulty: e.difficulty });
         }
@@ -248,7 +259,7 @@ export default {
             else if (m.lucky) gains.push('A Lucky Paw coin is on the board');
             if (e.kind === 'hard') gains.push('Next: Hard level · faster, pays 2×');
             if (e.kind === 'breather') gains.push('Hard level beaten · easier next');
-            gains.push(e.freeSort ? 'Sort: free this level' : `Sort: ${vm.sortPrice}`);
+            gains.push(vm.sortIsFree || e.freeSort ? 'Sort: free this level' : `Sort: ${vm.sortPrice}`);
             gains.push(`+${e.coins} coins${e.beatHard ? ' &middot; Hard bonus' : ''}`);
             await host.celebrate({
               juicy: true,                                   // the big card: stars, fireworks, confetti
@@ -286,6 +297,12 @@ export default {
             break;
           }
 
+          case 'rescue':
+            // The sort or fresh coins that follow do the moving; this just says why.
+            view.note(e.how === 'sort' ? 'Shuffled for you' : 'Fresh coins');
+            await wait(260);
+            break;
+
           case 'refill': {
             const before = view.counts();
             paint(vm);
@@ -298,7 +315,7 @@ export default {
             let choice;
             let v = vm;
             for (;;) {
-              // Broke and stuck: coin packs first (where sold), then an ad pays for the Sort.
+              // Broke and stuck: an ad pays for the Sort, then coin packs (where sold, past the quiet first levels).
               const short = !v.canAffordSort && v.sortCanHelp;
               const buyOffer = short && host.coinsForSale();
               const adOffer = short && host.rewarded.available('rescue-sort');
@@ -306,7 +323,7 @@ export default {
                 level: v.level, kind: v.kind, can_sort: !!e.canSort, free: v.freeSorts > 0,
                 coins: host.wallet.coins, price: v.sortPrice, ad_offer: !!adOffer, buy_offer: !!buyOffer,
               });
-              choice = await stuckCard(host, e, v, v.freeSorts > 0 ? 'Free' : v.sortPrice, adOffer, buyOffer);
+              choice = await stuckCard(host, e, v, v.sortIsFree || v.freeSorts > 0 ? 'Free' : v.sortPrice, adOffer, buyOffer);
               // A drop is already confirmed: the card itself warns if it would cost
               // an event such as Bell Quest (host.levelLossWarning).
               if (choice === 'buy') {
@@ -321,7 +338,7 @@ export default {
             }
             // Each of these emits into the same live queue, so the loop carries on.
             host.track('stuck_choice', { level: vm.level, choice });
-            if (choice === 'sort') { trackSort(vm.freeSorts > 0 ? 'free' : 'paid', 'stuck'); game.sort(); }
+            if (choice === 'sort') { trackSort(vm.sortIsFree || vm.freeSorts > 0 ? 'free' : 'paid', 'stuck'); game.sort(); }
             else if (choice === 'free-sort') { trackSort('ad', 'stuck'); game.sort({ free: true }); host.stat('adSorts'); }
             else game.loseLevel();
             break;
@@ -371,6 +388,8 @@ export default {
 
     /** A board restored mid-lock puts the card back in front of the player. */
     async function resolveLock() {
+      // Saved stuck on a level that is gentle now: it sorts itself instead.
+      if (game.gentle) { frames = []; game.status = 'playing'; game.rescue(); await drain(); return; }
       const vm = vmOf(game);
       frames = [{ e: { type: 'lock', canSort: vm.sortCanHelp && vm.canAffordSort }, vm }];
       await drain();
@@ -405,9 +424,9 @@ export default {
     let asking = false;
     async function onSort() {
       if (busy || asking || !game.sortCanHelp) return;
-      let how = game.freeSorts > 0 ? 'free' : 'paid';
+      let how = game.sortIsFree || game.freeSorts > 0 ? 'free' : 'paid';
       if (!game.canAffordSort) {
-        // Short: coin packs first, then an ad for a free Sort (host.shortOf).
+        // Short: an ad for a free Sort, then coin packs (host.shortOf).
         asking = true;
         const got = await host.shortOf({ price: game.sortPrice, what: 'a Sort', ad: 'rescue-sort', adLabel: 'Watch an ad &middot; free Sort' });
         asking = false;

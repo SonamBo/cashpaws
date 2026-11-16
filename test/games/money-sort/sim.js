@@ -4,7 +4,11 @@
  * engine's invariants after every single action. Usage: node test/sim.js [games]
  */
 
-import { Game, columnsForLevel, netWorthFloor, poolForLevel, levelKind, levelModifiers, DEFAULTS, WILD } from '../../../www/games/money-sort/engine.js';
+import { Game, columnsForLevel, netWorthFloor, poolForLevel, levelKind, levelModifiers, starterPay, DEFAULTS, WILD } from '../../../www/games/money-sort/engine.js';
+
+// The rules as they stand past the first levels: no starter pay, Sort priced,
+// a jam is a jam. The first levels' own rules are tested on their own below.
+const PLAIN = { starterPay: '', sortFreeThrough: 0, gentleThrough: 0 };
 
 const GAMES = Number(process.argv[2] || 2000);
 const MAX_TURNS = 1500;
@@ -214,7 +218,7 @@ function unitTests() {
 
   // Banking pays value x stack.
   {
-    const g = new Game({ seed: 7 });
+    const g = new Game({ seed: 7, config: PLAIN });
     g.columns = [[50, 50, 50], [50], [10, 20], [], []];   // keep chips elsewhere
     const net = g.netWorth;                                 // so the board is not cleared
     g.move(1, 0);
@@ -323,7 +327,7 @@ function unitTests() {
 
   // Sort gathers each value into its own tube.
   {
-    const g = new Game({ seed: 5, freeSorts: 0 });
+    const g = new Game({ seed: 5, freeSorts: 0, config: PLAIN });
     g.coins = 500;
     g.columns = [[1, 5, 10, 1], [5, 1, 10, 5], [10, 10, 1, 5], [1, 5, 10, 1], [5, 10, 1, 10]];
     const before = g.netWorth;
@@ -355,7 +359,7 @@ function unitTests() {
     ok('sort costs 150 at level 1', at(1) === 150);
     ok('and 25 more each level', at(2) === 175 && at(10) === 375);
     ok("Biscuit's perk takes 50 off at every level", at(1, { sortCost: 100 }) === 100 && at(10, { sortCost: 100 }) === 325);
-    const g = new Game({ seed: 2, level: 6, freeSorts: 0 });
+    const g = new Game({ seed: 2, level: 6, freeSorts: 0, config: PLAIN });
     g.coins = 1000;
     g.columns = [[1, 5, 10, 1], [5, 1, 10, 5], [10, 10, 1, 5], [1, 5, 10, 1], [5, 10, 1, 10], [20, 1, 5, 10], [10, 20, 5, 1]];
     let paid = 0; g.on((e) => { if (e.type === 'bank') paid += DEFAULTS.coinsPerBank; });
@@ -370,34 +374,32 @@ function unitTests() {
 
   // A new player's first Sort is free, so level 1 cannot be lost to being broke.
   {
-    const g = new Game({ seed: 21 });
+    const g = new Game({ seed: 21, config: PLAIN });
     ok('a new game starts with one free Sort', g.freeSorts === 1);
     g.coins = 0;
     g.columns = [[1, 5, 10, 1], [5, 1, 10, 5], [10, 10, 1, 5], [1, 5, 10, 1], [5, 10, 1, 10]];
     ok('a broke new player can still Sort', g.canAffordSort === true);
     g.sort();
     ok('the free Sort costs no coins', g.coins >= 0 && g.freeSorts === 0);
-    ok('and the next one is paid again', new Game({ seed: 21, freeSorts: 0 }).canAffordSort === false || true);
-    const h = new Game({ seed: 22, freeSorts: 0 });
+    ok('and the next one is paid again', new Game({ seed: 21, freeSorts: 0, config: PLAIN }).canAffordSort === false || true);
+    const h = new Game({ seed: 22, freeSorts: 0, config: PLAIN });
     h.coins = 0;
     ok('with no free Sort left, a broke player cannot Sort', h.canAffordSort === false);
-    const saved = Game.deserialize(JSON.parse(JSON.stringify(g.serialize())));
+    const saved = Game.deserialize(JSON.parse(JSON.stringify(g.serialize())), { config: PLAIN });
     ok('a used free Sort stays used after a reload', saved.freeSorts === 0);
   }
 
-  // Level rhythm: Hard every fourth level from 7, each followed by a breather.
+  // Level rhythm: Hard every fourth level from 15 (from 7 before 1.22.0), each followed by a breather.
   {
-    const kinds = Array.from({ length: 20 }, (_, i) => levelKind(i + 1)).join(',');
-    ok('levels 1-6 are all normal', [1, 2, 3, 4, 5, 6].every((l) => levelKind(l) === 'normal'));
-    ok('Hard at 7, 11, 15, 19', [7, 11, 15, 19].every((l) => levelKind(l) === 'hard'));
-    ok('a breather after each', [8, 12, 16, 20].every((l) => levelKind(l) === 'breather'));
+    ok('levels 1-14 are all normal', Array.from({ length: 14 }, (_, i) => i + 1).every((l) => levelKind(l) === 'normal'));
+    ok('Hard at 15, 19, 23, 27', [15, 19, 23, 27].every((l) => levelKind(l) === 'hard'));
+    ok('a breather after each', [16, 20, 24, 28].every((l) => levelKind(l) === 'breather'));
     ok('no Hard level introduces anything new',
-       [7, 11, 15, 19].every((l) => columnsForLevel(l) === columnsForLevel(l - 1)
+       [15, 19, 23, 27].every((l) => columnsForLevel(l) === columnsForLevel(l - 1)
          && poolForLevel(l).length === poolForLevel(l - 1).length && l !== DEFAULTS.mysteryFrom));
-    void kinds;
-    const hard = new Game({ seed: 3, level: 7 });
-    const normal = new Game({ seed: 3, level: 6 });
-    const easy = new Game({ seed: 3, level: 8 });
+    const hard = new Game({ seed: 3, level: 15 });
+    const normal = new Game({ seed: 3, level: 14 });
+    const easy = new Game({ seed: 3, level: 16 });
     ok('the flow runs faster on a Hard level', hard.currentInterval === normal.currentInterval - 1);
     ok('and slower on the breather', easy.currentInterval === normal.currentInterval + 1);
     let paid = 0;
@@ -405,6 +407,57 @@ function unitTests() {
     hard.on((e) => { if (e.type === 'levelup') paid = e.coins; });
     hard.netWorth = hard.nextFloor; hard.checkLevelUp();
     ok('beating a Hard level pays double', paid === DEFAULTS.coinsPerLevelUp * 2);
+  }
+
+  // The first levels (1.22.0): short, can't jam, Sort free.
+  {
+    ok('level 1 cash-ins pay 3x', starterPay(1) === 3);
+    ok('starter pay eases off: 2.5x at 10, 1.4x at 14, 1x from 15',
+       starterPay(10) === 2.5 && starterPay(14) === 1.4 && starterPay(15) === 1 && starterPay(40) === 1);
+    ok('starter pay is never below 1', starterPay(3, { ...DEFAULTS, starterPay: '1-5:0.2' }) === 1);
+    const g = new Game({ seed: 7 });
+    g.columns = [[10, 10, 10], [10], [5, 1], [], []];
+    const net = g.netWorth;
+    let ev = null; g.on((e) => { if (e.type === 'bank') ev = e; });
+    g.move(1, 0);
+    ok('a tube of four 10s at level 1 banks $120', g.netWorth - net === 120 && ev.amount === 120 && ev.pay === 3);
+
+    ok('Sort is free through level 10', new Game({ seed: 1, level: 10 }).sortIsFree && !new Game({ seed: 1, level: 11 }).sortIsFree);
+    const f = new Game({ seed: 21, level: 4, freeSorts: 0 });
+    f.coins = 0;
+    f.columns = [[1, 5, 10, 1], [5, 1, 10, 5], [10, 10, 1, 5], [1, 5, 10, 1], [5, 10, 1, 10], [], []];
+    ok('a broke player can Sort on level 4', f.canAffordSort === true);
+    f.sort();
+    ok('and it costs nothing', f.coins >= 0 && f.coins === f.lifetimeBanks * DEFAULTS.coinsPerBank);
+
+    // A gentle level that jams sorts itself: no lock, no stuck card.
+    const j = new Game({ seed: 9, level: 3 });
+    j.columns = [[1, 5, 10, 20], [5, 1, 20, 10], [10, 20, 1, 5], [20, 10, 5, 1], [1, 5, 10, 20], [5, 1, 20, 10]];
+    j.turnsUntilDrop = 5;
+    const seen = []; j.on((e) => seen.push(e.type));
+    j.checkLock();
+    ok('a jammed gentle level does not lock', j.status === 'playing' && !seen.includes('lock'));
+    ok('it sorts itself instead, for free', seen.includes('rescue') && seen.includes('sort'));
+    ok('and the board has a move again', j.legalMoves().length > 0);
+    ok('no stuck count, so no help-when-stuck', j.stuckHere === 0);
+
+    // Nothing to sort (every tube pure, none can take another): fresh coins.
+    const k = new Game({ seed: 9, level: 2 });
+    k.columns = [[1, 1, 1], [5, 5, 5], [10, 10, 10], [20, 20, 20], [50, 50, 50], [2, 2, 2]];
+    const kev = []; k.on((e) => kev.push(e));
+    const wasNet = k.netWorth;
+    k.checkLock();
+    ok('pure but stuck: fresh coins instead', kev.some((e) => e.type === 'rescue' && e.how === 'refill') && kev.some((e) => e.type === 'refill'));
+    ok('which keeps net worth and has a move', k.netWorth === wasNet && k.legalMoves().length > 0 && k.status === 'playing');
+
+    const l = new Game({ seed: 9, level: 11 });
+    l.columns = [[1, 5, 10, 20], [5, 1, 20, 10], [10, 20, 1, 5], [20, 10, 5, 1], [1, 5, 10, 20], [5, 1, 20, 10], [10, 20, 1, 5]];
+    l.checkLock();
+    ok('level 11 jams as before', l.status === 'locked');
+    const off = new Game({ seed: 9, level: 3, config: { gentleThrough: 0 } });
+    off.columns = [[1, 5, 10, 20], [5, 1, 20, 10], [10, 20, 1, 5], [20, 10, 5, 1], [1, 5, 10, 20], [5, 1, 20, 10]];
+    off.checkLock();
+    ok('gentle_through 0 turns it off', off.status === 'locked');
   }
 
   // Face-down chips.
