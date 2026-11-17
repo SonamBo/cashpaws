@@ -24,7 +24,7 @@ they merge cleanly only if the shared files were left alone.
 | `www/games/<your-id>/`: your game, its art, styles, events, `web.json` and `web.css` | `www/games/template/`: the reference game; copy it, don't edit it |
 | `www/games/active.js`: which game is installed | `www/index.html`, `www/css/` |
 | `test/games/<your-id>/`: your game's tests | `android/` except the files listed on the left |
-| `www/img/logo.png`, `www/img/tagline.png` | `.github/workflows/android.yml` |
+| `www/img/logo.png`, `www/img/tagline.png`, `www/img/cat-hero.png` (the lobby picture) | `.github/workflows/android.yml` |
 | Launcher icons: `android/app/src/main/res/mipmap-*/`, `drawable/ic_launcher_foreground.xml` | `test/*.js`, `test/*.mjs`, `test/preflight.js` |
 | `android/app/google-services.json` (Firebase) | `docs/GAME-MODULE.md`, `docs/ANALYTICS.md`, `docs/BELL-QUEST.md`, `docs/DESIGN-SYSTEM.md` |
 | `android/ads.properties` (AdMob IDs) | `BUILDING.md`, `RELEASING.md`, `SETUP.md`, this file |

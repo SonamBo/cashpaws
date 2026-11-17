@@ -45,7 +45,9 @@ Edit `www/app.config.js`:
 | `contactEmail` | The support address on your Play listing |
 
 Then replace the placeholders: `www/img/logo.png` (199×132) and
-`www/img/tagline.png` (180×17) for the lobby; the launcher icons in
+`www/img/tagline.png` (180×17) for the lobby, and optionally the lobby
+picture `www/img/cat-hero.png` (about 630 px wide, see-through ground; size
+it with `.lobby-hero` in your game's stylesheet); the launcher icons in
 `android/app/src/main/res/mipmap-*/` (`ic_fg.png` is the adaptive foreground
 on a 108 dp canvas, keep the art inside the middle 66 dp);
 `drawable/ic_launcher_foreground.xml` for the themed (monochrome) icon; and
