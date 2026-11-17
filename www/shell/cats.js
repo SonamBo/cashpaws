@@ -23,7 +23,7 @@ export const CATS = [
   { id: 'mittens', name: 'Mittens', hasArt: true, price: 300,
     note: 'Quick paws, quicker regrets.',
     unlock: { stat: 'coinsEarned', need: 300, label: 'Earn 300 coins' } },
-  { id: 'soot', name: 'Soot', hasArt: false, price: 600,
+  { id: 'soot', name: 'Soot', hasArt: true, price: 600,
     note: 'Hears trouble coming.',
     unlock: { stat: 'coinsEarned', need: 500, label: 'Earn 500 coins' } },
   { id: 'marmalade', name: 'Marmalade', hasArt: true, price: 1000,

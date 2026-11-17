@@ -152,8 +152,6 @@ AppLovin MAX was never live (its keys stayed blank). 1.12.0 serves rewarded ads 
 
 ## Housekeeping carried forward
 
-- **Soot has no artwork** and plays as Patch. Four poses, per
-  `docs/CAT-ART-PROMPTS.md`, then `tools/import_cat.py` and `hasArt: true`.
 - **The peek pose** for the newer cats is a full body where Patch's is cropped
   at the chest, so they sit smaller on the ledge.
 - **No bundled font.** Android falls back to Roboto.
